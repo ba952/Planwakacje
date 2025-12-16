@@ -1,0 +1,57 @@
+[
+  {
+    "id": "zakopane",
+    "displayName": "Zakopane, Polska",
+    "country": "Polska",
+    "region": "Góry",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 200,
+    "typicalBudgetPerDay": 300,
+    "tags": ["Góry", "Aktywny"],
+    "apiQuery": "Zakopane,PL"
+  },
+  {
+    "id": "krakow",
+    "displayName": "Kraków, Polska",
+    "country": "Polska",
+    "region": "Europa - miasto",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 220,
+    "typicalBudgetPerDay": 320,
+    "tags": ["Zwiedzanie", "Miasto"],
+    "apiQuery": "Krakow,PL"
+  },
+  {
+    "id": "barcelona",
+    "displayName": "Barcelona, Hiszpania",
+    "country": "Hiszpania",
+    "region": "Morze Śródziemne",
+    "climate": "Ciepły",
+    "minBudgetPerDay": 320,
+    "typicalBudgetPerDay": 420,
+    "tags": ["Plaża", "Zwiedzanie", "Aktywny"],
+    "apiQuery": "Barcelona,ES"
+  },
+  {
+    "id": "rome",
+    "displayName": "Rzym, Włochy",
+    "country": "Włochy",
+    "region": "Europa - miasto",
+    "climate": "Ciepły",
+    "minBudgetPerDay": 300,
+    "typicalBudgetPerDay": 400,
+    "tags": ["Zwiedzanie", "Miasto"],
+    "apiQuery": "Rome,IT"
+  },
+  {
+    "id": "split",
+    "displayName": "Split, Chorwacja",
+    "country": "Chorwacja",
+    "region": "Morze Śródziemne",
+    "climate": "Ciepły",
+    "minBudgetPerDay": 260,
+    "typicalBudgetPerDay": 340,
+    "tags": ["Plaża", "Relaks", "Zwiedzanie"],
+    "apiQuery": "Split,HR"
+  }
+]

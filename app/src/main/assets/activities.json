@@ -1,0 +1,173 @@
+[
+  {
+    "id": "old_town_walk",
+    "title": "Spacer po starówce",
+    "description": "Poznanie najważniejszych zabytków, klimatycznych uliczek i lokalnych kawiarni.",
+    "type": "CULTURE",
+    "suitableRegions": ["Europa - miasto", "Morze Śródziemne"],
+    "suitableStyles": ["Zwiedzanie", "Mix"],
+    "indoor": false
+  },
+  {
+    "id": "museum_visit",
+    "title": "Zwiedzanie muzeum",
+    "description": "Spokojne zwiedzanie muzeum lub galerii sztuki – dobra opcja na gorszą pogodę.",
+    "type": "CULTURE",
+    "suitableRegions": ["Europa - miasto"],
+    "suitableStyles": ["Zwiedzanie", "Relaks"],
+    "indoor": true
+  },
+  {
+    "id": "castle_tour",
+    "title": "Zwiedzanie zamku lub twierdzy",
+    "description": "Wycieczka z przewodnikiem po zamku, fortyfikacjach lub zabytkowym wzgórzu.",
+    "type": "CULTURE",
+    "suitableRegions": ["Europa - miasto", "Góry"],
+    "suitableStyles": ["Zwiedzanie", "Mix"],
+    "indoor": false
+  },
+  {
+    "id": "mountain_trail",
+    "title": "Wyjście na górski szlak",
+    "description": "Całodniowa wycieczka z widokami, postoje na zdjęcia i schronisko po drodze.",
+    "type": "NATURE",
+    "suitableRegions": ["Góry"],
+    "suitableStyles": ["Aktywny", "Mix"],
+    "indoor": false
+  },
+  {
+    "id": "valley_walk",
+    "title": "Spacer doliną górską",
+    "description": "Łagodniejsza trasa spacerowa z możliwością postoju w schronisku.",
+    "type": "NATURE",
+    "suitableRegions": ["Góry"],
+    "suitableStyles": ["Relaks", "Mix"],
+    "indoor": false
+  },
+  {
+    "id": "viewpoint_sunset",
+    "title": "Punkt widokowy o zachodzie słońca",
+    "description": "Wejście na wzgórze lub punkt widokowy z panoramą miasta, gór lub morza.",
+    "type": "NATURE",
+    "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Góry"],
+    "suitableStyles": ["Zwiedzanie", "Aktywny", "Mix"],
+    "indoor": false
+  },
+  {
+    "id": "beach_day",
+    "title": "Dzień na plaży",
+    "description": "Plażowanie, kąpiel w morzu, lekka aktywność typu spacer po promenadzie.",
+    "type": "RELAX",
+    "suitableRegions": ["Morze Śródziemne"],
+    "suitableStyles": ["Relaks", "Mix"],
+    "indoor": false
+  },
+  {
+    "id": "sea_promenade",
+    "title": "Spacer nadmorską promenadą",
+    "description": "Wieczorny spacer przy morzu z lodami lub kolacją w jednej z restauracji.",
+    "type": "RELAX",
+    "suitableRegions": ["Morze Śródziemne"],
+    "suitableStyles": ["Relaks", "Zwiedzanie", "Mix"],
+    "indoor": false
+  },
+  {
+    "id": "spa_evening",
+    "title": "Wieczór w spa / termach",
+    "description": "Relaks w gorących źródłach, saunie lub basenie termalnym.",
+    "type": "RELAX",
+    "suitableRegions": ["Góry", "Europa - miasto"],
+    "suitableStyles": ["Relaks", "Mix"],
+    "indoor": true
+  },
+  {
+    "id": "local_food",
+    "title": "Degustacja lokalnej kuchni",
+    "description": "Kolacja w polecanej restauracji z regionalnymi specjałami.",
+    "type": "FOOD",
+    "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Góry"],
+    "suitableStyles": ["Relaks", "Zwiedzanie", "Aktywny", "Mix"],
+    "indoor": true
+  },
+  {
+    "id": "street_food_tour",
+    "title": "Tour ze street foodem",
+    "description": "Przejście po najciekawszych miejscach z lokalnymi przekąskami i jedzeniem ulicznym.",
+    "type": "FOOD",
+    "suitableRegions": ["Europa - miasto", "Morze Śródziemne"],
+    "suitableStyles": ["Zwiedzanie", "Mix"],
+    "indoor": false
+  },
+  {
+    "id": "kayak_trip",
+    "title": "Spływ kajakowy lub rejs łódką",
+    "description": "Relaksująca, ale aktywna forma spędzania czasu na wodzie.",
+    "type": "ACTIVE",
+    "suitableRegions": ["Morze Śródziemne", "Góry"],
+    "suitableStyles": ["Aktywny", "Mix"],
+    "indoor": false
+  },
+  {
+    "id": "bike_city",
+    "title": "Zwiedzanie miasta na rowerze",
+    "description": "Objazd najważniejszych atrakcji na rowerze miejskim lub wypożyczonym.",
+    "type": "ACTIVE",
+    "suitableRegions": ["Europa - miasto"],
+    "suitableStyles": ["Aktywny", "Mix"],
+    "indoor": false
+  },
+  {
+    "id": "hiking_halfday",
+    "title": "Półdniowy trekking",
+    "description": "Średnio wymagający trekking z czasem na zdjęcia i odpoczynek.",
+    "type": "ACTIVE",
+    "suitableRegions": ["Góry"],
+    "suitableStyles": ["Aktywny", "Mix"],
+    "indoor": false
+  },
+  {
+    "id": "evening_oldtown",
+    "title": "Wieczorny spacer po centrum",
+    "description": "Spokojne przejście po oświetlonej starówce, kawiarnia lub lody na zakończenie dnia.",
+    "type": "NIGHT",
+    "suitableRegions": ["Europa - miasto", "Morze Śródziemne"],
+    "suitableStyles": ["Relaks", "Zwiedzanie", "Mix"],
+    "indoor": false
+  },
+  {
+    "id": "live_music_bar",
+    "title": "Wieczór w barze z muzyką na żywo",
+    "description": "Wyjście na koncert lub do baru z lokalnym zespołem muzycznym.",
+    "type": "NIGHT",
+    "suitableRegions": ["Europa - miasto"],
+    "suitableStyles": ["Mix", "Aktywny"],
+    "indoor": true
+  },
+  {
+    "id": "local_market",
+    "title": "Wizyta na lokalnym targu",
+    "description": "Zakupy lokalnych produktów, przypraw, rękodzieła i poznanie codziennego życia mieszkańców.",
+    "type": "CULTURE",
+    "suitableRegions": ["Europa - miasto", "Morze Śródziemne"],
+    "suitableStyles": ["Zwiedzanie", "Relaks", "Mix"],
+    "indoor": false
+  },
+  {
+    "id": "city_park_relax",
+    "title": "Relaks w parku miejskim",
+    "description": "Spokojny spacer, czytanie książki lub piknik w zielonej części miasta.",
+    "type": "RELAX",
+    "suitableRegions": ["Europa - miasto"],
+    "suitableStyles": ["Relaks", "Mix"],
+    "indoor": false
+  },
+  {
+    "id": "photo_walk",
+    "title": "Spacer fotograficzny",
+    "description": "Wyjście w najbardziej fotogeniczne miejsca miasta lub okolicy z nastawieniem na robienie zdjęć.",
+    "type": "CULTURE",
+    "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Góry"],
+    "suitableStyles": ["Zwiedzanie", "Mix"],
+    "indoor": false
+  }
+]
