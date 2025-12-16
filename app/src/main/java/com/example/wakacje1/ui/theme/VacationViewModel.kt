@@ -6,6 +6,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.wakacje1.data.PlanStorage
+import com.example.wakacje1.data.StoredDestination
+import com.example.wakacje1.data.StoredInternalDayPlan
+import com.example.wakacje1.data.StoredPlan
+import com.example.wakacje1.data.StoredPreferences
 import com.example.wakacje1.data.WeatherRepository
 import com.example.wakacje1.data.model.ActivitiesRepository
 import com.example.wakacje1.data.model.Destination
@@ -15,9 +20,10 @@ import com.example.wakacje1.data.model.InternalDayPlan
 import com.example.wakacje1.data.model.PlanGenerator
 import com.example.wakacje1.data.model.Preferences
 import kotlinx.coroutines.launch
+import util.PdfExporter
 import java.util.Calendar
+import java.util.UUID
 
-// UI dla pogody bieżącej
 data class WeatherUiState(
     val loading: Boolean = false,
     val city: String? = null,
@@ -26,7 +32,6 @@ data class WeatherUiState(
     val error: String? = null
 )
 
-// UI dla pogody dziennej (pod plan)
 data class DayWeatherUi(
     val dateMillis: Long,
     val tempMin: Double?,
@@ -40,33 +45,28 @@ class VacationViewModel(application: Application) : AndroidViewModel(application
     private val destinationRepository = DestinationRepository(application)
     private val activitiesRepository = ActivitiesRepository(application)
 
-    // preferencje
     var preferences by mutableStateOf<Preferences?>(null)
         private set
 
-    // 3 propozycje wyjazdu
     var destinationSuggestions by mutableStateOf<List<Destination>>(emptyList())
         private set
 
     var chosenDestination by mutableStateOf<Destination?>(null)
         private set
 
-    // finalny plan do UI
     var plan by mutableStateOf<List<DayPlan>>(emptyList())
         private set
 
-    // struktura planu do edycji slotów
     private var internalPlanDays: MutableList<InternalDayPlan> = mutableListOf()
 
-    // pogoda
+    var canEditPlan by mutableStateOf(true)
+        private set
+
     var weather by mutableStateOf(WeatherUiState())
         private set
 
-    // prognoza dzienna pod plan
     var dayWeatherByDate by mutableStateOf<Map<Long, DayWeatherUi>>(emptyMap())
         private set
-
-    // ========================= Preferencje =========================
 
     fun updatePreferences(prefs: Preferences) {
         preferences = prefs
@@ -74,11 +74,10 @@ class VacationViewModel(application: Application) : AndroidViewModel(application
         chosenDestination = null
         plan = emptyList()
         internalPlanDays = mutableListOf()
+        canEditPlan = true
         weather = WeatherUiState()
         dayWeatherByDate = emptyMap()
     }
-
-    // ========================= Propozycje miejsc =========================
 
     fun prepareDestinationSuggestions() {
         val prefs = preferences ?: run {
@@ -92,7 +91,6 @@ class VacationViewModel(application: Application) : AndroidViewModel(application
 
         val scored = all.map { d ->
             var score = 0.0
-
             if (prefs.region == d.region) score += 3.0
             if (prefs.climate == d.climate) score += 2.0
             if (d.tags.any { it.equals(prefs.style, ignoreCase = true) }) score += 1.5
@@ -104,7 +102,6 @@ class VacationViewModel(application: Application) : AndroidViewModel(application
                 ratio <= 1.6 -> score += 2.0
                 else -> score += 1.0
             }
-
             d to score
         }.filter { it.second > -50.0 }
 
@@ -118,16 +115,14 @@ class VacationViewModel(application: Application) : AndroidViewModel(application
         chosenDestination = destination
         plan = emptyList()
         internalPlanDays = mutableListOf()
+        canEditPlan = true
         dayWeatherByDate = emptyMap()
 
-        // od razu odpal pogodę
         if (destination.apiQuery.isNotBlank()) {
             loadWeatherForCity(destination.apiQuery)
             loadForecastForTrip()
         }
     }
-
-    // ========================= Pogoda (bieżąca) =========================
 
     fun loadWeatherForCity(cityQuery: String, force: Boolean = false) {
         viewModelScope.launch {
@@ -138,8 +133,7 @@ class VacationViewModel(application: Application) : AndroidViewModel(application
                     loading = false,
                     city = r.city,
                     temperature = r.temperature,
-                    description = r.description,
-                    error = null
+                    description = r.description
                 )
             } catch (e: Exception) {
                 weather = WeatherUiState(
@@ -150,13 +144,10 @@ class VacationViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    // ========================= Prognoza na dni wyjazdu =========================
-
     fun loadForecastForTrip(force: Boolean = false) {
         val prefs = preferences ?: return
         val dest = chosenDestination ?: return
         val startMillis = prefs.startDateMillis ?: return
-
         val days = prefs.days.coerceAtLeast(1)
 
         viewModelScope.launch {
@@ -197,8 +188,6 @@ class VacationViewModel(application: Application) : AndroidViewModel(application
         return dayWeatherByDate[dayMillis]?.isBadWeather ?: false
     }
 
-    // ========================= Generowanie planu =========================
-
     fun generatePlan() {
         val prefs = preferences ?: return
         val dest = chosenDestination ?: return
@@ -211,13 +200,12 @@ class VacationViewModel(application: Application) : AndroidViewModel(application
             isBadWeatherForDayIndex = { idx -> isBadWeatherForDayIndex(idx) }
         )
 
-        // budujemy plan do UI
+        canEditPlan = true
         plan = rebuildUiPlanWithWeather()
     }
 
-    // ========================= Edycja planu =========================
-
     fun regenerateDay(dayIndex: Int) {
+        if (!canEditPlan) return
         val prefs = preferences ?: return
         val dest = chosenDestination ?: return
         val allActivities = activitiesRepository.getAllActivities()
@@ -233,7 +221,96 @@ class VacationViewModel(application: Application) : AndroidViewModel(application
 
         plan = rebuildUiPlanWithWeather()
     }
+
+    fun savePlanLocally(): String {
+        val ctx = getApplication<Application>()
+        val prefs = preferences ?: return "Brak preferencji."
+        val dest = chosenDestination ?: return "Brak wybranego miejsca."
+        if (internalPlanDays.isEmpty()) return "Brak planu do zapisu (wygeneruj plan)."
+
+        val stored = StoredPlan(
+            id = UUID.randomUUID().toString(),
+            createdAtMillis = System.currentTimeMillis(),
+            destination = StoredDestination.from(dest),
+            preferences = StoredPreferences.from(prefs),
+            internalDays = internalPlanDays.map { StoredInternalDayPlan.from(it) }
+        )
+
+        return try {
+            PlanStorage.savePlan(ctx, stored)
+            "Zapisano lokalnie."
+        } catch (e: Exception) {
+            "Błąd zapisu: ${e.message ?: "?"}"
+        }
+    }
+
+    fun loadPlanLocally(): String {
+        val ctx = getApplication<Application>()
+        val stored = PlanStorage.loadPlan(ctx) ?: return "Brak zapisanego planu."
+
+        preferences = stored.preferences?.toPreferences()
+        chosenDestination = stored.destination.toDestination()
+        internalPlanDays = stored.internalDays.map { it.toInternalDayPlan() }.toMutableList()
+
+        canEditPlan = true
+        plan = rebuildUiPlanWithWeather()
+
+        // pogoda jako dodatek – możesz odświeżyć przyciskiem
+        weather = WeatherUiState()
+        dayWeatherByDate = emptyMap()
+
+        return "Wczytano plan lokalny."
+    }
+
+    fun exportCurrentPlanToPdf(): String {
+        val ctx = getApplication<Application>()
+        if (plan.isEmpty()) return "Brak planu do eksportu."
+
+        return try {
+            val title = "Plan wyjazdu – ${chosenDestination?.displayName ?: "Plan"}"
+            val fileName = "plan_${System.currentTimeMillis()}.pdf"
+            val file = PdfExporter.exportPlanToPdf(ctx, fileName, title, plan)
+            "PDF zapisany: ${file.absolutePath}"
+        } catch (e: Exception) {
+            "Błąd PDF: ${e.message ?: "?"}"
+        }
+    }
+
+    private fun rebuildUiPlanWithWeather(): List<DayPlan> {
+        val dest = chosenDestination ?: return emptyList()
+        val base = PlanGenerator.rebuildDayPlans(internalPlanDays, dest.displayName)
+
+        val startMillis = preferences?.startDateMillis
+        if (startMillis == null || dayWeatherByDate.isEmpty()) return base
+
+        val oneDay = 24L * 60 * 60 * 1000L
+        val startNorm = normalizeToLocalMidnight(startMillis)
+
+        return base.mapIndexed { idx, dayPlan ->
+            val dayMillis = startNorm + oneDay * idx
+            val w = dayWeatherByDate[dayMillis]
+            if (w == null) dayPlan else {
+                val temps = if (w.tempMin != null && w.tempMax != null) " (${w.tempMin.toInt()}°C – ${w.tempMax.toInt()}°C)" else ""
+                val desc = w.description ?: ""
+                val note = if (w.isBadWeather) " (pogoda słaba → indoor)" else ""
+                dayPlan.copy(details = dayPlan.details + "\n\nPogoda: $desc$temps$note")
+            }
+        }
+    }
+
+    private fun normalizeToLocalMidnight(millis: Long): Long {
+        val cal = Calendar.getInstance()
+        cal.timeInMillis = millis
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        return cal.timeInMillis
+    }
+    // --- brakujące akcje z PlanScreen.kt ---
+
     fun moveDayUp(index: Int) {
+        if (!canEditPlan) return
         if (index <= 0 || index >= internalPlanDays.size) return
         val tmp = internalPlanDays[index - 1]
         internalPlanDays[index - 1] = internalPlanDays[index]
@@ -242,6 +319,7 @@ class VacationViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun moveDayDown(index: Int) {
+        if (!canEditPlan) return
         if (index < 0 || index >= internalPlanDays.size - 1) return
         val tmp = internalPlanDays[index + 1]
         internalPlanDays[index + 1] = internalPlanDays[index]
@@ -250,6 +328,7 @@ class VacationViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun rollNewActivity(dayIndex: Int, slot: com.example.wakacje1.data.model.DaySlot) {
+        if (!canEditPlan) return
         val prefs = preferences ?: return
         val dest = chosenDestination ?: return
         val allActivities = activitiesRepository.getAllActivities()
@@ -268,6 +347,7 @@ class VacationViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun setCustomActivity(dayIndex: Int, slot: com.example.wakacje1.data.model.DaySlot, title: String, description: String) {
+        if (!canEditPlan) return
         PlanGenerator.setCustomSlot(
             dayIndex = dayIndex,
             slot = slot,
@@ -278,46 +358,4 @@ class VacationViewModel(application: Application) : AndroidViewModel(application
         plan = rebuildUiPlanWithWeather()
     }
 
-    // ========================= Składanie opisu + pogoda =========================
-
-    private fun rebuildUiPlanWithWeather(): List<DayPlan> {
-        val dest = chosenDestination ?: return emptyList()
-        val base = PlanGenerator.rebuildDayPlans(internalPlanDays, dest.displayName)
-
-        // dopinamy ładną linijkę z pogodą (jeśli prognoza jest)
-        val prefs = preferences
-        val startMillis = prefs?.startDateMillis
-        if (startMillis == null || dayWeatherByDate.isEmpty()) return base
-
-        val oneDay = 24L * 60 * 60 * 1000L
-        val startNorm = normalizeToLocalMidnight(startMillis)
-
-        return base.mapIndexed { idx, dayPlan ->
-            val dayMillis = startNorm + oneDay * idx
-            val w = dayWeatherByDate[dayMillis]
-            if (w == null) dayPlan
-            else {
-                val temps = when {
-                    w.tempMin != null && w.tempMax != null ->
-                        " (${w.tempMin.toInt()}°C – ${w.tempMax.toInt()}°C)"
-                    else -> ""
-                }
-                val desc = w.description ?: ""
-                val note = if (w.isBadWeather) " (pogoda słaba → preferowane atrakcje indoor)" else ""
-                dayPlan.copy(details = dayPlan.details + "\n\nPogoda: $desc$temps$note")
-            }
-        }
-    }
-
-    // ========================= Pomocnicze =========================
-
-    private fun normalizeToLocalMidnight(millis: Long): Long {
-        val cal = Calendar.getInstance()
-        cal.timeInMillis = millis
-        cal.set(Calendar.HOUR_OF_DAY, 0)
-        cal.set(Calendar.MINUTE, 0)
-        cal.set(Calendar.SECOND, 0)
-        cal.set(Calendar.MILLISECOND, 0)
-        return cal.timeInMillis
-    }
 }

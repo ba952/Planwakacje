@@ -1,35 +1,37 @@
 package screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.unit.dp
 import com.example.wakacje1.data.model.Preferences
 import com.example.wakacje1.ui.theme.VacationViewModel
@@ -41,15 +43,23 @@ fun PreferencesScreen(
     viewModel: VacationViewModel,
     onNext: () -> Unit
 ) {
-    val budgetText = rememberSaveable { mutableStateOf("") }
-
-    val regionOptions = listOf("Europa - miasto", "Morze Śródziemne", "Góry", "Azja", "Ameryka")
+    // --- opcje ---
+    val regionOptions = listOf(
+        "Europa - miasto",
+        "Morze Śródziemne",
+        "Góry",
+        "Azja",
+        "Ameryka"
+    )
     val climateOptions = listOf("Ciepły", "Umiarkowany", "Chłodny")
     val styleOptions = listOf("Relaks", "Zwiedzanie", "Aktywny", "Mix")
 
-    val region = rememberSaveable { mutableStateOf(regionOptions.first()) }
-    val climate = rememberSaveable { mutableStateOf(climateOptions[1]) }
-    val style = rememberSaveable { mutableStateOf(styleOptions.first()) }
+    // --- stan ---
+    val budgetText = rememberSaveable { mutableStateOf("") }
+
+    val regionIndex = rememberSaveable { mutableIntStateOf(0) }
+    val climateIndex = rememberSaveable { mutableIntStateOf(1) }
+    val styleIndex = rememberSaveable { mutableIntStateOf(0) }
 
     val startDateMillis = rememberSaveable { mutableStateOf<Long?>(null) }
     val endDateMillis = rememberSaveable { mutableStateOf<Long?>(null) }
@@ -59,131 +69,162 @@ fun PreferencesScreen(
 
     val error = remember { mutableStateOf<String?>(null) }
 
+    val computedDays = computeDays(startDateMillis.value, endDateMillis.value)
+
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Preferencje podróży") }) }
+        topBar = { TopAppBar(title = { Text("Preferencje podróży") }) },
+        bottomBar = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                error.value?.let {
+                    Text(it, color = MaterialTheme.colorScheme.error)
+                    Spacer(Modifier.height(8.dp))
+                }
+
+                Button(
+                    onClick = {
+                        val budget = budgetText.value.toIntOrNull()
+                        val start = startDateMillis.value
+                        val end = endDateMillis.value
+                        val days = computeDays(start, end)
+
+                        when {
+                            budget == null || budget <= 0 -> {
+                                error.value = "Podaj poprawny budżet (liczba > 0)."
+                                return@Button
+                            }
+                            start == null || end == null -> {
+                                error.value = "Wybierz datę startu i końca."
+                                return@Button
+                            }
+                            days == null || days < 1 -> {
+                                error.value = "Niepoprawny zakres dat."
+                                return@Button
+                            }
+                            days > 21 -> {
+                                error.value = "Za długi wyjazd jak na demo (max 21 dni)."
+                                return@Button
+                            }
+                            else -> error.value = null
+                        }
+
+                        viewModel.updatePreferences(
+                            Preferences(
+                                budget = budget,
+                                days = days,
+                                climate = climateOptions[climateIndex.intValue],
+                                region = regionOptions[regionIndex.intValue],
+                                style = styleOptions[styleIndex.intValue],
+                                startDateMillis = normalizeToLocalMidnight(start!!),
+                                endDateMillis = normalizeToLocalMidnight(end!!)
+                            )
+                        )
+
+                        onNext()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Dalej")
+                }
+            }
+        }
     ) { padding ->
-        Column(
+
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
+                .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                ) {
+                    Column(Modifier.padding(14.dp)) {
+                        Text(
+                            text = "Ustaw parametry, a aplikacja zaproponuje 3 miejsca i wygeneruje plan dzień po dniu.",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            }
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
-            ) {
-                Column(Modifier.padding(14.dp)) {
+            item {
+                SectionCard(title = "Budżet") {
+                    OutlinedTextField(
+                        value = budgetText.value,
+                        onValueChange = { budgetText.value = it.filter(Char::isDigit) },
+                        label = { Text("Budżet całkowity (PLN)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(6.dp))
                     Text(
-                        text = "Uzupełnij preferencje, a aplikacja zaproponuje 3 miejsca i wygeneruje plan dni.",
-                        style = MaterialTheme.typography.bodyMedium
+                        text = "Wpisuj tylko cyfry. Aplikacja i tak przeliczy budżet na dzień.",
+                        style = MaterialTheme.typography.bodySmall
                     )
                 }
             }
 
-            OutlinedTextField(
-                value = budgetText.value,
-                onValueChange = { budgetText.value = it.filter { ch -> ch.isDigit() } },
-                label = { Text("Budżet całkowity (PLN)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth()
-            )
+            item {
+                SectionCard(title = "Preferencje") {
+                    SimpleDropdownField(
+                        label = "Region",
+                        value = regionOptions[regionIndex.intValue],
+                        options = regionOptions,
+                        onSelect = { regionIndex.intValue = it }
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    SimpleDropdownField(
+                        label = "Klimat",
+                        value = climateOptions[climateIndex.intValue],
+                        options = climateOptions,
+                        onSelect = { climateIndex.intValue = it }
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    SimpleDropdownField(
+                        label = "Typ podróży",
+                        value = styleOptions[styleIndex.intValue],
+                        options = styleOptions,
+                        onSelect = { styleIndex.intValue = it }
+                    )
+                }
+            }
 
-            SimplePickRow(
-                label = "Region",
-                options = regionOptions,
-                selected = region.value,
-                onSelected = { region.value = it }
-            )
+            item {
+                SectionCard(title = "Daty wyjazdu") {
+                    OutlinedButton(
+                        onClick = { showStartPicker.value = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("Wybierz datę startu") }
 
-            SimplePickRow(
-                label = "Klimat",
-                options = climateOptions,
-                selected = climate.value,
-                onSelected = { climate.value = it }
-            )
+                    Spacer(Modifier.height(8.dp))
 
-            SimplePickRow(
-                label = "Typ podróży",
-                options = styleOptions,
-                selected = style.value,
-                onSelected = { style.value = it }
-            )
+                    OutlinedButton(
+                        onClick = { showEndPicker.value = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("Wybierz datę końca") }
 
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Zakres dat", style = MaterialTheme.typography.titleMedium)
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        OutlinedButton(
-                            onClick = { showStartPicker.value = true },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Start")
-                        }
-
-                        OutlinedButton(
-                            onClick = { showEndPicker.value = true },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Koniec")
-                        }
-                    }
+                    Spacer(Modifier.height(10.dp))
+                    Divider()
+                    Spacer(Modifier.height(10.dp))
 
                     Text("Start: ${startDateMillis.value?.let { formatDate(it) } ?: "—"}")
                     Text("Koniec: ${endDateMillis.value?.let { formatDate(it) } ?: "—"}")
-
-                    val days = computeDays(startDateMillis.value, endDateMillis.value)
-                    Text("Liczba dni: ${days ?: "—"}")
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = "Liczba dni: ${computedDays ?: "—"}",
+                        style = MaterialTheme.typography.titleSmall
+                    )
                 }
             }
 
-            error.value?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-
-            Spacer(Modifier.height(6.dp))
-
-            Button(
-                onClick = {
-                    val budget = budgetText.value.toIntOrNull()
-                    val start = startDateMillis.value
-                    val end = endDateMillis.value
-                    val days = computeDays(start, end)
-
-                    when {
-                        budget == null || budget <= 0 -> {
-                            error.value = "Podaj poprawny budżet (liczba > 0)."
-                            return@Button
-                        }
-                        start == null || end == null -> {
-                            error.value = "Wybierz datę startu i końca."
-                            return@Button
-                        }
-                        days == null || days < 1 -> {
-                            error.value = "Niepoprawny zakres dat."
-                            return@Button
-                        }
-                        else -> error.value = null
-                    }
-
-                    viewModel.updatePreferences(
-                        Preferences(
-                            budget = budget,
-                            days = days!!,
-                            climate = climate.value,
-                            region = region.value,
-                            style = style.value,
-                            startDateMillis = normalizeToLocalMidnight(start!!),
-                            endDateMillis = normalizeToLocalMidnight(end!!)
-                        )
-                    )
-
-                    // u Ciebie wcześniej było prepareDestinationSuggestions() w PreferencesScreen,
-                    // ale teraz robimy to w NavGraph (po kliknięciu Dalej).
-                    onNext()
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("Dalej") }
+            // zapas pod bottomBar, żeby dało się przewinąć do końca
+            item { Spacer(Modifier.height(110.dp)) }
         }
     }
 
@@ -191,10 +232,10 @@ fun PreferencesScreen(
         SingleDateDialog(
             title = "Wybierz datę startu",
             onDismiss = { showStartPicker.value = false },
-            onPick = {
-                startDateMillis.value = it
+            onPick = { picked ->
+                startDateMillis.value = picked
                 val e = endDateMillis.value
-                if (e != null && it > e) endDateMillis.value = null
+                if (e != null && picked > e) endDateMillis.value = null
                 showStartPicker.value = false
             }
         )
@@ -204,17 +245,77 @@ fun PreferencesScreen(
         SingleDateDialog(
             title = "Wybierz datę końca",
             onDismiss = { showEndPicker.value = false },
-            onPick = {
+            onPick = { picked ->
                 val s = startDateMillis.value
-                if (s != null && it < s) {
+                if (s != null && picked < s) {
                     error.value = "Data końca nie może być wcześniejsza niż start."
                 } else {
-                    endDateMillis.value = it
+                    endDateMillis.value = picked
                     error.value = null
                 }
                 showEndPicker.value = false
             }
         )
+    }
+}
+
+@Composable
+private fun SectionCard(
+    title: String,
+    content: @Composable () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(Modifier.padding(14.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(10.dp))
+            content()
+        }
+    }
+}
+
+/**
+ * Dropdown bez ExposedDropdownMenu i bez ikon:
+ * - OutlinedTextField readOnly
+ * - klik w pole otwiera DropdownMenu
+ */
+@Composable
+private fun SimpleDropdownField(
+    label: String,
+    value: String,
+    options: List<String>,
+    onSelect: (Int) -> Unit
+) {
+    val expanded = remember { mutableStateOf(false) }
+
+    Column {
+        OutlinedTextField(
+            value = value,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(label) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded.value = true }
+        )
+
+        DropdownMenu(
+            expanded = expanded.value,
+            onDismissRequest = { expanded.value = false },
+            properties = PopupProperties(focusable = true)
+        ) {
+            options.forEachIndexed { idx, opt ->
+                DropdownMenuItem(
+                    text = { Text(opt) },
+                    onClick = {
+                        onSelect(idx)
+                        expanded.value = false
+                    }
+                )
+            }
+        }
     }
 }
 
@@ -230,49 +331,21 @@ private fun SingleDateDialog(
     DatePickerDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            Button(onClick = {
-                val v = state.selectedDateMillis
-                if (v != null) onPick(v) else onDismiss()
-            }) { Text("OK") }
+            Button(
+                onClick = {
+                    val v = state.selectedDateMillis
+                    if (v != null) onPick(v) else onDismiss()
+                }
+            ) { Text("OK") }
         },
-        dismissButton = { OutlinedButton(onClick = onDismiss) { Text("Anuluj") } }
+        dismissButton = {
+            OutlinedButton(onClick = onDismiss) { Text("Anuluj") }
+        }
     ) {
         Column(Modifier.padding(12.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(8.dp))
             DatePicker(state = state)
-        }
-    }
-}
-
-@Composable
-private fun SimplePickRow(
-    label: String,
-    options: List<String>,
-    selected: String,
-    onSelected: (String) -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-    ) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(label, style = MaterialTheme.typography.titleSmall)
-
-            options.chunked(3).forEach { row ->
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    row.forEach { opt ->
-                        val isSel = opt == selected
-                        OutlinedButton(
-                            onClick = { onSelected(opt) },
-                            enabled = !isSel,
-                            modifier = Modifier.weight(1f)
-                        ) { Text(opt) }
-                    }
-                }
-            }
-
-            Text("Wybrano: $selected", style = MaterialTheme.typography.bodySmall)
         }
     }
 }

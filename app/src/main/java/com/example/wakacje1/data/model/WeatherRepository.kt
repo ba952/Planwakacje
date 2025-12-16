@@ -1,19 +1,22 @@
 package com.example.wakacje1.data
 
+import com.example.wakacje1.BuildConfig
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
-import java.net.URLEncoder
+import okhttp3.OkHttpClient
+import retrofit2.HttpException
+import retrofit2.Retrofit
+import retrofit2.converter.moshi.MoshiConverterFactory
+import java.io.IOException
 import java.util.Calendar
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
 
 object WeatherRepository {
 
-    private const val OPEN_WEATHER_API_KEY = "3a6edc24c47e52980c7c6adce42862b9"
-
-    // ------------------ MODELE ------------------
+    // ------------------ MODELE (dla UI/ViewModel) ------------------
 
     data class WeatherResult(
         val city: String,
@@ -28,7 +31,7 @@ object WeatherRepository {
         val tempMax: Double,
         val description: String,
         val conditionId: Int,
-        val isBadWeather: Boolean  // heurystyka: deszcz/śnieg/burza itp.
+        val isBadWeather: Boolean
     )
 
     // ------------------ CACHE (in-memory) ------------------
@@ -46,6 +49,39 @@ object WeatherRepository {
         forecastCache.clear()
     }
 
+    // ------------------ Retrofit ------------------
+
+    private fun apiKey(): String {
+        val k = BuildConfig.OPEN_WEATHER_API_KEY
+        require(k.isNotBlank()) {
+            "Brak OPEN_WEATHER_API_KEY. Dodaj go do local.properties (ROOT projektu) i zrób Sync."
+        }
+        return k
+    }
+
+    private val moshi: Moshi by lazy {
+        Moshi.Builder()
+            .add(KotlinJsonAdapterFactory())
+            .build()
+    }
+
+    private val okHttp: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(10, TimeUnit.SECONDS)
+            .writeTimeout(10, TimeUnit.SECONDS)
+            .build()
+    }
+
+    private val api: WeatherApi by lazy {
+        Retrofit.Builder()
+            .baseUrl("https://api.openweathermap.org/") // musi kończyć się "/"
+            .client(okHttp)
+            .addConverterFactory(MoshiConverterFactory.create(moshi))
+            .build()
+            .create(WeatherApi::class.java)
+    }
+
     // ------------------ PUBLIC API ------------------
 
     suspend fun getWeatherForCity(cityQuery: String, forceRefresh: Boolean = false): WeatherResult =
@@ -58,12 +94,16 @@ object WeatherRepository {
                 }
             }
 
-            val url = buildCurrentUrl(cityQuery)
-            val json = getJson(url)
-            val parsed = parseCurrent(json)
-
-            currentCache[key] = CacheEntry(System.currentTimeMillis(), parsed)
-            parsed
+            try {
+                val res = api.getCurrentWeather(city = cityQuery, apiKey = apiKey())
+                val parsed = mapCurrent(res)
+                currentCache[key] = CacheEntry(System.currentTimeMillis(), parsed)
+                parsed
+            } catch (e: HttpException) {
+                throw RuntimeException(friendlyHttpError("pogody", e))
+            } catch (_: IOException) {
+                throw RuntimeException("Brak połączenia z internetem / timeout podczas pobierania pogody.")
+            }
         }
 
     suspend fun getForecastForCity(cityQuery: String, forceRefresh: Boolean = false): List<WeatherForecastDay> =
@@ -76,72 +116,36 @@ object WeatherRepository {
                 }
             }
 
-            val url = buildForecastUrl(cityQuery)
-            val json = getJson(url)
-            val parsed = parseDailyForecast(json)
-
-            forecastCache[key] = CacheEntry(System.currentTimeMillis(), parsed)
-            parsed
-        }
-
-    // ------------------ URL-e ------------------
-
-    private fun buildCurrentUrl(cityQuery: String): String {
-        val encoded = URLEncoder.encode(cityQuery, "UTF-8")
-        return "https://api.openweathermap.org/data/2.5/weather?q=$encoded&appid=$OPEN_WEATHER_API_KEY&units=metric&lang=pl"
-    }
-
-    private fun buildForecastUrl(cityQuery: String): String {
-        val encoded = URLEncoder.encode(cityQuery, "UTF-8")
-        return "https://api.openweathermap.org/data/2.5/forecast?q=$encoded&appid=$OPEN_WEATHER_API_KEY&units=metric&lang=pl"
-    }
-
-    // ------------------ HTTP JSON ------------------
-
-    private fun getJson(urlString: String): JSONObject {
-        val url = URL(urlString)
-        val conn = (url.openConnection() as HttpURLConnection).apply {
-            requestMethod = "GET"
-            connectTimeout = 10_000
-            readTimeout = 10_000
-        }
-
-        try {
-            val code = conn.responseCode
-            val stream = if (code in 200..299) conn.inputStream else conn.errorStream
-            val body = stream.bufferedReader().use { it.readText() }
-
-            if (code !in 200..299) {
-                throw RuntimeException("Błąd API pogody: $code $body")
+            try {
+                val res = api.getForecast(city = cityQuery, apiKey = apiKey())
+                val parsed = mapForecastToDays(res)
+                forecastCache[key] = CacheEntry(System.currentTimeMillis(), parsed)
+                parsed
+            } catch (e: HttpException) {
+                throw RuntimeException(friendlyHttpError("prognozy", e))
+            } catch (_: IOException) {
+                throw RuntimeException("Brak połączenia z internetem / timeout podczas pobierania prognozy.")
             }
-
-            return JSONObject(body)
-        } finally {
-            conn.disconnect()
         }
-    }
 
-    // ------------------ PARSOWANIE: bieżąca pogoda ------------------
+    // ------------------ MAPOWANIE: bieżąca pogoda ------------------
 
-    private fun parseCurrent(json: JSONObject): WeatherResult {
-        val main = json.getJSONObject("main")
-        val weatherArray = json.getJSONArray("weather")
-        val weatherObj = weatherArray.getJSONObject(0)
-
-        val cityName = json.optString("name", "")
-        val temp = main.getDouble("temp")
-        val desc = weatherObj.optString("description", "")
-        val conditionId = weatherObj.optInt("id", 0)
+    private fun mapCurrent(res: CurrentWeatherResponse): WeatherResult {
+        val city = res.name?.takeIf { it.isNotBlank() } ?: "—"
+        val temp = res.main?.temp ?: 0.0
+        val w0 = res.weather?.firstOrNull()
+        val desc = w0?.description ?: ""
+        val id = w0?.id ?: 0
 
         return WeatherResult(
-            city = cityName,
+            city = city,
             temperature = temp,
             description = desc,
-            conditionId = conditionId
+            conditionId = id
         )
     }
 
-    // ------------------ PARSOWANIE: prognoza dzienna ------------------
+    // ------------------ MAPOWANIE: prognoza dzienna ------------------
 
     private data class Agg(
         var min: Double,
@@ -152,24 +156,19 @@ object WeatherRepository {
         var totalCount: Int
     )
 
-    private fun parseDailyForecast(json: JSONObject): List<WeatherForecastDay> {
-        // /forecast = lista co 3h -> grupujemy do dni
-        val list = json.getJSONArray("list")
+    private fun mapForecastToDays(res: ForecastResponse): List<WeatherForecastDay> {
+        val items = res.list.orEmpty()
         val acc = mutableMapOf<Long, Agg>()
 
-        for (i in 0 until list.length()) {
-            val item = list.getJSONObject(i)
-            val dt = item.getLong("dt") // sekundy UTC
-            val main = item.getJSONObject("main")
-            val temp = main.getDouble("temp")
+        for (it in items) {
+            val dtSec = it.dt ?: continue
+            val temp = it.main?.temp ?: continue
+            val w0 = it.weather?.firstOrNull()
 
-            val weatherArray = item.getJSONArray("weather")
-            val weatherObj = weatherArray.getJSONObject(0)
+            val desc = w0?.description ?: ""
+            val conditionId = w0?.id ?: 0
 
-            val desc = weatherObj.optString("description", "")
-            val conditionId = weatherObj.optInt("id", 0)
-
-            val millis = dt * 1000L
+            val millis = dtSec * 1000L
             val dayKey = normalizeToLocalMidnight(millis)
 
             val isBad = isBadWeather(conditionId, desc)
@@ -189,7 +188,6 @@ object WeatherRepository {
                 if (temp > a.max) a.max = temp
                 a.totalCount += 1
                 if (isBad) a.badCount += 1
-                // description/conditionId zostawiamy jako "pierwsze z dnia"
             }
         }
 
@@ -201,7 +199,7 @@ object WeatherRepository {
                 tempMax = agg.max,
                 description = agg.description,
                 conditionId = agg.conditionId,
-                isBadWeather = badRatio >= 0.35 // jeśli >=35% slotów dnia to zła pogoda
+                isBadWeather = badRatio >= 0.35
             )
         }.sortedBy { it.dateMillis }
     }
@@ -216,16 +214,19 @@ object WeatherRepository {
         return cal.timeInMillis
     }
 
-    /**
-     * Heurystyka "złej pogody" na bazie kodów OpenWeather:
-     * 2xx burze, 3xx mżawka, 5xx deszcz, 6xx śnieg, 7xx mgła/smog itp.
-     */
     private fun isBadWeather(conditionId: Int, desc: String): Boolean {
         val group = conditionId / 100
         if (group in setOf(2, 3, 5, 6, 7)) return true
 
-        // awaryjnie po opisie (gdyby conditionId było 0)
         val d = desc.lowercase()
         return d.contains("deszcz") || d.contains("burz") || d.contains("śnieg") || d.contains("mgł")
+    }
+
+    private fun friendlyHttpError(what: String, e: HttpException): String {
+        return when (e.code()) {
+            401 -> "Błąd autoryzacji ($what). Sprawdź klucz OPEN_WEATHER_API_KEY."
+            404 -> "Nie znaleziono miasta ($what). Sprawdź nazwę/format zapytania."
+            else -> "Błąd API $what: HTTP ${e.code()}."
+        }
     }
 }

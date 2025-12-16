@@ -1,3 +1,16 @@
+import java.util.Properties
+
+// ---- OPENWEATHER KEY z local.properties (ROOT projektu) ----
+// local.properties:
+// OPEN_WEATHER_API_KEY=TU_WKLEJ_SWÓJ_KLUCZ
+val localProps = Properties()
+val localPropsFile = rootProject.file("local.properties")
+if (localPropsFile.exists()) {
+    localProps.load(localPropsFile.inputStream())
+}
+val openWeatherApiKey: String = localProps.getProperty("OPEN_WEATHER_API_KEY") ?: ""
+// ------------------------------------------------------------
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -16,6 +29,9 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // BuildConfig.OPEN_WEATHER_API_KEY
+        buildConfigField("String", "OPEN_WEATHER_API_KEY", "\"$openWeatherApiKey\"")
     }
 
     buildTypes {
@@ -32,18 +48,19 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
     kotlinOptions {
         jvmTarget = "11"
     }
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
 dependencies {
     implementation("com.squareup.retrofit2:converter-scalars:2.11.0")
-
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6")
 
     implementation(libs.androidx.core.ktx)
@@ -71,6 +88,7 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
