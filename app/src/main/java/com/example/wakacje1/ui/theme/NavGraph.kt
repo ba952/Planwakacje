@@ -9,7 +9,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.wakacje1.ui.screens.DestinationSelectionScreen
 import com.example.wakacje1.ui.screens.LoginScreen
 import com.example.wakacje1.ui.screens.PlanScreen
-import com.example.wakacje1.ui.screens.PreferencesScreen
+import screens.PreferencesScreen
 
 sealed class Dest(val route: String) {
     data object Login : Dest("login")
@@ -40,7 +40,6 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
             PreferencesScreen(
                 viewModel = vm,
                 onNext = {
-                    // przygotuj 3 propozycje i przejdź dalej
                     vm.prepareDestinationSuggestions()
                     navController.navigate(Dest.Destinations.route)
                 }
@@ -50,12 +49,8 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
         composable(Dest.Destinations.route) {
             DestinationSelectionScreen(
                 viewModel = vm,
-                onDestinationChosen = {
-                    navController.navigate(Dest.Plan.route)
-                },
-                onBack = {
-                    navController.popBackStack()
-                }
+                onDestinationChosen = { navController.navigate(Dest.Plan.route) },
+                onBack = { navController.popBackStack() }
             )
         }
 

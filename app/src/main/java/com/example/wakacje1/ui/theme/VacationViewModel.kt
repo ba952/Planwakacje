@@ -233,6 +233,21 @@ class VacationViewModel(application: Application) : AndroidViewModel(application
 
         plan = rebuildUiPlanWithWeather()
     }
+    fun moveDayUp(index: Int) {
+        if (index <= 0 || index >= internalPlanDays.size) return
+        val tmp = internalPlanDays[index - 1]
+        internalPlanDays[index - 1] = internalPlanDays[index]
+        internalPlanDays[index] = tmp
+        plan = rebuildUiPlanWithWeather()
+    }
+
+    fun moveDayDown(index: Int) {
+        if (index < 0 || index >= internalPlanDays.size - 1) return
+        val tmp = internalPlanDays[index + 1]
+        internalPlanDays[index + 1] = internalPlanDays[index]
+        internalPlanDays[index] = tmp
+        plan = rebuildUiPlanWithWeather()
+    }
 
     fun rollNewActivity(dayIndex: Int, slot: com.example.wakacje1.data.model.DaySlot) {
         val prefs = preferences ?: return

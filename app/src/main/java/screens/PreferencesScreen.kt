@@ -1,30 +1,39 @@
-package com.example.wakacje1.ui.screens
+package screens
 
-import android.app.DatePickerDialog
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.Button
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.example.wakacje1.ui.Preferences
-import com.example.wakacje1.ui.VacationViewModel
-import java.text.SimpleDateFormat
+import com.example.wakacje1.data.model.Preferences
+import com.example.wakacje1.ui.theme.VacationViewModel
 import java.util.Calendar
-import java.util.Date
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,270 +41,267 @@ fun PreferencesScreen(
     viewModel: VacationViewModel,
     onNext: () -> Unit
 ) {
-    val context = LocalContext.current
+    val budgetText = rememberSaveable { mutableStateOf("") }
 
-    var budgetText by remember { mutableStateOf("2000") }
-
-    var climate by remember { mutableStateOf("Ciepły") }
-    var region by remember { mutableStateOf("Europa - miasto") }
-    var style by remember { mutableStateOf("Zwiedzanie") }
-
+    val regionOptions = listOf("Europa - miasto", "Morze Śródziemne", "Góry", "Azja", "Ameryka")
     val climateOptions = listOf("Ciepły", "Umiarkowany", "Chłodny")
-    val regionOptions = listOf("Europa - miasto", "Morze Śródziemne", "Góry")
     val styleOptions = listOf("Relaks", "Zwiedzanie", "Aktywny", "Mix")
 
-    var errorText by remember { mutableStateOf<String?>(null) }
+    val region = rememberSaveable { mutableStateOf(regionOptions.first()) }
+    val climate = rememberSaveable { mutableStateOf(climateOptions[1]) }
+    val style = rememberSaveable { mutableStateOf(styleOptions.first()) }
 
-    var startDateMillis by remember { mutableStateOf<Long?>(null) }
-    var endDateMillis by remember { mutableStateOf<Long?>(null) }
+    val startDateMillis = rememberSaveable { mutableStateOf<Long?>(null) }
+    val endDateMillis = rememberSaveable { mutableStateOf<Long?>(null) }
 
-    val scrollState = rememberScrollState()
+    val showStartPicker = remember { mutableStateOf(false) }
+    val showEndPicker = remember { mutableStateOf(false) }
 
-    fun formatDate(millis: Long?): String {
-        if (millis == null) return "-"
-        val sdf = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
-        return sdf.format(Date(millis))
-    }
-
-    val daysCount: Int? = remember(startDateMillis, endDateMillis) {
-        if (startDateMillis == null || endDateMillis == null) null
-        else {
-            val oneDay = 24L * 60 * 60 * 1000
-            val diff = endDateMillis!! - startDateMillis!!
-            if (diff < 0L) null else ((diff / oneDay) + 1L).toInt()
-        }
-    }
+    val error = remember { mutableStateOf<String?>(null) }
 
     Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Preferencje podróży") }
-            )
-        }
-    ) { innerPadding ->
+        topBar = { TopAppBar(title = { Text("Preferencje podróży") }) }
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-                .padding(innerPadding)
-                .verticalScroll(scrollState)
-                .padding(16.dp)
+                .padding(padding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                "Ustal parametry wyjazdu",
-                style = MaterialTheme.typography.titleMedium
-            )
 
-            Spacer(Modifier.height(12.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+            ) {
+                Column(Modifier.padding(14.dp)) {
+                    Text(
+                        text = "Uzupełnij preferencje, a aplikacja zaproponuje 3 miejsca i wygeneruje plan dni.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
 
             OutlinedTextField(
-                value = budgetText,
-                onValueChange = { budgetText = it },
+                value = budgetText.value,
+                onValueChange = { budgetText.value = it.filter { ch -> ch.isDigit() } },
                 label = { Text("Budżet całkowity (PLN)") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(Modifier.height(12.dp))
-
-            // Wybór terminu wyjazdu
-            Text(
-                text = "Termin wyjazdu",
-                style = MaterialTheme.typography.titleSmall
+            SimplePickRow(
+                label = "Region",
+                options = regionOptions,
+                selected = region.value,
+                onSelected = { region.value = it }
             )
-            Spacer(Modifier.height(4.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Button(
-                    onClick = {
-                        val cal = Calendar.getInstance()
-                        val dialog = DatePickerDialog(
-                            context,
-                            { _, year, month, dayOfMonth ->
-                                val c = Calendar.getInstance()
-                                c.set(year, month, dayOfMonth, 0, 0, 0)
-                                c.set(Calendar.MILLISECOND, 0)
-                                startDateMillis = c.timeInMillis
-                                // jeśli koniec jest przed początkiem – wyzeruj
-                                if (endDateMillis != null && endDateMillis!! < startDateMillis!!) {
-                                    endDateMillis = null
-                                }
-                            },
-                            cal.get(Calendar.YEAR),
-                            cal.get(Calendar.MONTH),
-                            cal.get(Calendar.DAY_OF_MONTH)
-                        )
-                        dialog.show()
-                    }
-                ) {
-                    Text("Data rozpoczęcia")
-                }
+            SimplePickRow(
+                label = "Klimat",
+                options = climateOptions,
+                selected = climate.value,
+                onSelected = { climate.value = it }
+            )
 
-                Button(
-                    onClick = {
-                        val cal = Calendar.getInstance()
-                        if (startDateMillis != null) {
-                            cal.timeInMillis = startDateMillis!!
+            SimplePickRow(
+                label = "Typ podróży",
+                options = styleOptions,
+                selected = style.value,
+                onSelected = { style.value = it }
+            )
+
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Zakres dat", style = MaterialTheme.typography.titleMedium)
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        OutlinedButton(
+                            onClick = { showStartPicker.value = true },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Start")
                         }
-                        val dialog = DatePickerDialog(
-                            context,
-                            { _, year, month, dayOfMonth ->
-                                val c = Calendar.getInstance()
-                                c.set(year, month, dayOfMonth, 0, 0, 0)
-                                c.set(Calendar.MILLISECOND, 0)
-                                endDateMillis = c.timeInMillis
-                            },
-                            cal.get(Calendar.YEAR),
-                            cal.get(Calendar.MONTH),
-                            cal.get(Calendar.DAY_OF_MONTH)
-                        )
-                        // opcjonalnie: wymuś minDate = start
-                        if (startDateMillis != null) {
-                            dialog.datePicker.minDate = startDateMillis!!
+
+                        OutlinedButton(
+                            onClick = { showEndPicker.value = true },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Koniec")
                         }
-                        dialog.show()
                     }
-                ) {
-                    Text("Data zakończenia")
+
+                    Text("Start: ${startDateMillis.value?.let { formatDate(it) } ?: "—"}")
+                    Text("Koniec: ${endDateMillis.value?.let { formatDate(it) } ?: "—"}")
+
+                    val days = computeDays(startDateMillis.value, endDateMillis.value)
+                    Text("Liczba dni: ${days ?: "—"}")
                 }
             }
+
+            error.value?.let { Text(it, color = MaterialTheme.colorScheme.error) }
 
             Spacer(Modifier.height(6.dp))
 
-            Text(
-                text = "Wybrany zakres: ${formatDate(startDateMillis)} – ${formatDate(endDateMillis)}" +
-                        (if (daysCount != null) "  (${daysCount} dni)" else ""),
-                style = MaterialTheme.typography.bodySmall
-            )
-
-            Spacer(Modifier.height(12.dp))
-
-            if (errorText != null) {
-                Text(
-                    text = errorText!!,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall
-                )
-                Spacer(Modifier.height(8.dp))
-            }
-
-            SimpleDropdownField(
-                label = "Preferowany klimat",
-                value = climate,
-                options = climateOptions,
-                onValueChange = { climate = it },
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(Modifier.height(8.dp))
-
-            SimpleDropdownField(
-                label = "Region",
-                value = region,
-                options = regionOptions,
-                onValueChange = { region = it },
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(Modifier.height(8.dp))
-
-            SimpleDropdownField(
-                label = "Styl podróży",
-                value = style,
-                options = styleOptions,
-                onValueChange = { style = it },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(Modifier.height(20.dp))
-
             Button(
                 onClick = {
-                    val budget = budgetText.toIntOrNull() ?: 0
+                    val budget = budgetText.value.toIntOrNull()
+                    val start = startDateMillis.value
+                    val end = endDateMillis.value
+                    val days = computeDays(start, end)
 
-                    if (startDateMillis == null || endDateMillis == null) {
-                        errorText = "Wybierz datę rozpoczęcia i zakończenia wyjazdu."
-                        return@Button
+                    when {
+                        budget == null || budget <= 0 -> {
+                            error.value = "Podaj poprawny budżet (liczba > 0)."
+                            return@Button
+                        }
+                        start == null || end == null -> {
+                            error.value = "Wybierz datę startu i końca."
+                            return@Button
+                        }
+                        days == null || days < 1 -> {
+                            error.value = "Niepoprawny zakres dat."
+                            return@Button
+                        }
+                        else -> error.value = null
                     }
 
-                    if (endDateMillis!! < startDateMillis!!) {
-                        errorText = "Data zakończenia nie może być wcześniejsza niż data rozpoczęcia."
-                        return@Button
-                    }
-
-                    val days = daysCount ?: 0
-                    if (days <= 0) {
-                        errorText = "Zakres dni jest nieprawidłowy."
-                        return@Button
-                    }
-
-                    val budgetPerDay = budget.toDouble() / days.toDouble()
-                    val MIN_BUDGET_PER_DAY_GLOBAL = 150.0
-
-                    if (budgetPerDay < MIN_BUDGET_PER_DAY_GLOBAL) {
-                        errorText =
-                            "Podany budżet jest zbyt niski (${budgetPerDay.toInt()} zł/dzień) dla wyjazdu. " +
-                                    "Zwiększ budżet lub skróć czas pobytu."
-                        return@Button
-                    }
-
-                    errorText = null
-
-                    val prefs = Preferences(
-                        budget = budget,
-                        days = days,
-                        climate = climate,
-                        region = region,
-                        style = style,
-                        startDateMillis = startDateMillis,
-                        endDateMillis = endDateMillis
+                    viewModel.updatePreferences(
+                        Preferences(
+                            budget = budget,
+                            days = days!!,
+                            climate = climate.value,
+                            region = region.value,
+                            style = style.value,
+                            startDateMillis = normalizeToLocalMidnight(start!!),
+                            endDateMillis = normalizeToLocalMidnight(end!!)
+                        )
                     )
-                    viewModel.updatePreferences(prefs)
-                    viewModel.prepareDestinationSuggestions()
+
+                    // u Ciebie wcześniej było prepareDestinationSuggestions() w PreferencesScreen,
+                    // ale teraz robimy to w NavGraph (po kliknięciu Dalej).
                     onNext()
                 },
                 modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Pokaż propozycje miejsc")
+            ) { Text("Dalej") }
+        }
+    }
+
+    if (showStartPicker.value) {
+        SingleDateDialog(
+            title = "Wybierz datę startu",
+            onDismiss = { showStartPicker.value = false },
+            onPick = {
+                startDateMillis.value = it
+                val e = endDateMillis.value
+                if (e != null && it > e) endDateMillis.value = null
+                showStartPicker.value = false
             }
+        )
+    }
+
+    if (showEndPicker.value) {
+        SingleDateDialog(
+            title = "Wybierz datę końca",
+            onDismiss = { showEndPicker.value = false },
+            onPick = {
+                val s = startDateMillis.value
+                if (s != null && it < s) {
+                    error.value = "Data końca nie może być wcześniejsza niż start."
+                } else {
+                    endDateMillis.value = it
+                    error.value = null
+                }
+                showEndPicker.value = false
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SingleDateDialog(
+    title: String,
+    onDismiss: () -> Unit,
+    onPick: (Long) -> Unit
+) {
+    val state = rememberDatePickerState()
+
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            Button(onClick = {
+                val v = state.selectedDateMillis
+                if (v != null) onPick(v) else onDismiss()
+            }) { Text("OK") }
+        },
+        dismissButton = { OutlinedButton(onClick = onDismiss) { Text("Anuluj") } }
+    ) {
+        Column(Modifier.padding(12.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(8.dp))
+            DatePicker(state = state)
         }
     }
 }
 
 @Composable
-private fun SimpleDropdownField(
+private fun SimplePickRow(
     label: String,
-    value: String,
     options: List<String>,
-    onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier
+    selected: String,
+    onSelected: (String) -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(label, style = MaterialTheme.typography.titleSmall)
 
-    Box(modifier = modifier) {
-        OutlinedTextField(
-            value = value,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text(label) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { expanded = true }
-        )
-
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-        ) {
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(option) },
-                    onClick = {
-                        onValueChange(option)
-                        expanded = false
+            options.chunked(3).forEach { row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    row.forEach { opt ->
+                        val isSel = opt == selected
+                        OutlinedButton(
+                            onClick = { onSelected(opt) },
+                            enabled = !isSel,
+                            modifier = Modifier.weight(1f)
+                        ) { Text(opt) }
                     }
-                )
+                }
             }
+
+            Text("Wybrano: $selected", style = MaterialTheme.typography.bodySmall)
         }
     }
+}
+
+private fun computeDays(start: Long?, end: Long?): Int? {
+    if (start == null || end == null) return null
+    val s = normalizeToLocalMidnight(start)
+    val e = normalizeToLocalMidnight(end)
+    val diff = e - s
+    if (diff < 0) return null
+    val oneDay = 24L * 60 * 60 * 1000L
+    return (diff / oneDay).toInt() + 1
+}
+
+private fun normalizeToLocalMidnight(millis: Long): Long {
+    val cal = Calendar.getInstance()
+    cal.timeInMillis = millis
+    cal.set(Calendar.HOUR_OF_DAY, 0)
+    cal.set(Calendar.MINUTE, 0)
+    cal.set(Calendar.SECOND, 0)
+    cal.set(Calendar.MILLISECOND, 0)
+    return cal.timeInMillis
+}
+
+private fun formatDate(millis: Long): String {
+    val cal = Calendar.getInstance()
+    cal.timeInMillis = millis
+    val y = cal.get(Calendar.YEAR)
+    val m = cal.get(Calendar.MONTH) + 1
+    val d = cal.get(Calendar.DAY_OF_MONTH)
+    return "%04d-%02d-%02d".format(y, m, d)
 }
