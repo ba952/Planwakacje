@@ -1,39 +1,46 @@
 package com.example.wakacje1.ui.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
+import androidx.compose.material3.ElevatedButton
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.wakacje1.ui.Destination
-import com.example.wakacje1.ui.VacationViewModel
+import com.example.wakacje1.data.model.Destination
+import com.example.wakacje1.ui.theme.VacationViewModel
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,92 +49,167 @@ fun DestinationSelectionScreen(
     onDestinationChosen: () -> Unit,
     onBack: () -> Unit
 ) {
+    val snack = remember { SnackbarHostState() }
+
     val prefs = viewModel.preferences
     val suggestions = viewModel.destinationSuggestions
+    val chosen = viewModel.chosenDestination
 
-    LaunchedEffect(prefs) {
-        // Na wszelki wypadek, jeśli ktoś wejdzie na ekran bez przygotowanych propozycji
-        if (prefs != null && suggestions.isEmpty()) {
+    // Jeżeli ktoś wszedł tu "na skróty" i nie ma propozycji, spróbuj je przygotować.
+    LaunchedEffect(Unit) {
+        if (suggestions.isEmpty()) {
             viewModel.prepareDestinationSuggestions()
         }
     }
 
+    val selectedIndex = rememberSaveable { mutableIntStateOf(-1) }
+    val localError = remember { mutableStateOf<String?>(null) }
+
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
+            TopAppBar(
                 title = { Text("Propozycje wyjazdu") },
                 navigationIcon = {
-                    TextButton(onClick = onBack) {
-                        Text("Wstecz")
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "Wstecz")
+                    }
+                },
+                actions = {
+                    // Odśwież pogodę (jeśli jest wybrany kierunek)
+                    IconButton(
+                        onClick = {
+                            val d = viewModel.chosenDestination
+                            if (d != null && d.apiQuery.isNotBlank()) {
+                                viewModel.loadWeatherForCity(d.apiQuery, force = true)
+                                viewModel.loadForecastForTrip(force = true)
+                            }
+                        }
+                    ) {
+                        Icon(Icons.Filled.Refresh, contentDescription = "Odśwież pogodę")
                     }
                 }
             )
-        }
-    ) { innerPadding ->
-        if (prefs == null) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background)
-                    .padding(innerPadding)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = "Brak ustawionych preferencji.",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.error
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = "Wróć do poprzedniego ekranu i uzupełnij dane o budżecie, liczbie dni i preferencjach.",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-            return@Scaffold
-        }
-
+        },
+        snackbarHost = { SnackbarHost(hostState = snack) }
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-                .padding(innerPadding)
+                .padding(padding)
                 .padding(16.dp)
         ) {
+            // Nagłówek / opis
             Text(
-                text = "Na podstawie Twoich preferencji wygenerowano propozycje wyjazdu. Wybierz jedno miejsce, aby zobaczyć szczegółowy plan.",
+                text = "Wybierz jedno z proponowanych miejsc. Potem wygenerujemy plan dzienny (poranek/południe/wieczór).",
                 style = MaterialTheme.typography.bodyMedium
             )
 
             Spacer(Modifier.height(12.dp))
 
-            if (suggestions.isEmpty()) {
+            // Krótki box pogody bieżącej (dla wybranego miejsca)
+            WeatherCard(
+                cityLabel = chosen?.displayName,
+                weatherCity = viewModel.weather.city,
+                temp = viewModel.weather.temperature,
+                desc = viewModel.weather.description,
+                loading = viewModel.weather.loading,
+                error = viewModel.weather.error
+            )
+
+            Spacer(Modifier.height(12.dp))
+            Divider()
+            Spacer(Modifier.height(12.dp))
+
+            if (prefs == null) {
                 Text(
-                    text = "Nie udało się dobrać sensownych propozycji dla podanego budżetu lub ustawień.",
-                    style = MaterialTheme.typography.bodyMedium,
+                    text = "Brak preferencji — wróć i uzupełnij formularz.",
                     color = MaterialTheme.colorScheme.error
                 )
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(12.dp))
+                OutlinedButton(onClick = onBack) { Text("Wróć") }
+                return@Column
+            }
+
+            if (suggestions.isEmpty()) {
                 Text(
-                    text = "Spróbuj zwiększyć budżet, zmniejszyć liczbę dni lub zmienić region / styl podróży.",
-                    style = MaterialTheme.typography.bodySmall
+                    text = "Brak propozycji dla tych preferencji (spróbuj zmienić budżet/region/klimat).",
+                    color = MaterialTheme.colorScheme.error
                 )
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                Spacer(Modifier.height(12.dp))
+                OutlinedButton(onClick = onBack) { Text("Wróć") }
+                return@Column
+            }
+
+            Text(
+                text = "Propozycje (3):",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(Modifier.height(8.dp))
+
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                itemsIndexed(suggestions) { idx, item ->
+                    DestinationCard(
+                        destination = item,
+                        selected = selectedIndex.intValue == idx,
+                        prefsBudget = prefs.budget,
+                        prefsDays = prefs.days,
+                        onSelect = {
+                            selectedIndex.intValue = idx
+                            localError.value = null
+                            viewModel.chooseDestination(item) // ustawia chosenDestination + odpala pogodę
+                        }
+                    )
+                }
+            }
+
+            localError.value?.let {
+                Spacer(Modifier.height(8.dp))
+                Text(text = it, color = MaterialTheme.colorScheme.error)
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // Footer z przyciskami
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onBack,
+                    modifier = Modifier.weight(1f)
                 ) {
-                    items(suggestions) { dest ->
-                        DestinationCard(
-                            destination = dest,
-                            prefs = prefs,
-                            onClick = {
-                                viewModel.chooseDestination(dest)
-                                viewModel.generatePlan()
-                                onDestinationChosen()
-                            }
-                        )
-                    }
+                    Text("Wróć")
+                }
+
+                ElevatedButton(
+                    onClick = {
+                        val sel = selectedIndex.intValue
+                        val d = suggestions.getOrNull(sel)
+                        if (d == null) {
+                            localError.value = "Najpierw wybierz miejsce."
+                            return@ElevatedButton
+                        }
+
+                        // twarda walidacja budżetu
+                        val days = prefs.days.coerceAtLeast(1)
+                        val budgetPerDay = (prefs.budget.toDouble() / days).roundToInt()
+                        if (budgetPerDay < d.minBudgetPerDay) {
+                            localError.value =
+                                "Budżet za niski: ok. $budgetPerDay zł/dzień, a minimalnie dla tego miejsca potrzeba ${d.minBudgetPerDay} zł/dzień."
+                            return@ElevatedButton
+                        }
+
+                        // generowanie + przejście
+                        viewModel.generatePlan()
+                        onDestinationChosen()
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Pokaż plan")
                 }
             }
         }
@@ -137,108 +219,121 @@ fun DestinationSelectionScreen(
 @Composable
 private fun DestinationCard(
     destination: Destination,
-    prefs: com.example.wakacje1.ui.Preferences,
-    onClick: () -> Unit
+    selected: Boolean,
+    prefsBudget: Int,
+    prefsDays: Int,
+    onSelect: () -> Unit
 ) {
-    ElevatedCard(
-        modifier = Modifier
-            .fillMaxWidth()
+    val days = prefsDays.coerceAtLeast(1)
+    val budgetPerDay = (prefsBudget.toDouble() / days).roundToInt()
+
+    val okBudget = budgetPerDay >= destination.minBudgetPerDay
+
+    val container = if (selected) {
+        MaterialTheme.colorScheme.primaryContainer
+    } else {
+        MaterialTheme.colorScheme.surface
+    }
+
+    val content = if (selected) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = container, contentColor = content),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (selected) 6.dp else 1.dp),
+        onClick = onSelect
     ) {
-        Box(
-            modifier = Modifier
-                .clickable(onClick = onClick)
-        ) {
-            Column(
-                modifier = Modifier
-                    .padding(12.dp)
+        Column(Modifier.padding(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
             ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = destination.displayName,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = destination.country,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
                 Text(
-                    text = destination.displayName,
-                    style = MaterialTheme.typography.titleMedium,
+                    text = if (okBudget) "OK" else "Za niski budżet",
+                    color = if (okBudget) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold
                 )
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = "${destination.country} • ${destination.region} • klimat: ${destination.climate}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            }
 
-                Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(10.dp))
 
-                // Budżet
-                val days = prefs.days.coerceAtLeast(1)
-                val budgetPerDay = prefs.budget.toDouble() / days.toDouble()
+            Text(
+                text = "Region: ${destination.region} • Klimat: ${destination.climate}",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Spacer(Modifier.height(6.dp))
+
+            Text(
+                text = "Budżet: min ${destination.minBudgetPerDay} zł/dzień, typowo ${destination.typicalBudgetPerDay} zł/dzień",
+                style = MaterialTheme.typography.bodySmall
+            )
+            Spacer(Modifier.height(6.dp))
+
+            if (destination.tags.isNotEmpty()) {
                 Text(
-                    text = "Twój budżet: ~${budgetPerDay.toInt()} zł/dzień",
+                    text = "Tagi: ${destination.tags.joinToString(", ")}",
                     style = MaterialTheme.typography.bodySmall
                 )
-                Text(
-                    text = "Minimalny komfortowy budżet dla tego miejsca: ${destination.minBudgetPerDay}–${destination.typicalBudgetPerDay} zł/dzień",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Spacer(Modifier.height(6.dp))
-
-                // Krótkie podsumowanie dopasowania
-                val budgetRatio = budgetPerDay / destination.minBudgetPerDay.toDouble()
-                val budgetText = when {
-                    budgetRatio < 0.8 ->
-                        "Twój budżet jest raczej niski jak na to miejsce – plan będzie dość oszczędny."
-                    budgetRatio in 0.8..1.3 ->
-                        "Budżet wygląda rozsądnie dla tego miejsca."
-                    else ->
-                        "Budżet jest komfortowy – można pozwolić sobie na więcej atrakcji."
-                }
-
-                Text(
-                    text = budgetText,
-                    style = MaterialTheme.typography.bodySmall
-                )
-
-                if (destination.tags.isNotEmpty()) {
-                    Spacer(Modifier.height(8.dp))
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        destination.tags.take(3).forEach { tag ->
-                            TagChip(text = tag)
-                        }
-                    }
-                }
-
-                Spacer(Modifier.height(12.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    Button(onClick = onClick) {
-                        Text("Wybierz to miejsce")
-                    }
-                }
             }
         }
     }
 }
 
 @Composable
-private fun TagChip(text: String) {
-    ElevatedCard(
-        modifier = Modifier
-            .height(28.dp)
+private fun WeatherCard(
+    cityLabel: String?,
+    weatherCity: String?,
+    temp: Double?,
+    desc: String?,
+    loading: Boolean,
+    error: String?
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
     ) {
-        Box(
-            modifier = Modifier
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            contentAlignment = Alignment.Center
-        ) {
+        Column(Modifier.padding(14.dp)) {
             Text(
-                text = text,
-                style = MaterialTheme.typography.labelSmall
+                text = "Pogoda",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
             )
+            Spacer(Modifier.height(6.dp))
+
+            val label = cityLabel ?: weatherCity ?: "—"
+
+            when {
+                loading -> Text("Ładowanie pogody dla: $label…")
+                error != null -> Text(
+                    text = "Błąd: $error",
+                    color = MaterialTheme.colorScheme.error
+                )
+                temp != null || !desc.isNullOrBlank() -> {
+                    val t = temp?.let { "${it.roundToInt()}°C" } ?: ""
+                    val d = desc ?: ""
+                    Text("Miejsce: $label")
+                    Text("Teraz: $d $t")
+                }
+                else -> Text("Wybierz miejsce, aby zobaczyć pogodę.")
+            }
         }
     }
 }

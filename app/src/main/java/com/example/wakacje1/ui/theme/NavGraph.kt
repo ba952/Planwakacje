@@ -1,4 +1,4 @@
-package com.example.wakacje1.ui
+package com.example.wakacje1.ui.theme
 
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -35,14 +35,18 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
                 }
             )
         }
+
         composable(Dest.Preferences.route) {
             PreferencesScreen(
                 viewModel = vm,
                 onNext = {
+                    // przygotuj 3 propozycje i przejdź dalej
+                    vm.prepareDestinationSuggestions()
                     navController.navigate(Dest.Destinations.route)
                 }
             )
         }
+
         composable(Dest.Destinations.route) {
             DestinationSelectionScreen(
                 viewModel = vm,
@@ -54,6 +58,7 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
                 }
             )
         }
+
         composable(Dest.Plan.route) {
             PlanScreen(
                 viewModel = vm,
