@@ -1,6 +1,9 @@
-package com.example.wakacje1.data
+package com.example.wakacje1.data.remote
 
 import com.example.wakacje1.BuildConfig
+import com.example.wakacje1.data.CurrentWeatherResponse
+import com.example.wakacje1.data.ForecastResponse
+import com.example.wakacje1.data.WeatherApi
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.Dispatchers

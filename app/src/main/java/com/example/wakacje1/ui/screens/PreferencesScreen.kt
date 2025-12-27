@@ -1,4 +1,4 @@
-package screens
+package com.example.wakacje1.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -34,7 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.unit.dp
 import com.example.wakacje1.data.model.Preferences
-import com.example.wakacje1.ui.theme.VacationViewModel
+import com.example.wakacje1.ui.viewmodel.VacationViewModel
 import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)

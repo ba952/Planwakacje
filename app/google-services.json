@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "565901239090",
+    "project_id": "wakacje1",
+    "storage_bucket": "wakacje1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:565901239090:android:3a2689541dcae6d14f2d2b",
+        "android_client_info": {
+          "package_name": "com.example.wakacje1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDrXOb9Fhny-E2KHmfkMxg8jO-VuLv3oFA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

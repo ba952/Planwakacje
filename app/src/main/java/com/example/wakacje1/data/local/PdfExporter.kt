@@ -1,4 +1,4 @@
-package util
+package com.example.wakacje1.data.local
 
 import android.content.Context
 import android.graphics.Paint

@@ -1,173 +1,907 @@
 [
   {
-    "id": "old_town_walk",
-    "title": "Spacer po starówce",
-    "description": "Poznanie najważniejszych zabytków, klimatycznych uliczek i lokalnych kawiarni.",
+    "id": "a001",
+    "title": "Zwiedzanie muzeum sztuki",
+    "description": "Wybierz jedno większe muzeum i przejdź je spokojnie, bez gonitwy. Zrób krótką listę 5 eksponatów, które chcesz zapamiętać.",
+    "type": "CULTURE",
+    "suitableRegions": ["Europa - miasto", "Azja", "Ameryka"],
+    "suitableStyles": ["Zwiedzanie", "Mix"],
+    "indoor": true
+  },
+  {
+    "id": "a002",
+    "title": "Galeria fotografii i wystawa czasowa",
+    "description": "Jedna wystawa tematyczna + krótki spacer po okolicy galerii. Idealne jako mocny start dnia.",
+    "type": "CULTURE",
+    "suitableRegions": ["Europa - miasto", "Azja", "Ameryka"],
+    "suitableStyles": ["Zwiedzanie", "Mix"],
+    "indoor": true
+  },
+  {
+    "id": "a003",
+    "title": "Kawa speciality i piekarnia rzemieślnicza",
+    "description": "Wybierz miejscówkę z wypiekami na miejscu. Zamów jedną nową rzecz, której normalnie nie bierzesz.",
+    "type": "FOOD",
+    "suitableRegions": ["Europa - miasto", "Azja", "Ameryka"],
+    "suitableStyles": ["Relaks", "Mix"],
+    "indoor": true
+  },
+  {
+    "id": "a004",
+    "title": "Targ miejski i szybki street food",
+    "description": "Przejdź targ bez pośpiechu: warzywa, przyprawy, lokalne przekąski. Zrób małą degustację 2–3 pozycji.",
+    "type": "FOOD",
+    "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Azja", "Ameryka"],
+    "suitableStyles": ["Mix", "Zwiedzanie"],
+    "indoor": true
+  },
+  {
+    "id": "a005",
+    "title": "Historyczna starówka: trasa „must see”",
+    "description": "Krótka pętla po najważniejszych uliczkach i placach. Zatrzymaj się w 2 punktach widokowych.",
     "type": "CULTURE",
     "suitableRegions": ["Europa - miasto", "Morze Śródziemne"],
     "suitableStyles": ["Zwiedzanie", "Mix"],
     "indoor": false
   },
   {
-    "id": "museum_visit",
-    "title": "Zwiedzanie muzeum",
-    "description": "Spokojne zwiedzanie muzeum lub galerii sztuki – dobra opcja na gorszą pogodę.",
+    "id": "a006",
+    "title": "Katedra / główna świątynia miasta",
+    "description": "Wejdź do środka, obejrzyj detale architektury i witraże. Zwykle zajmuje 30–60 minut.",
     "type": "CULTURE",
-    "suitableRegions": ["Europa - miasto"],
-    "suitableStyles": ["Zwiedzanie", "Relaks"],
+    "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Ameryka"],
+    "suitableStyles": ["Zwiedzanie", "Mix"],
     "indoor": true
   },
   {
-    "id": "castle_tour",
+    "id": "a007",
+    "title": "Akwarium lub oceanarium",
+    "description": "Spokojne tempo, dużo „wow” i zero spiny. Dobre też na późne popołudnie.",
+    "type": "RELAX",
+    "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Azja", "Ameryka"],
+    "suitableStyles": ["Relaks", "Mix"],
+    "indoor": true
+  },
+  {
+    "id": "a008",
+    "title": "Kino lokalne / studyjne",
+    "description": "Seans w lokalnym klimacie (nawet jeśli film jest po angielsku). Po seansie krótka kawa i podsumowanie.",
+    "type": "RELAX",
+    "suitableRegions": ["Europa - miasto", "Azja", "Ameryka"],
+    "suitableStyles": ["Relaks", "Mix"],
+    "indoor": true
+  },
+  {
+    "id": "a009",
+    "title": "Wieczór w teatrze lub na koncercie",
+    "description": "Wybierz wydarzenie „mainstream” albo coś totalnie niszowego. Dobre domknięcie dnia.",
+    "type": "NIGHT",
+    "suitableRegions": ["Europa - miasto", "Azja", "Ameryka"],
+    "suitableStyles": ["Zwiedzanie", "Mix"],
+    "indoor": true
+  },
+  {
+    "id": "a010",
+    "title": "Browar / winiarnia: zwiedzanie i degustacja",
+    "description": "Krótki tour + kontrolowana degustacja. Najlepiej po południu albo wieczorem.",
+    "type": "FOOD",
+    "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Ameryka"],
+    "suitableStyles": ["Relaks", "Mix"],
+    "indoor": true
+  },
+
+  {
+    "id": "a011",
+    "title": "Muzeum techniki lub nauki",
+    "description": "Interaktywne ekspozycje i szybkie „co mnie zaskoczyło”. Dobrze działa na reset głowy.",
+    "type": "CULTURE",
+    "suitableRegions": ["Europa - miasto", "Azja", "Ameryka"],
+    "suitableStyles": ["Zwiedzanie", "Mix"],
+    "indoor": true
+  },
+  {
+    "id": "a012",
+    "title": "Spacer po parku miejskim",
+    "description": "Trasa 3–6 km bez napinki. Zatrzymaj się na ławce i po prostu posiedź 10 minut.",
+    "type": "NATURE",
+    "suitableRegions": ["Europa - miasto", "Ameryka", "Azja"],
+    "suitableStyles": ["Relaks", "Mix"],
+    "indoor": false
+  },
+  {
+    "id": "a013",
+    "title": "Punkt widokowy i zdjęcia panoramy",
+    "description": "Wybierz jeden konkretny punkt, zrób 5 dobrych ujęć zamiast 50 losowych.",
+    "type": "NATURE",
+    "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Góry", "Ameryka", "Azja"],
+    "suitableStyles": ["Zwiedzanie", "Mix"],
+    "indoor": false
+  },
+  {
+    "id": "a014",
+    "title": "Kawiarnia z widokiem + plan dnia",
+    "description": "Usiądź w spokojnym miejscu i zaplanuj 3 priorytety na dziś. Zero presji, ma być wykonalnie.",
+    "type": "RELAX",
+    "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Azja", "Ameryka"],
+    "suitableStyles": ["Relaks", "Mix"],
+    "indoor": true
+  },
+  {
+    "id": "a015",
+    "title": "Klasa gotowania lokalnej kuchni",
+    "description": "Jedno danie + jedna przekąska. Potem zjedz to, co zrobisz, zamiast kolejnej restauracji.",
+    "type": "FOOD",
+    "suitableRegions": ["Morze Śródziemne", "Azja", "Ameryka", "Europa - miasto"],
+    "suitableStyles": ["Mix", "Zwiedzanie"],
+    "indoor": true
+  },
+  {
+    "id": "a016",
+    "title": "Wizyta w łaźniach / termach",
+    "description": "90 minut resetu: basen, sauna albo strefa ciszy. Wychodzisz „lżejszy”.",
+    "type": "RELAX",
+    "suitableRegions": ["Góry", "Europa - miasto", "Azja", "Ameryka"],
+    "suitableStyles": ["Relaks", "Mix"],
+    "indoor": true
+  },
+  {
+    "id": "a017",
+    "title": "Muzeum historii miasta",
+    "description": "Weź audio-guide albo przeczytaj tylko 3 tablice — i tak zapamiętasz więcej.",
+    "type": "CULTURE",
+    "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Ameryka", "Azja"],
+    "suitableStyles": ["Zwiedzanie", "Mix"],
+    "indoor": true
+  },
+  {
+    "id": "a018",
+    "title": "Degustacja deserów w 2 miejscach",
+    "description": "Porównaj dwa różne desery. Oceniaj: smak, tekstura, cena do jakości.",
+    "type": "FOOD",
+    "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Azja", "Ameryka"],
+    "suitableStyles": ["Relaks", "Mix"],
+    "indoor": true
+  },
+  {
+    "id": "a019",
+    "title": "Gra planszowa / kawiarnia z planszówkami",
+    "description": "Wybierz jedną grę na 45–60 min. Super opcja na wieczór w spokojnym tempie.",
+    "type": "RELAX",
+    "suitableRegions": ["Europa - miasto", "Azja", "Ameryka"],
+    "suitableStyles": ["Relaks", "Mix"],
+    "indoor": true
+  },
+  {
+    "id": "a020",
+    "title": "Wieczorny spacer „food street”",
+    "description": "Jedna ulica/kwartał znany z jedzenia. Zjedz mało, ale różnorodnie.",
+    "type": "NIGHT",
+    "suitableRegions": ["Azja", "Europa - miasto", "Ameryka"],
+    "suitableStyles": ["Mix", "Zwiedzanie"],
+    "indoor": false
+  },
+
+  {
+    "id": "a021",
     "title": "Zwiedzanie zamku lub twierdzy",
-    "description": "Wycieczka z przewodnikiem po zamku, fortyfikacjach lub zabytkowym wzgórzu.",
+    "description": "Trasa: mury, dziedziniec, najważniejsza sala. Zrób jeden przystanek na ogarnięcie widoków.",
     "type": "CULTURE",
-    "suitableRegions": ["Europa - miasto", "Góry"],
+    "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Ameryka"],
     "suitableStyles": ["Zwiedzanie", "Mix"],
-    "indoor": false
+    "indoor": true
   },
   {
-    "id": "mountain_trail",
-    "title": "Wyjście na górski szlak",
-    "description": "Całodniowa wycieczka z widokami, postoje na zdjęcia i schronisko po drodze.",
-    "type": "NATURE",
-    "suitableRegions": ["Góry"],
+    "id": "a022",
+    "title": "Krótka trasa biegowa 3–5 km",
+    "description": "Bez życiówek. Po biegu rozciąganie 10 minut i prysznic.",
+    "type": "ACTIVE",
+    "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Góry", "Azja", "Ameryka"],
     "suitableStyles": ["Aktywny", "Mix"],
     "indoor": false
   },
   {
-    "id": "valley_walk",
-    "title": "Spacer doliną górską",
-    "description": "Łagodniejsza trasa spacerowa z możliwością postoju w schronisku.",
-    "type": "NATURE",
-    "suitableRegions": ["Góry"],
+    "id": "a023",
+    "title": "Siłownia jednorazowa (day pass)",
+    "description": "Szybki trening full body 45 minut. Potem lekki posiłek.",
+    "type": "ACTIVE",
+    "suitableRegions": ["Europa - miasto", "Azja", "Ameryka", "Morze Śródziemne"],
+    "suitableStyles": ["Aktywny", "Mix"],
+    "indoor": true
+  },
+  {
+    "id": "a024",
+    "title": "Muzeum designu / architektury",
+    "description": "Dobre, jeśli lubisz estetykę i detale. Wybierz 3 rzeczy, które Ci się podobają i dlaczego.",
+    "type": "CULTURE",
+    "suitableRegions": ["Europa - miasto", "Azja", "Ameryka"],
+    "suitableStyles": ["Zwiedzanie", "Mix"],
+    "indoor": true
+  },
+  {
+    "id": "a025",
+    "title": "Spacer po promenadzie",
+    "description": "Długa prosta trasa, dużo ludzi i widoków. W połowie usiądź na chwilę i nie scrolluj.",
+    "type": "RELAX",
+    "suitableRegions": ["Morze Śródziemne", "Ameryka", "Europa - miasto"],
     "suitableStyles": ["Relaks", "Mix"],
     "indoor": false
   },
   {
-    "id": "viewpoint_sunset",
-    "title": "Punkt widokowy o zachodzie słońca",
-    "description": "Wejście na wzgórze lub punkt widokowy z panoramą miasta, gór lub morza.",
-    "type": "NATURE",
-    "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Góry"],
-    "suitableStyles": ["Zwiedzanie", "Aktywny", "Mix"],
-    "indoor": false
-  },
-  {
-    "id": "beach_day",
-    "title": "Dzień na plaży",
-    "description": "Plażowanie, kąpiel w morzu, lekka aktywność typu spacer po promenadzie.",
+    "id": "a026",
+    "title": "Centrum handlowe: szybki przegląd lokalnych marek",
+    "description": "Nie „zakupy do upadłego”, tylko obejrzenie tego, co lokalne i inne niż u Ciebie.",
     "type": "RELAX",
-    "suitableRegions": ["Morze Śródziemne"],
-    "suitableStyles": ["Relaks", "Mix"],
-    "indoor": false
-  },
-  {
-    "id": "sea_promenade",
-    "title": "Spacer nadmorską promenadą",
-    "description": "Wieczorny spacer przy morzu z lodami lub kolacją w jednej z restauracji.",
-    "type": "RELAX",
-    "suitableRegions": ["Morze Śródziemne"],
-    "suitableStyles": ["Relaks", "Zwiedzanie", "Mix"],
-    "indoor": false
-  },
-  {
-    "id": "spa_evening",
-    "title": "Wieczór w spa / termach",
-    "description": "Relaks w gorących źródłach, saunie lub basenie termalnym.",
-    "type": "RELAX",
-    "suitableRegions": ["Góry", "Europa - miasto"],
+    "suitableRegions": ["Europa - miasto", "Azja", "Ameryka"],
     "suitableStyles": ["Relaks", "Mix"],
     "indoor": true
   },
   {
-    "id": "local_food",
-    "title": "Degustacja lokalnej kuchni",
-    "description": "Kolacja w polecanej restauracji z regionalnymi specjałami.",
+    "id": "a027",
+    "title": "Warsztaty rzemieślnicze (ceramika / skóra)",
+    "description": "Zrób mały przedmiot na pamiątkę. To zostaje dużo bardziej niż kolejny magnes.",
+    "type": "CULTURE",
+    "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Azja", "Ameryka"],
+    "suitableStyles": ["Mix", "Zwiedzanie"],
+    "indoor": true
+  },
+  {
+    "id": "a028",
+    "title": "Kolacja w miejscu „lokalny klasyk”",
+    "description": "Jedna restauracja znana z jednej rzeczy. Zamów to, z czego słyną.",
     "type": "FOOD",
-    "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Góry"],
-    "suitableStyles": ["Relaks", "Zwiedzanie", "Aktywny", "Mix"],
+    "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Azja", "Ameryka"],
+    "suitableStyles": ["Relaks", "Mix"],
     "indoor": true
   },
   {
-    "id": "street_food_tour",
-    "title": "Tour ze street foodem",
-    "description": "Przejście po najciekawszych miejscach z lokalnymi przekąskami i jedzeniem ulicznym.",
-    "type": "FOOD",
-    "suitableRegions": ["Europa - miasto", "Morze Śródziemne"],
-    "suitableStyles": ["Zwiedzanie", "Mix"],
-    "indoor": false
-  },
-  {
-    "id": "kayak_trip",
-    "title": "Spływ kajakowy lub rejs łódką",
-    "description": "Relaksująca, ale aktywna forma spędzania czasu na wodzie.",
-    "type": "ACTIVE",
-    "suitableRegions": ["Morze Śródziemne", "Góry"],
-    "suitableStyles": ["Aktywny", "Mix"],
-    "indoor": false
-  },
-  {
-    "id": "bike_city",
-    "title": "Zwiedzanie miasta na rowerze",
-    "description": "Objazd najważniejszych atrakcji na rowerze miejskim lub wypożyczonym.",
-    "type": "ACTIVE",
-    "suitableRegions": ["Europa - miasto"],
-    "suitableStyles": ["Aktywny", "Mix"],
-    "indoor": false
-  },
-  {
-    "id": "hiking_halfday",
-    "title": "Półdniowy trekking",
-    "description": "Średnio wymagający trekking z czasem na zdjęcia i odpoczynek.",
-    "type": "ACTIVE",
-    "suitableRegions": ["Góry"],
-    "suitableStyles": ["Aktywny", "Mix"],
-    "indoor": false
-  },
-  {
-    "id": "evening_oldtown",
-    "title": "Wieczorny spacer po centrum",
-    "description": "Spokojne przejście po oświetlonej starówce, kawiarnia lub lody na zakończenie dnia.",
+    "id": "a029",
+    "title": "Nocny spacer po centrum",
+    "description": "Krótka pętla po najładniej podświetlonych miejscach. Bez biegania, tylko klimat.",
     "type": "NIGHT",
-    "suitableRegions": ["Europa - miasto", "Morze Śródziemne"],
-    "suitableStyles": ["Relaks", "Zwiedzanie", "Mix"],
-    "indoor": false
-  },
-  {
-    "id": "live_music_bar",
-    "title": "Wieczór w barze z muzyką na żywo",
-    "description": "Wyjście na koncert lub do baru z lokalnym zespołem muzycznym.",
-    "type": "NIGHT",
-    "suitableRegions": ["Europa - miasto"],
-    "suitableStyles": ["Mix", "Aktywny"],
-    "indoor": true
-  },
-  {
-    "id": "local_market",
-    "title": "Wizyta na lokalnym targu",
-    "description": "Zakupy lokalnych produktów, przypraw, rękodzieła i poznanie codziennego życia mieszkańców.",
-    "type": "CULTURE",
-    "suitableRegions": ["Europa - miasto", "Morze Śródziemne"],
-    "suitableStyles": ["Zwiedzanie", "Relaks", "Mix"],
-    "indoor": false
-  },
-  {
-    "id": "city_park_relax",
-    "title": "Relaks w parku miejskim",
-    "description": "Spokojny spacer, czytanie książki lub piknik w zielonej części miasta.",
-    "type": "RELAX",
-    "suitableRegions": ["Europa - miasto"],
+    "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Azja", "Ameryka"],
     "suitableStyles": ["Relaks", "Mix"],
     "indoor": false
   },
   {
-    "id": "photo_walk",
-    "title": "Spacer fotograficzny",
-    "description": "Wyjście w najbardziej fotogeniczne miejsca miasta lub okolicy z nastawieniem na robienie zdjęć.",
+    "id": "a030",
+    "title": "Muzeum morskie / portowe",
+    "description": "Statki, mapy, historia portu. Dobre, jeśli jesteś w miejscu nad wodą.",
     "type": "CULTURE",
-    "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Góry"],
+    "suitableRegions": ["Morze Śródziemne", "Europa - miasto", "Ameryka"],
+    "suitableStyles": ["Zwiedzanie", "Mix"],
+    "indoor": true
+  },
+
+  {
+    "id": "a031",
+    "title": "Zwiedzanie lokalnej biblioteki / czytelni",
+    "description": "Ciche miejsce z fajną architekturą. Weź 15 minut na odpoczynek od bodźców.",
+    "type": "RELAX",
+    "suitableRegions": ["Europa - miasto", "Azja", "Ameryka"],
+    "suitableStyles": ["Relaks", "Mix"],
+    "indoor": true
+  },
+  {
+    "id": "a032",
+    "title": "Wjazd kolejką / windą na taras widokowy",
+    "description": "Szybki zysk widoku bez dużego wysiłku. Potem kawa i powrót pieszo.",
+    "type": "NATURE",
+    "suitableRegions": ["Europa - miasto", "Góry", "Ameryka", "Azja"],
+    "suitableStyles": ["Zwiedzanie", "Mix"],
+    "indoor": true
+  },
+  {
+    "id": "a033",
+    "title": "Małe muzeum tematyczne (np. muzyka, komiks)",
+    "description": "Zwykle 30–60 minut i jest konkretnie. Dobre jako „wypełniacz” dnia.",
+    "type": "CULTURE",
+    "suitableRegions": ["Europa - miasto", "Azja", "Ameryka"],
+    "suitableStyles": ["Zwiedzanie", "Mix"],
+    "indoor": true
+  },
+  {
+    "id": "a034",
+    "title": "Lunch w barze z lokalnym menu dnia",
+    "description": "Menu dnia daje najlepszy stosunek ceny do jakości. Zwykle też najszybciej działa.",
+    "type": "FOOD",
+    "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Ameryka", "Azja"],
+    "suitableStyles": ["Relaks", "Mix"],
+    "indoor": true
+  },
+  {
+    "id": "a035",
+    "title": "Spacer po dzielnicy artystycznej",
+    "description": "Murale, małe galerie, sklepiki. Trzymaj tempo spaceru, nie odhaczania.",
+    "type": "CULTURE",
+    "suitableRegions": ["Europa - miasto", "Ameryka", "Azja"],
     "suitableStyles": ["Zwiedzanie", "Mix"],
     "indoor": false
-  }
-]
+  },
+  {
+    "id": "a036",
+    "title": "Szybki trekking 6–10 km",
+    "description": "Trasa na pół dnia z jednym mocnym punktem (szczyt / przełęcz / wodospad).",
+    "type": "ACTIVE",
+    "suitableRegions": ["Góry", "Ameryka", "Azja"],
+    "suitableStyles": ["Aktywny", "Mix"],
+    "indoor": false
+  },
+  {
+    "id": "a037",
+    "title": "Basen / aquapark",
+    "description": "Godzina–dwie w wodzie, bez napinki. Idealne na regenerację.",
+    "type": "RELAX",
+    "suitableRegions": ["Europa - miasto", "Góry", "Ameryka", "Azja"],
+    "suitableStyles": ["Relaks", "Mix"],
+    "indoor": true
+  },
+  {
+    "id": "a038",
+    "title": "Escape room",
+    "description": "60 minut zagadek, dobra energia w grupie. Potem krótka kolacja.",
+    "type": "NIGHT",
+    "suitableRegions": ["Europa - miasto", "Azja", "Ameryka"],
+    "suitableStyles": ["Mix", "Zwiedzanie"],
+    "indoor": true
+  },
+  {
+    "id": "a039",
+    "title": "Wieczór z muzyką na żywo",
+    "description": "Mały klub, pub albo sala koncertowa. Wybierz coś lokalnego, nie „pod turystów”.",
+    "type": "NIGHT",
+    "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Ameryka", "Azja"],
+    "suitableStyles": ["Relaks", "Mix"],
+    "indoor": true
+  },
+  {
+    "id": "a040",
+    "title": "Odwiedziny w hali food court (różne kuchnie)",
+    "description": "Jeden posiłek, kilka smaków. Dobre, gdy nie możecie się zdecydować.",
+    "type": "FOOD",
+    "suitableRegions": ["Europa - miasto", "Azja", "Ameryka"],
+    "suitableStyles": ["Mix", "Relaks"],
+    "indoor": true
+  },
+
+  {
+    "id": "a041",
+    "title": "Plaża: 2 godziny resetu",
+    "description": "Weź ręcznik, wodę i nic więcej. Zrób krótki spacer brzegiem na koniec.",
+    "type": "RELAX",
+    "suitableRegions": ["Morze Śródziemne", "Ameryka", "Azja"],
+    "suitableStyles": ["Relaks", "Mix"],
+    "indoor": false
+  },
+  {
+    "id": "a042",
+    "title": "Snorkeling / maska w spokojnym miejscu",
+    "description": "Krótka sesja w wodzie i powrót na plażę. Nie musisz robić z tego wyprawy życia.",
+    "type": "ACTIVE",
+    "suitableRegions": ["Morze Śródziemne", "Ameryka", "Azja"],
+    "suitableStyles": ["Aktywny", "Mix"],
+    "indoor": false
+  },
+  {
+    "id": "a043",
+    "title": "Muzeum regionalne (lokalna tożsamość)",
+    "description": "Poznaj 3 fakty o miejscu, które odwiedzasz. To zmienia odbiór całego wyjazdu.",
+    "type": "CULTURE",
+    "suitableRegions": ["Europa - miasto", "Góry", "Morze Śródziemne", "Azja", "Ameryka"],
+    "suitableStyles": ["Zwiedzanie", "Mix"],
+    "indoor": true
+  },
+  {
+    "id": "a044",
+    "title": "Kawiarnia + czytanie / notatki z wyjazdu",
+    "description": "20 minut zapisania: co było najlepsze dziś, co zmienić jutro, co warto powtórzyć.",
+    "type": "RELAX",
+    "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Azja", "Ameryka", "Góry"],
+    "suitableStyles": ["Relaks", "Mix"],
+    "indoor": true
+  },
+  {
+    "id": "a045",
+    "title": "Zwiedzanie hali sportowej / stadionu",
+    "description": "Tour z trybun, szatni i historii klubu. Dobre nawet dla „niesportowych”.",
+    "type": "CULTURE",
+    "suitableRegions": ["Europa - miasto", "Ameryka", "Azja"],
+    "suitableStyles": ["Zwiedzanie", "Mix"],
+    "indoor": true
+  },
+  {
+    "id": "a046",
+    "title": "Trening mobilności i rozciąganie",
+    "description": "20–30 minut prostych ćwiczeń. Lepszy sen i mniej „zajechanych nóg”.",
+    "type": "ACTIVE",
+    "suitableRegions": ["Europa - miasto", "Góry", "Morze Śródziemne", "Azja", "Ameryka"],
+    "suitableStyles": ["Aktywny", "Relaks", "Mix"],
+    "indoor": true
+  },
+  {
+    "id": "a047",
+    "title": "Miejska gra terenowa (samodzielnie)",
+    "description": "Wymyśl trasę: 5 punktów + jedno zadanie w każdym. Fajna forma zwiedzania.",
+    "type": "ACTIVE",
+    "suitableRegions": ["Europa - miasto", "Azja", "Ameryka"],
+    "suitableStyles": ["Aktywny", "Mix"],
+    "indoor": false
+  },
+  {
+    "id": "a048",
+    "title": "Sklep z lokalnymi produktami: przegląd i wybór pamiątki",
+    "description": "Nie kupuj „byle czego”. Wybierz jedną rzecz, która ma sens: jedzenie, przyprawy, rękodzieło.",
+    "type": "RELAX",
+    "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Azja", "Ameryka"],
+    "suitableStyles": ["Relaks", "Mix"],
+    "indoor": true
+  },
+  {
+    "id": "a049",
+    "title": "Wieczór w spokojnym barze (bez imprezy)",
+    "description": "Jedno miejsce, jedna rozmowa, bez biegania po lokalach. Chodzi o klimat.",
+    "type": "NIGHT",
+    "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Azja", "Ameryka"],
+    "suitableStyles": ["Relaks", "Mix"],
+    "indoor": true
+  },
+  {
+    "id": "a050",
+    "title": "Wystawa multimedialna / immersyjna",
+    "description": "Światło, dźwięk, dużo bodźców — ale w kontrolowany sposób. Dobre jako wieczorna atrakcja.",
+    "type": "CULTURE",
+    "suitableRegions": ["Europa - miasto", "Azja", "Ameryka"],
+    "suitableStyles": ["Mix", "Zwiedzanie"],
+    "indoor": true
+  },
+    {
+      "id": "a051",
+      "title": "Planetarium lub pokaz astronomiczny",
+      "description": "Jedna sesja (45–60 min) i krótki spacer po okolicy. Fajne jako spokojny poranek albo wieczór.",
+      "type": "CULTURE",
+      "suitableRegions": ["Europa - miasto", "Ameryka", "Azja"],
+      "suitableStyles": ["Zwiedzanie", "Mix"],
+      "indoor": true
+    },
+    {
+      "id": "a052",
+      "title": "Muzeum sztuki nowoczesnej",
+      "description": "Wybierz 3 prace, które Cię wkurzają albo zachwycają i spróbuj nazwać powód.",
+      "type": "CULTURE",
+      "suitableRegions": ["Europa - miasto", "Ameryka", "Azja"],
+      "suitableStyles": ["Zwiedzanie", "Mix"],
+      "indoor": true
+    },
+    {
+      "id": "a053",
+      "title": "Wystawa lokalnych artystów",
+      "description": "Mała galeria + krótka rozmowa z obsługą o tym, co jest charakterystyczne dla regionu.",
+      "type": "CULTURE",
+      "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Góry", "Azja", "Ameryka"],
+      "suitableStyles": ["Zwiedzanie", "Mix"],
+      "indoor": true
+    },
+    {
+      "id": "a054",
+      "title": "Warsztaty kawy: espresso / przelew",
+      "description": "Godzina praktyki i poznanie 2–3 sposobów parzenia. Potem test w realnej kawiarni.",
+      "type": "FOOD",
+      "suitableRegions": ["Europa - miasto", "Azja", "Ameryka"],
+      "suitableStyles": ["Relaks", "Mix"],
+      "indoor": true
+    },
+    {
+      "id": "a055",
+      "title": "Targ pod dachem: degustacja lokalnych produktów",
+      "description": "Weź 2 słone i 1 słodką rzecz. Zapisz, co było najlepsze i gdzie warto wrócić.",
+      "type": "FOOD",
+      "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Azja", "Ameryka"],
+      "suitableStyles": ["Mix", "Relaks"],
+      "indoor": true
+    },
+    {
+      "id": "a056",
+      "title": "Muzeum archeologiczne / antyczne",
+      "description": "Skup się na jednej epoce i zrób krótkie notatki. To lepiej „siada” niż oglądanie wszystkiego naraz.",
+      "type": "CULTURE",
+      "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Ameryka"],
+      "suitableStyles": ["Zwiedzanie", "Mix"],
+      "indoor": true
+    },
+    {
+      "id": "a057",
+      "title": "Zwiedzanie hali targowej: kuchnie świata",
+      "description": "Wybierz 2 małe porcje zamiast jednego dużego dania. Porównaj smaki i ceny.",
+      "type": "FOOD",
+      "suitableRegions": ["Europa - miasto", "Azja", "Ameryka"],
+      "suitableStyles": ["Mix", "Relaks"],
+      "indoor": true
+    },
+    {
+      "id": "a058",
+      "title": "Kurs tańca dla początkujących",
+      "description": "Jedna lekcja i koniec — bez zobowiązań. Dobry sposób na wyrwanie się z rutyny zwiedzania.",
+      "type": "ACTIVE",
+      "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Azja", "Ameryka"],
+      "suitableStyles": ["Aktywny", "Mix"],
+      "indoor": true
+    },
+    {
+      "id": "a059",
+      "title": "Ścianka wspinaczkowa (intro)",
+      "description": "Godzina z instruktorem albo prostą asekuracją. Świetne, jeśli chcesz „aktywnie”, ale bez trekkingu.",
+      "type": "ACTIVE",
+      "suitableRegions": ["Europa - miasto", "Góry", "Ameryka", "Azja"],
+      "suitableStyles": ["Aktywny", "Mix"],
+      "indoor": true
+    },
+    {
+      "id": "a060",
+      "title": "Basen sportowy + sauna (krótko)",
+      "description": "30–45 min pływania i 10–15 min strefy ciepła. Potem lekki posiłek.",
+      "type": "RELAX",
+      "suitableRegions": ["Europa - miasto", "Góry", "Azja", "Ameryka"],
+      "suitableStyles": ["Relaks", "Mix"],
+      "indoor": true
+    },
+    {
+      "id": "a061",
+      "title": "Muzeum motoryzacji / transportu",
+      "description": "Szybkie tempo: wybierz 5 eksponatów i sprawdź ich historię. Resztę możesz tylko „przelecieć”.",
+      "type": "CULTURE",
+      "suitableRegions": ["Europa - miasto", "Ameryka", "Azja"],
+      "suitableStyles": ["Zwiedzanie", "Mix"],
+      "indoor": true
+    },
+    {
+      "id": "a062",
+      "title": "Biblioteka z ciekawą architekturą",
+      "description": "Krótka wizyta, 10 minut ciszy i obejrzenie wnętrza. Działa jak reset bodźców.",
+      "type": "RELAX",
+      "suitableRegions": ["Europa - miasto", "Azja", "Ameryka"],
+      "suitableStyles": ["Relaks", "Mix"],
+      "indoor": true
+    },
+    {
+      "id": "a063",
+      "title": "Herbaciarnia / ceremonia herbaty",
+      "description": "Spokojny rytm i degustacja kilku smaków. Dobre jako przerwa w zwiedzaniu.",
+      "type": "RELAX",
+      "suitableRegions": ["Azja", "Europa - miasto", "Ameryka"],
+      "suitableStyles": ["Relaks", "Mix"],
+      "indoor": true
+    },
+    {
+      "id": "a064",
+      "title": "Muzeum muzyki / instrumentów",
+      "description": "Wybierz 3 instrumenty i posłuchaj krótkich nagrań. Często zaskakuje bardziej niż „kolejne muzeum”.",
+      "type": "CULTURE",
+      "suitableRegions": ["Europa - miasto", "Ameryka", "Azja"],
+      "suitableStyles": ["Zwiedzanie", "Mix"],
+      "indoor": true
+    },
+    {
+      "id": "a065",
+      "title": "Warsztaty ceramiki: mała forma",
+      "description": "Zrób kubek, miseczkę albo małą podstawkę. To pamiątka, która ma sens i historię.",
+      "type": "CULTURE",
+      "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Azja", "Ameryka"],
+      "suitableStyles": ["Mix", "Zwiedzanie"],
+      "indoor": true
+    },
+    {
+      "id": "a066",
+      "title": "Centrum VR / arcade",
+      "description": "1–2 gry i koniec. Traktuj to jako przerywnik, nie główną atrakcję całego dnia.",
+      "type": "NIGHT",
+      "suitableRegions": ["Europa - miasto", "Azja", "Ameryka"],
+      "suitableStyles": ["Mix", "Relaks"],
+      "indoor": true
+    },
+    {
+      "id": "a067",
+      "title": "Wieczór stand-up / komedia",
+      "description": "Lekki klimat na zakończenie dnia. Nawet jeśli nie wszystko zrozumiesz, energia robi robotę.",
+      "type": "NIGHT",
+      "suitableRegions": ["Europa - miasto", "Ameryka", "Azja"],
+      "suitableStyles": ["Relaks", "Mix"],
+      "indoor": true
+    },
+    {
+      "id": "a068",
+      "title": "Kurs degustacji czekolady",
+      "description": "Porównaj 3–5 tabliczek o różnym procencie kakao. Zwróć uwagę na aromat i posmak.",
+      "type": "FOOD",
+      "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Ameryka"],
+      "suitableStyles": ["Relaks", "Mix"],
+      "indoor": true
+    },
+    {
+      "id": "a069",
+      "title": "Mini warsztat językowy / wymiana językowa",
+      "description": "Godzina rozmów z lokalnymi i turystami. Poznasz parę zwrotów, które realnie się przydadzą.",
+      "type": "CULTURE",
+      "suitableRegions": ["Europa - miasto", "Azja", "Ameryka"],
+      "suitableStyles": ["Mix", "Zwiedzanie"],
+      "indoor": true
+    },
+    {
+      "id": "a070",
+      "title": "Muzeum sztuki sakralnej",
+      "description": "Krótka trasa: 2 sale + jedna „perełka”. Bez przeciążenia informacją.",
+      "type": "CULTURE",
+      "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Ameryka"],
+      "suitableStyles": ["Zwiedzanie", "Mix"],
+      "indoor": true
+    },
+    {
+      "id": "a071",
+      "title": "Zajęcia jogi / oddechu",
+      "description": "45–60 min spokojnego ruchu. Idealne, jeśli masz dość chodzenia, ale nie chcesz „leżeć cały dzień”.",
+      "type": "RELAX",
+      "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Góry", "Azja", "Ameryka"],
+      "suitableStyles": ["Relaks", "Mix"],
+      "indoor": true
+    },
+    {
+      "id": "a072",
+      "title": "Zwiedzanie podziemi / trasy historycznej",
+      "description": "Konkretna narracja i fajny klimat. Dobre na 60–90 minut bez spiny.",
+      "type": "CULTURE",
+      "suitableRegions": ["Europa - miasto", "Góry", "Morze Śródziemne"],
+      "suitableStyles": ["Zwiedzanie", "Mix"],
+      "indoor": true
+    },
+    {
+      "id": "a073",
+      "title": "Muzeum kulinarne / historia jedzenia",
+      "description": "Zobacz, skąd wzięły się lokalne smaki. Potem możesz świadomie wybrać jedną potrawę na kolację.",
+      "type": "FOOD",
+      "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Azja", "Ameryka"],
+      "suitableStyles": ["Zwiedzanie", "Mix"],
+      "indoor": true
+    },
+    {
+      "id": "a074",
+      "title": "Koncert kameralny / muzyka klasyczna",
+      "description": "Krótka forma i fajny klimat. Dobre, jeśli chcesz wieczorem „kulturę”, ale bez wielkiego show.",
+      "type": "NIGHT",
+      "suitableRegions": ["Europa - miasto", "Ameryka", "Azja"],
+      "suitableStyles": ["Relaks", "Zwiedzanie", "Mix"],
+      "indoor": true
+    },
+    {
+      "id": "a075",
+      "title": "Muzeum dla dzieci… nawet dla dorosłych",
+      "description": "Interaktywne rzeczy robią robotę w każdym wieku. Podejdź do tego jak do eksperymentu, nie „atrakcji”.",
+      "type": "CULTURE",
+      "suitableRegions": ["Europa - miasto", "Ameryka", "Azja"],
+      "suitableStyles": ["Relaks", "Mix"],
+      "indoor": true
+    },
+
+    {
+      "id": "a076",
+      "title": "Trasa „najlepsze murale”",
+      "description": "Wybierz 6–10 murali na mapie i przejdź je pieszo. Fajne zdjęcia i lepsze poznanie dzielnic.",
+      "type": "CULTURE",
+      "suitableRegions": ["Europa - miasto", "Ameryka", "Azja"],
+      "suitableStyles": ["Zwiedzanie", "Mix"],
+      "indoor": false
+    },
+    {
+      "id": "a077",
+      "title": "Rower miejski: pętla 8–15 km",
+      "description": "Trasa z jednym przystankiem na kawę i jednym na punkt widokowy. Nie ciśnij tempa.",
+      "type": "ACTIVE",
+      "suitableRegions": ["Europa - miasto", "Ameryka", "Azja", "Morze Śródziemne"],
+      "suitableStyles": ["Aktywny", "Mix"],
+      "indoor": false
+    },
+    {
+      "id": "a078",
+      "title": "Zwiedzanie dzielnicy portowej / nabrzeża",
+      "description": "Spokojny spacer przy wodzie, obejrzenie łodzi i magazynów, szybka przerwa na przekąskę.",
+      "type": "RELAX",
+      "suitableRegions": ["Morze Śródziemne", "Europa - miasto", "Ameryka"],
+      "suitableStyles": ["Relaks", "Mix"],
+      "indoor": false
+    },
+    {
+      "id": "a079",
+      "title": "Szczyt na pół dnia",
+      "description": "Wybierz trasę z jednym celem (szczyt/przełęcz). Po drodze rób krótkie przerwy, bez „zajechania”.",
+      "type": "ACTIVE",
+      "suitableRegions": ["Góry", "Ameryka", "Azja"],
+      "suitableStyles": ["Aktywny", "Mix"],
+      "indoor": false
+    },
+    {
+      "id": "a080",
+      "title": "Spacer „kawa + widok”",
+      "description": "Najpierw dobra kawa na wynos, potem 30–60 min w kierunku najlepszego widoku w okolicy.",
+      "type": "NATURE",
+      "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Góry", "Ameryka", "Azja"],
+      "suitableStyles": ["Relaks", "Mix"],
+      "indoor": false
+    },
+    {
+      "id": "a081",
+      "title": "Picnic w parku",
+      "description": "Kup 2–3 proste rzeczy (np. owoce, kanapka, napój) i usiądź w spokojnym miejscu na 30–40 min.",
+      "type": "RELAX",
+      "suitableRegions": ["Europa - miasto", "Ameryka", "Azja"],
+      "suitableStyles": ["Relaks", "Mix"],
+      "indoor": false
+    },
+    {
+      "id": "a082",
+      "title": "Plaża: spacer brzegiem 4–6 km",
+      "description": "Zrób pętlę: tam spokojnie, z powrotem szybciej. Po drodze 10 minut na obserwację i nic więcej.",
+      "type": "NATURE",
+      "suitableRegions": ["Morze Śródziemne", "Ameryka", "Azja"],
+      "suitableStyles": ["Relaks", "Mix", "Aktywny"],
+      "indoor": false
+    },
+    {
+      "id": "a083",
+      "title": "Zachód słońca w konkretnym punkcie",
+      "description": "Wybierz jedno miejsce i przyjdź 20 minut wcześniej. Zrób mało zdjęć, ale sensownie.",
+      "type": "RELAX",
+      "suitableRegions": ["Morze Śródziemne", "Góry", "Ameryka", "Azja", "Europa - miasto"],
+      "suitableStyles": ["Relaks", "Mix"],
+      "indoor": false
+    },
+    {
+      "id": "a084",
+      "title": "Spacer po rynku / głównym placu",
+      "description": "Złap tempo miasta: ludzie, kawiarnie, ulice. 2 przystanki: kawa + szybka przekąska.",
+      "type": "CULTURE",
+      "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Ameryka", "Azja"],
+      "suitableStyles": ["Zwiedzanie", "Mix"],
+      "indoor": false
+    },
+    {
+      "id": "a085",
+      "title": "Trasa „najstarsze zabytki” pieszo",
+      "description": "3–5 punktów maks. Między nimi idź spokojnie i patrz na detale, nie tylko na mapę.",
+      "type": "CULTURE",
+      "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Ameryka"],
+      "suitableStyles": ["Zwiedzanie", "Mix"],
+      "indoor": false
+    },
+    {
+      "id": "a086",
+      "title": "Spokojny trekking po dolinie",
+      "description": "Łagodna trasa 5–8 km, bez wyżyłowania. Idealne jako „aktywny relaks”.",
+      "type": "ACTIVE",
+      "suitableRegions": ["Góry", "Ameryka", "Azja"],
+      "suitableStyles": ["Relaks", "Aktywny", "Mix"],
+      "indoor": false
+    },
+    {
+      "id": "a087",
+      "title": "Kąpiel w morzu / jeziorze (krótko)",
+      "description": "15–30 minut w wodzie i koniec. Potem suszenie i lekki posiłek.",
+      "type": "RELAX",
+      "suitableRegions": ["Morze Śródziemne", "Ameryka", "Azja", "Góry"],
+      "suitableStyles": ["Relaks", "Mix"],
+      "indoor": false
+    },
+    {
+      "id": "a088",
+      "title": "Poranny bieg w parku",
+      "description": "3–6 km w spokojnym tempie. Po biegu woda i 10 minut rozciągania.",
+      "type": "ACTIVE",
+      "suitableRegions": ["Europa - miasto", "Ameryka", "Azja", "Morze Śródziemne"],
+      "suitableStyles": ["Aktywny", "Mix"],
+      "indoor": false
+    },
+    {
+      "id": "a089",
+      "title": "Zwiedzanie ogrodu botanicznego",
+      "description": "Weź trasę tematyczną (np. rośliny tropikalne, sukulenty). Dobre tempo: wolno i uważnie.",
+      "type": "NATURE",
+      "suitableRegions": ["Europa - miasto", "Azja", "Ameryka", "Morze Śródziemne"],
+      "suitableStyles": ["Relaks", "Mix"],
+      "indoor": false
+    },
+    {
+      "id": "a090",
+      "title": "Wypad do punktu widokowego poza miastem",
+      "description": "Krótki dojazd + 30–60 min spaceru. Jedno mocne miejsce i wracasz bez „przepalania dnia”.",
+      "type": "NATURE",
+      "suitableRegions": ["Europa - miasto", "Góry", "Ameryka", "Azja", "Morze Śródziemne"],
+      "suitableStyles": ["Zwiedzanie", "Mix"],
+      "indoor": false
+    },
+    {
+      "id": "a091",
+      "title": "Kajak / SUP na spokojnej wodzie",
+      "description": "Godzina w wodzie, bez napinki na dystans. Skup się na widokach i rytmie.",
+      "type": "ACTIVE",
+      "suitableRegions": ["Góry", "Ameryka", "Azja", "Morze Śródziemne"],
+      "suitableStyles": ["Aktywny", "Mix"],
+      "indoor": false
+    },
+    {
+      "id": "a092",
+      "title": "Spacer po klifach / wybrzeżu",
+      "description": "Trasa 4–8 km z jednym punktem na dłuższą przerwę. Zadbaj o wygodne buty.",
+      "type": "NATURE",
+      "suitableRegions": ["Morze Śródziemne", "Ameryka", "Azja"],
+      "suitableStyles": ["Aktywny", "Mix"],
+      "indoor": false
+    },
+    {
+      "id": "a093",
+      "title": "Zamek/twierdza — dziedziniec i mury z zewnątrz",
+      "description": "Jeśli nie chcesz wchodzić do środka, obejrzyj mury, bramy i okolice. Często i tak jest świetny klimat.",
+      "type": "CULTURE",
+      "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Góry", "Ameryka"],
+      "suitableStyles": ["Zwiedzanie", "Mix"],
+      "indoor": false
+    },
+    {
+      "id": "a094",
+      "title": "Wizyta na targu ulicznym (open-air)",
+      "description": "Przejdź targ, wybierz jedną przekąskę i jedną rzecz „do spróbowania później”.",
+      "type": "FOOD",
+      "suitableRegions": ["Morze Śródziemne", "Azja", "Ameryka", "Europa - miasto"],
+      "suitableStyles": ["Mix", "Zwiedzanie"],
+      "indoor": false
+    },
+    {
+      "id": "a095",
+      "title": "Wieczór: spacer po deptaku",
+      "description": "Luz, światła, ludzie. Ustal jedną knajpkę na koniec i nie skacz po 5 miejscach.",
+      "type": "NIGHT",
+      "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Azja", "Ameryka"],
+      "suitableStyles": ["Relaks", "Mix"],
+      "indoor": false
+    },
+    {
+      "id": "a096",
+      "title": "Street food na świeżym powietrzu",
+      "description": "Dwa małe dania zamiast jednego dużego. Wybierz rzeczy typowe dla miejsca, nie „bezpieczne”.",
+      "type": "FOOD",
+      "suitableRegions": ["Azja", "Ameryka", "Europa - miasto", "Morze Śródziemne"],
+      "suitableStyles": ["Mix", "Relaks"],
+      "indoor": false
+    },
+    {
+      "id": "a097",
+      "title": "Schody / punkt wysoko w mieście",
+      "description": "Wejdź spokojnie, z przerwą w połowie. Na górze 5 minut ciszy i patrzenia na miasto.",
+      "type": "ACTIVE",
+      "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Ameryka", "Azja"],
+      "suitableStyles": ["Aktywny", "Mix"],
+      "indoor": false
+    },
+    {
+      "id": "a098",
+      "title": "Zwiedzanie dzielnicy z lokalną architekturą",
+      "description": "Idź bez pośpiechu i patrz na detale: balkony, drzwi, okna, szyldy. Zrób serię 10 spójnych zdjęć.",
+      "type": "CULTURE",
+      "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Ameryka", "Azja"],
+      "suitableStyles": ["Zwiedzanie", "Mix"],
+      "indoor": false
+    },
+    {
+      "id": "a099",
+      "title": "Szlak widokowy o zachodzie (krótki)",
+      "description": "Trasa 2–4 km, ale z dobrym punktem na koniec. Wróć spokojnie, bez gonienia czasu.",
+      "type": "NATURE",
+      "suitableRegions": ["Góry", "Morze Śródziemne", "Ameryka", "Azja"],
+      "suitableStyles": ["Relaks", "Mix", "Aktywny"],
+      "indoor": false
+    },
+    {
+      "id": "a100",
+      "title": "Poranna trasa spacerowa „bez mapy”",
+      "description": "Idź 30–45 minut intuicyjnie, a potem wróć inną drogą. To często daje najlepsze „poczucie miejsca”.",
+      "type": "NATURE",
+      "suitableRegions": ["Europa - miasto", "Morze Śródziemne", "Góry", "Azja", "Ameryka"],
+      "suitableStyles": ["Relaks", "Mix"],
+      "indoor": false
+    }
+  ]

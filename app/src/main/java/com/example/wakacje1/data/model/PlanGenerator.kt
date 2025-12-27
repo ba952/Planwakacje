@@ -1,83 +1,50 @@
 package com.example.wakacje1.data.model
 
-import kotlin.math.abs
-import kotlin.math.roundToInt
-
-/**
- * Slot w ciągu dnia (poranek / południe / wieczór).
- */
-enum class DaySlot { MORNING, MIDDAY, EVENING }
-
-/**
- * Pojedynczy wpis planu (slot).
- * baseActivityId służy do uniknięcia powtórki przy ponownym losowaniu.
- */
-data class SlotPlan(
-    val baseActivityId: String?,
-    val title: String,
-    val description: String,
-    val isCustom: Boolean = false
-)
-
-/**
- * Plan dnia jako 3 sloty + budżet per dzień.
- */
-data class InternalDayPlan(
-    val title: String,
-    val morning: SlotPlan?,
-    val midday: SlotPlan?,
-    val evening: SlotPlan?,
-    val budgetPerDay: Int
-)
-
 object PlanGenerator {
 
-    private val MORNING_TYPES = setOf(ActivityType.CULTURE, ActivityType.NATURE, ActivityType.RELAX)
-    private val MIDDAY_TYPES = setOf(ActivityType.NATURE, ActivityType.ACTIVE, ActivityType.CULTURE)
-    private val EVENING_TYPES = setOf(ActivityType.FOOD, ActivityType.RELAX, ActivityType.NIGHT)
-
-    /**
-     * Generuje cały plan jako strukturę InternalDayPlan (łatwe edytowanie / ponowne losowanie slotów).
-     *
-     * @param isBadWeatherForDayIndex funkcja mówiąca czy dzień (0..days-1) ma "złą pogodę"
-     */
     fun generateInternalPlan(
         prefs: Preferences,
         dest: Destination,
         allActivities: List<ActivityTemplate>,
         isBadWeatherForDayIndex: (Int) -> Boolean
     ): MutableList<InternalDayPlan> {
-
-        val daysCount = prefs.days.coerceAtLeast(1)
-        val budgetPerDay = (prefs.budget.toDouble() / daysCount).roundToInt()
-
+        val days = prefs.days.coerceAtLeast(1)
         val result = mutableListOf<InternalDayPlan>()
-        for (dayNumber in 1..daysCount) {
-            val preferIndoor = isBadWeatherForDayIndex(dayNumber - 1)
-            result += buildInternalDay(
-                dayNumber = dayNumber,
+
+        for (i in 0 until days) {
+            val badWeather = isBadWeatherForDayIndex(i)
+
+            val morning = pickForSlot(
+                slot = DaySlot.MORNING,
                 prefs = prefs,
                 dest = dest,
-                budgetPerDay = budgetPerDay,
-                allActivities = allActivities,
-                extraSeed = 0,
-                preferIndoor = preferIndoor
+                all = allActivities,
+                preferIndoor = badWeather
             )
-        }
-        return result
-    }
+            val midday = pickForSlot(
+                slot = DaySlot.MIDDAY,
+                prefs = prefs,
+                dest = dest,
+                all = allActivities,
+                preferIndoor = badWeather
+            )
+            val evening = pickForSlot(
+                slot = DaySlot.EVENING,
+                prefs = prefs,
+                dest = dest,
+                all = allActivities,
+                preferIndoor = badWeather
+            )
 
-    fun rebuildDayPlans(
-        internal: List<InternalDayPlan>,
-        placeName: String
-    ): List<DayPlan> {
-        return internal.mapIndexed { index, d ->
-            DayPlan(
-                day = index + 1,
-                title = d.title.ifBlank { "Dzień ${index + 1} – $placeName" },
-                details = buildDetailsText(d)
+            result += InternalDayPlan(
+                day = i + 1,
+                morning = morning,
+                midday = midday,
+                evening = evening
             )
         }
+
+        return result
     }
 
     fun regenerateWholeDay(
@@ -89,22 +56,13 @@ object PlanGenerator {
         isBadWeatherForDayIndex: (Int) -> Boolean
     ) {
         if (dayIndex !in internal.indices) return
+        val badWeather = isBadWeatherForDayIndex(dayIndex)
 
-        val daysCount = prefs.days.coerceAtLeast(1)
-        val budgetPerDay = (prefs.budget.toDouble() / daysCount).roundToInt()
-
-        val dayNumber = dayIndex + 1
-        val extraSeed = (System.currentTimeMillis() and 0xFFFF).toInt()
-        val preferIndoor = isBadWeatherForDayIndex(dayIndex)
-
-        internal[dayIndex] = buildInternalDay(
-            dayNumber = dayNumber,
-            prefs = prefs,
-            dest = dest,
-            budgetPerDay = budgetPerDay,
-            allActivities = allActivities,
-            extraSeed = extraSeed,
-            preferIndoor = preferIndoor
+        internal[dayIndex] = InternalDayPlan(
+            day = dayIndex + 1,
+            morning = pickForSlot(DaySlot.MORNING, prefs, dest, allActivities, badWeather),
+            midday = pickForSlot(DaySlot.MIDDAY, prefs, dest, allActivities, badWeather),
+            evening = pickForSlot(DaySlot.EVENING, prefs, dest, allActivities, badWeather)
         )
     }
 
@@ -118,38 +76,10 @@ object PlanGenerator {
         isBadWeatherForDayIndex: (Int) -> Boolean
     ) {
         if (dayIndex !in internal.indices) return
+        val badWeather = isBadWeatherForDayIndex(dayIndex)
         val current = internal[dayIndex]
 
-        val preferIndoor = when (slot) {
-            DaySlot.MORNING, DaySlot.MIDDAY -> isBadWeatherForDayIndex(dayIndex)
-            DaySlot.EVENING -> true
-        }
-
-        val (types, seedOffset, currentSlot) = when (slot) {
-            DaySlot.MORNING -> Triple(MORNING_TYPES, 11, current.morning)
-            DaySlot.MIDDAY -> Triple(MIDDAY_TYPES, 22, current.midday)
-            DaySlot.EVENING -> Triple(EVENING_TYPES, 33, current.evening)
-        }
-
-        val excludeId = currentSlot?.baseActivityId
-        val seed = ((System.currentTimeMillis() shr 4) and 0x7FFFFFFF).toInt() + seedOffset
-
-        val template = pickActivityForSlot(
-            region = dest.region,
-            style = prefs.style,
-            preferredTypes = types,
-            seed = seed,
-            excludeId = excludeId,
-            allActivities = allActivities,
-            preferIndoor = preferIndoor
-        ) ?: return
-
-        val newSlot = SlotPlan(
-            baseActivityId = template.id,
-            title = template.title,
-            description = template.description,
-            isCustom = false
-        )
+        val newSlot = pickForSlot(slot, prefs, dest, allActivities, badWeather)
 
         internal[dayIndex] = when (slot) {
             DaySlot.MORNING -> current.copy(morning = newSlot)
@@ -168,13 +98,11 @@ object PlanGenerator {
         if (dayIndex !in internal.indices) return
         val current = internal[dayIndex]
 
-        val safeTitle = if (title.isBlank()) "Własny pomysł" else title
-
         val custom = SlotPlan(
             baseActivityId = null,
-            title = safeTitle,
-            description = description,
-            isCustom = true
+            title = title.trim(),
+            description = description.trim(),
+            indoor = false
         )
 
         internal[dayIndex] = when (slot) {
@@ -184,116 +112,102 @@ object PlanGenerator {
         }
     }
 
-    // ========================= prywatne =========================
+    fun rebuildDayPlans(
+        internalDays: List<InternalDayPlan>,
+        destinationName: String
+    ): List<DayPlan> {
+        return internalDays.map { d ->
+            val details = buildString {
+                append("Poranek: ${d.morning.title}")
+                if (d.morning.description.isNotBlank()) append("\n- ${d.morning.description}")
 
-    private fun buildInternalDay(
-        dayNumber: Int,
+                append("\n\nPołudnie: ${d.midday.title}")
+                if (d.midday.description.isNotBlank()) append("\n- ${d.midday.description}")
+
+                append("\n\nWieczór: ${d.evening.title}")
+                if (d.evening.description.isNotBlank()) append("\n- ${d.evening.description}")
+            }
+
+            DayPlan(
+                day = d.day,
+                title = "Dzień ${d.day} — $destinationName",
+                details = details
+            )
+        }
+    }
+
+    // ------------------------------------------------------------------------
+    // Helpers
+    // ------------------------------------------------------------------------
+
+    private fun pickForSlot(
+        slot: DaySlot,
         prefs: Preferences,
         dest: Destination,
-        budgetPerDay: Int,
-        allActivities: List<ActivityTemplate>,
-        extraSeed: Int,
+        all: List<ActivityTemplate>,
         preferIndoor: Boolean
-    ): InternalDayPlan {
-        val baseSeed = dayNumber * 1000 + extraSeed
+    ): SlotPlan {
+        if (all.isEmpty()) return fallbackSlot(slot, preferIndoor)
 
-        val morningTemplate = pickActivityForSlot(
-            region = dest.region,
-            style = prefs.style,
-            preferredTypes = MORNING_TYPES,
-            seed = baseSeed + 11,
-            excludeId = null,
-            allActivities = allActivities,
-            preferIndoor = preferIndoor
-        )
+        val base = all.filter { matchesPrefs(it, prefs, dest) }
 
-        val middayTemplate = pickActivityForSlot(
-            region = dest.region,
-            style = prefs.style,
-            preferredTypes = MIDDAY_TYPES,
-            seed = baseSeed + 22,
-            excludeId = morningTemplate?.id,
-            allActivities = allActivities,
-            preferIndoor = preferIndoor
-        )
+        val preferredTypes = preferredTypesFor(slot)
+        val typed = base.filter { it.type in preferredTypes }.ifEmpty { base }
 
-        val eveningTemplate = pickActivityForSlot(
-            region = dest.region,
-            style = prefs.style,
-            preferredTypes = EVENING_TYPES,
-            seed = baseSeed + 33,
-            excludeId = middayTemplate?.id,
-            allActivities = allActivities,
-            preferIndoor = true
-        )
+        val indoorFiltered = if (preferIndoor) typed.filter { it.indoor } else emptyList()
+        val finalPool = if (preferIndoor && indoorFiltered.isNotEmpty()) indoorFiltered else typed
 
-        val dayTitle = when (prefs.style) {
-            "Relaks" -> "Dzień relaksu w ${dest.displayName}"
-            "Zwiedzanie" -> "Zwiedzanie ${dest.displayName}"
-            "Aktywny" -> "Aktywny dzień w ${dest.displayName}"
-            "Mix" -> "Mieszany dzień w ${dest.displayName}"
-            else -> "Dzień $dayNumber w ${dest.displayName}"
+        if (finalPool.isEmpty()) {
+            val any = all.random()
+            return toSlotPlan(any)
         }
 
-        return InternalDayPlan(
-            title = dayTitle,
-            morning = morningTemplate?.toSlot(),
-            midday = middayTemplate?.toSlot(),
-            evening = eveningTemplate?.toSlot(),
-            budgetPerDay = budgetPerDay
+        val chosen = finalPool.random()
+        return toSlotPlan(chosen)
+    }
+
+    private fun preferredTypesFor(slot: DaySlot): Set<ActivityType> = when (slot) {
+        DaySlot.MORNING -> setOf(ActivityType.CULTURE, ActivityType.NATURE, ActivityType.ACTIVE)
+        DaySlot.MIDDAY -> setOf(ActivityType.FOOD, ActivityType.CULTURE, ActivityType.ACTIVE, ActivityType.NATURE)
+        DaySlot.EVENING -> setOf(ActivityType.RELAX, ActivityType.NIGHT, ActivityType.FOOD, ActivityType.CULTURE)
+    }
+
+    private fun matchesPrefs(a: ActivityTemplate, prefs: Preferences, dest: Destination): Boolean {
+        val regionOk =
+            a.suitableRegions.isEmpty() ||
+                    a.suitableRegions.any { it.equals(prefs.region, ignoreCase = true) } ||
+                    a.suitableRegions.any { it.equals(dest.region, ignoreCase = true) }
+
+        val styleOk =
+            a.suitableStyles.isEmpty() ||
+                    a.suitableStyles.any { it.equals(prefs.style, ignoreCase = true) }
+
+        return regionOk && styleOk
+    }
+
+    private fun toSlotPlan(a: ActivityTemplate): SlotPlan {
+        return SlotPlan(
+            baseActivityId = a.id,
+            title = a.title,
+            description = a.description,
+            indoor = a.indoor
         )
     }
 
-    private fun ActivityTemplate.toSlot(): SlotPlan =
-        SlotPlan(baseActivityId = id, title = title, description = description, isCustom = false)
-
-    private fun pickActivityForSlot(
-        region: String,
-        style: String,
-        preferredTypes: Set<ActivityType>,
-        seed: Int,
-        excludeId: String?,
-        allActivities: List<ActivityTemplate>,
-        preferIndoor: Boolean
-    ): ActivityTemplate? {
-
-        val candidates = allActivities.filter { t ->
-            (t.suitableRegions.isEmpty() || region in t.suitableRegions) &&
-                    (t.suitableStyles.isEmpty() || style in t.suitableStyles) &&
-                    (t.type in preferredTypes)
-        }
-        if (candidates.isEmpty()) return null
-
-        val weatherFiltered = if (preferIndoor) {
-            val indoor = candidates.filter { it.indoor }
-            if (indoor.isNotEmpty()) indoor else candidates
-        } else {
-            candidates
+    private fun fallbackSlot(slot: DaySlot, preferIndoor: Boolean): SlotPlan {
+        val title = when (slot) {
+            DaySlot.MORNING -> "Spacer / zwiedzanie"
+            DaySlot.MIDDAY -> "Obiad i krótka atrakcja"
+            DaySlot.EVENING -> "Wieczorny relaks"
         }
 
-        val filtered = if (excludeId != null) weatherFiltered.filter { it.id != excludeId } else weatherFiltered
-        if (filtered.isEmpty()) return null
+        val desc = if (preferIndoor) "Zła pogoda — rozważ aktywność pod dachem." else ""
 
-        val idx = abs(seed) % filtered.size
-        return filtered[idx]
-    }
-
-    private fun buildDetailsText(internal: InternalDayPlan): String {
-        fun slotText(label: String, slot: SlotPlan?): String {
-            val title = slot?.title ?: "Czas wolny"
-            val desc = slot?.description
-            return buildString {
-                appendLine("$label: $title")
-                if (!desc.isNullOrBlank()) appendLine("• $desc")
-                appendLine()
-            }
-        }
-
-        return buildString {
-            append(slotText("Poranek", internal.morning))
-            append(slotText("Południe", internal.midday))
-            append(slotText("Wieczór", internal.evening))
-            append("Orientacyjny budżet na ten dzień: ok. ${internal.budgetPerDay} zł (bez dojazdu i noclegu).")
-        }
+        return SlotPlan(
+            baseActivityId = null,
+            title = title,
+            description = desc,
+            indoor = preferIndoor
+        )
     }
 }

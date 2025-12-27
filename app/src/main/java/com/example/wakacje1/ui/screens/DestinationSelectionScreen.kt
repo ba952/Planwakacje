@@ -1,5 +1,6 @@
 package com.example.wakacje1.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,30 +18,33 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
-import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.wakacje1.data.model.Destination
-import com.example.wakacje1.ui.theme.VacationViewModel
+import com.example.wakacje1.ui.viewmodel.VacationViewModel
 import kotlin.math.roundToInt
+import androidx.compose.material3.ElevatedButton
+import androidx.compose.material3.OutlinedButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -93,7 +97,7 @@ fun DestinationSelectionScreen(
         snackbarHost = { SnackbarHost(hostState = snack) }
     ) { padding ->
         Column(
-            modifier = Modifier
+            modifier = Modifier.Companion
                 .fillMaxSize()
                 .padding(padding)
                 .padding(16.dp)
@@ -104,7 +108,7 @@ fun DestinationSelectionScreen(
                 style = MaterialTheme.typography.bodyMedium
             )
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.Companion.height(12.dp))
 
             // Krótki box pogody bieżącej (dla wybranego miejsca)
             WeatherCard(
@@ -116,16 +120,16 @@ fun DestinationSelectionScreen(
                 error = viewModel.weather.error
             )
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.Companion.height(12.dp))
             Divider()
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.Companion.height(12.dp))
 
             if (prefs == null) {
                 Text(
                     text = "Brak preferencji — wróć i uzupełnij formularz.",
                     color = MaterialTheme.colorScheme.error
                 )
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.Companion.height(12.dp))
                 OutlinedButton(onClick = onBack) { Text("Wróć") }
                 return@Column
             }
@@ -135,7 +139,7 @@ fun DestinationSelectionScreen(
                     text = "Brak propozycji dla tych preferencji (spróbuj zmienić budżet/region/klimat).",
                     color = MaterialTheme.colorScheme.error
                 )
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.Companion.height(12.dp))
                 OutlinedButton(onClick = onBack) { Text("Wróć") }
                 return@Column
             }
@@ -143,12 +147,12 @@ fun DestinationSelectionScreen(
             Text(
                 text = "Propozycje (3):",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.Companion.SemiBold
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.Companion.height(8.dp))
 
             LazyColumn(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.Companion.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 itemsIndexed(suggestions) { idx, item ->
@@ -167,20 +171,20 @@ fun DestinationSelectionScreen(
             }
 
             localError.value?.let {
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.Companion.height(8.dp))
                 Text(text = it, color = MaterialTheme.colorScheme.error)
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.Companion.height(12.dp))
 
             // Footer z przyciskami
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.Companion.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 OutlinedButton(
                     onClick = onBack,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.Companion.weight(1f)
                 ) {
                     Text("Wróć")
                 }
@@ -207,7 +211,7 @@ fun DestinationSelectionScreen(
                         viewModel.generatePlan()
                         onDestinationChosen()
                     },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.Companion.weight(1f)
                 ) {
                     Text("Pokaż plan")
                 }
@@ -242,22 +246,22 @@ private fun DestinationCard(
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.Companion.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = container, contentColor = content),
         elevation = CardDefaults.cardElevation(defaultElevation = if (selected) 6.dp else 1.dp),
         onClick = onSelect
     ) {
-        Column(Modifier.padding(14.dp)) {
+        Column(Modifier.Companion.padding(14.dp)) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.Companion.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top
             ) {
-                Column(Modifier.weight(1f)) {
+                Column(Modifier.Companion.weight(1f)) {
                     Text(
                         text = destination.displayName,
                         style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Companion.Bold
                     )
                     Text(
                         text = destination.country,
@@ -269,23 +273,23 @@ private fun DestinationCard(
                     text = if (okBudget) "OK" else "Za niski budżet",
                     color = if (okBudget) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.Companion.SemiBold
                 )
             }
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.Companion.height(10.dp))
 
             Text(
                 text = "Region: ${destination.region} • Klimat: ${destination.climate}",
                 style = MaterialTheme.typography.bodyMedium
             )
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.Companion.height(6.dp))
 
             Text(
                 text = "Budżet: min ${destination.minBudgetPerDay} zł/dzień, typowo ${destination.typicalBudgetPerDay} zł/dzień",
                 style = MaterialTheme.typography.bodySmall
             )
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.Companion.height(6.dp))
 
             if (destination.tags.isNotEmpty()) {
                 Text(
@@ -307,16 +311,16 @@ private fun WeatherCard(
     error: String?
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.Companion.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
     ) {
-        Column(Modifier.padding(14.dp)) {
+        Column(Modifier.Companion.padding(14.dp)) {
             Text(
                 text = "Pogoda",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.Companion.SemiBold
             )
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.Companion.height(6.dp))
 
             val label = cityLabel ?: weatherCity ?: "—"
 
@@ -326,12 +330,14 @@ private fun WeatherCard(
                     text = "Błąd: $error",
                     color = MaterialTheme.colorScheme.error
                 )
+
                 temp != null || !desc.isNullOrBlank() -> {
                     val t = temp?.let { "${it.roundToInt()}°C" } ?: ""
                     val d = desc ?: ""
                     Text("Miejsce: $label")
                     Text("Teraz: $d $t")
                 }
+
                 else -> Text("Wybierz miejsce, aby zobaczyć pogodę.")
             }
         }
