@@ -1,4 +1,4 @@
-package com.example.wakacje1.ui.theme
+package com.example.wakacje1.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -7,15 +7,15 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.wakacje1.presentation.viewmodel.AuthViewModel
+import com.example.wakacje1.presentation.viewmodel.MyPlansViewModel
+import com.example.wakacje1.presentation.viewmodel.VacationViewModel
 import com.example.wakacje1.ui.screens.DestinationSelectionScreen
 import com.example.wakacje1.ui.screens.LoginScreen
 import com.example.wakacje1.ui.screens.MyPlansScreen
 import com.example.wakacje1.ui.screens.PlanScreen
 import com.example.wakacje1.ui.screens.PreferencesScreen
 import com.example.wakacje1.ui.screens.RegisterScreen
-import com.example.wakacje1.ui.viewmodel.AuthViewModel
-import com.example.wakacje1.ui.viewmodel.MyPlansViewModel
-import com.example.wakacje1.ui.viewmodel.VacationViewModel
 
 sealed class Dest(val route: String) {
     data object Splash : Dest("splash")
@@ -62,9 +62,7 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
                         popUpTo(Dest.Login.route) { inclusive = true }
                     }
                 },
-                onGoRegister = {
-                    navController.navigate(Dest.Register.route)
-                }
+                onGoRegister = { navController.navigate(Dest.Register.route) }
             )
         }
 
@@ -76,14 +74,12 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
                         popUpTo(Dest.Register.route) { inclusive = true }
                     }
                 },
-                onBackToLogin = {
-                    navController.popBackStack()
-                }
+                onBackToLogin = { navController.popBackStack() }
             )
         }
 
         composable(Dest.MyPlans.route) {
-            // opcjonalne zabezpieczenie: jak user zrobi się null (np. sesja padnie), wróć do logowania
+            // jak user zrobi się null (np. sesja padnie), wróć do logowania
             val user = authVm.user
             LaunchedEffect(user) {
                 if (user == null) {
@@ -113,6 +109,12 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
                 onNext = {
                     vacationVm.prepareDestinationSuggestions()
                     navController.navigate(Dest.Destinations.route)
+                },
+                onGoMyPlans = {
+                    navController.navigate(Dest.MyPlans.route) {
+                        launchSingleTop = true
+                        popUpTo(Dest.MyPlans.route) { inclusive = false }
+                    }
                 }
             )
         }
@@ -131,8 +133,10 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
                 uid = authVm.user?.uid,
                 onBack = { navController.popBackStack() },
                 onGoMyPlans = {
-                    navController.navigate(Dest.MyPlans.route) {
-                        popUpTo(Dest.MyPlans.route) { inclusive = true }
+                    // nie czyścimy agresywnie stosu; wracamy jeśli się da
+                    val popped = navController.popBackStack(Dest.MyPlans.route, inclusive = false)
+                    if (!popped) {
+                        navController.navigate(Dest.MyPlans.route) { launchSingleTop = true }
                     }
                 }
             )

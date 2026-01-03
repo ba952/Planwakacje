@@ -7,8 +7,18 @@
     "climate": "Ciepły",
     "minBudgetPerDay": 170,
     "typicalBudgetPerDay": 260,
-    "tags": ["Zwiedzanie", "kultura", "jedzenie"],
-    "apiQuery": "Seville"
+    "tags": [
+      "Relaks",
+      "Mix",
+      "kultura",
+      "kawiarnie",
+      "ciepło"
+    ],
+    "apiQuery": "Seville",
+    "transportCostRoundTripPlnRange": [
+      200,
+      910
+    ]
   },
   {
     "id": "d002",
@@ -18,542 +28,2681 @@
     "climate": "Ciepły",
     "minBudgetPerDay": 160,
     "typicalBudgetPerDay": 250,
-    "tags": ["Mix", "miasto", "plaża"],
-    "apiQuery": "Valencia"
+    "tags": [
+      "Relaks",
+      "Zwiedzanie",
+      "Mix",
+      "muzea",
+      "spacer",
+      "ciepło",
+      "zabytki"
+    ],
+    "apiQuery": "Valencia",
+    "transportCostRoundTripPlnRange": [
+      180,
+      800
+    ]
   },
   {
     "id": "d003",
+    "displayName": "Barcelona",
+    "country": "Hiszpania",
+    "region": "Europa - miasto",
+    "climate": "Ciepły",
+    "minBudgetPerDay": 200,
+    "typicalBudgetPerDay": 320,
+    "tags": [
+      "Zwiedzanie",
+      "Mix",
+      "kawiarnie",
+      "kultura",
+      "ciepło",
+      "zabytki"
+    ],
+    "apiQuery": "Barcelona",
+    "transportCostRoundTripPlnRange": [
+      200,
+      880
+    ]
+  },
+  {
+    "id": "d004",
     "displayName": "Lizbona",
     "country": "Portugalia",
     "region": "Europa - miasto",
     "climate": "Ciepły",
-    "minBudgetPerDay": 160,
-    "typicalBudgetPerDay": 240,
-    "tags": ["Zwiedzanie", "punkty_widokowe", "jedzenie"],
-    "apiQuery": "Lisbon"
+    "minBudgetPerDay": 190,
+    "typicalBudgetPerDay": 300,
+    "tags": [
+      "Zwiedzanie",
+      "Aktywny",
+      "Mix",
+      "spacer",
+      "muzea",
+      "ciepło",
+      "zabytki",
+      "sport"
+    ],
+    "apiQuery": "Lisbon",
+    "transportCostRoundTripPlnRange": [
+      220,
+      980
+    ]
   },
   {
-    "id": "d004",
+    "id": "d005",
+    "displayName": "Rzym",
+    "country": "Włochy",
+    "region": "Europa - miasto",
+    "climate": "Ciepły",
+    "minBudgetPerDay": 220,
+    "typicalBudgetPerDay": 350,
+    "tags": [
+      "Aktywny",
+      "Mix",
+      "kultura",
+      "kawiarnie",
+      "ciepło",
+      "sport"
+    ],
+    "apiQuery": "Rome",
+    "transportCostRoundTripPlnRange": [
+      170,
+      780
+    ]
+  },
+  {
+    "id": "d006",
+    "displayName": "Ateny",
+    "country": "Grecja",
+    "region": "Europa - miasto",
+    "climate": "Ciepły",
+    "minBudgetPerDay": 170,
+    "typicalBudgetPerDay": 280,
+    "tags": [
+      "Aktywny",
+      "Mix",
+      "muzea",
+      "spacer",
+      "ciepło",
+      "sport"
+    ],
+    "apiQuery": "Athens",
+    "transportCostRoundTripPlnRange": [
+      230,
+      1020
+    ]
+  },
+  {
+    "id": "d007",
+    "displayName": "Nicea",
+    "country": "Francja",
+    "region": "Europa - miasto",
+    "climate": "Ciepły",
+    "minBudgetPerDay": 230,
+    "typicalBudgetPerDay": 360,
+    "tags": [
+      "Relaks",
+      "Aktywny",
+      "Mix",
+      "kawiarnie",
+      "kultura",
+      "ciepło",
+      "sport"
+    ],
+    "apiQuery": "Nice",
+    "transportCostRoundTripPlnRange": [
+      180,
+      790
+    ]
+  },
+  {
+    "id": "d008",
+    "displayName": "Stambuł",
+    "country": "Turcja",
+    "region": "Europa - miasto",
+    "climate": "Ciepły",
+    "minBudgetPerDay": 180,
+    "typicalBudgetPerDay": 290,
+    "tags": [
+      "Relaks",
+      "Zwiedzanie",
+      "Aktywny",
+      "Mix",
+      "spacer",
+      "muzea",
+      "ciepło",
+      "zabytki",
+      "sport"
+    ],
+    "apiQuery": "Istanbul",
+    "transportCostRoundTripPlnRange": [
+      230,
+      1030
+    ]
+  },
+  {
+    "id": "d009",
     "displayName": "Berlin",
     "country": "Niemcy",
     "region": "Europa - miasto",
     "climate": "Umiarkowany",
     "minBudgetPerDay": 190,
     "typicalBudgetPerDay": 290,
-    "tags": ["Zwiedzanie", "muzea", "nocne_zycie"],
-    "apiQuery": "Berlin"
+    "tags": [
+      "Relaks",
+      "Mix",
+      "kultura",
+      "kawiarnie",
+      "umiarkowanie"
+    ],
+    "apiQuery": "Berlin",
+    "transportCostRoundTripPlnRange": [
+      180,
+      790
+    ]
   },
   {
-    "id": "d005",
+    "id": "d010",
     "displayName": "Praga",
     "country": "Czechy",
     "region": "Europa - miasto",
     "climate": "Umiarkowany",
     "minBudgetPerDay": 140,
     "typicalBudgetPerDay": 210,
-    "tags": ["Zwiedzanie", "starowka", "Mix"],
-    "apiQuery": "Prague"
+    "tags": [
+      "Relaks",
+      "Zwiedzanie",
+      "Mix",
+      "muzea",
+      "spacer",
+      "umiarkowanie",
+      "zabytki"
+    ],
+    "apiQuery": "Prague",
+    "transportCostRoundTripPlnRange": [
+      170,
+      680
+    ]
   },
   {
-    "id": "d006",
+    "id": "d011",
     "displayName": "Wiedeń",
     "country": "Austria",
     "region": "Europa - miasto",
     "climate": "Umiarkowany",
-    "minBudgetPerDay": 200,
-    "typicalBudgetPerDay": 310,
-    "tags": ["Zwiedzanie", "kultura", "muzea"],
-    "apiQuery": "Vienna"
+    "minBudgetPerDay": 220,
+    "typicalBudgetPerDay": 340,
+    "tags": [
+      "Zwiedzanie",
+      "Mix",
+      "kawiarnie",
+      "kultura",
+      "umiarkowanie",
+      "zabytki"
+    ],
+    "apiQuery": "Vienna",
+    "transportCostRoundTripPlnRange": [
+      170,
+      780
+    ]
   },
   {
-    "id": "d007",
+    "id": "d012",
     "displayName": "Amsterdam",
     "country": "Holandia",
     "region": "Europa - miasto",
     "climate": "Umiarkowany",
-    "minBudgetPerDay": 230,
-    "typicalBudgetPerDay": 360,
-    "tags": ["Mix", "miasto", "kultura"],
-    "apiQuery": "Amsterdam"
+    "minBudgetPerDay": 260,
+    "typicalBudgetPerDay": 420,
+    "tags": [
+      "Zwiedzanie",
+      "Aktywny",
+      "Mix",
+      "spacer",
+      "muzea",
+      "umiarkowanie",
+      "zabytki",
+      "sport"
+    ],
+    "apiQuery": "Amsterdam",
+    "transportCostRoundTripPlnRange": [
+      210,
+      930
+    ]
   },
   {
-    "id": "d008",
+    "id": "d013",
+    "displayName": "Paryż",
+    "country": "Francja",
+    "region": "Europa - miasto",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 280,
+    "typicalBudgetPerDay": 450,
+    "tags": [
+      "Aktywny",
+      "Mix",
+      "kultura",
+      "kawiarnie",
+      "umiarkowanie",
+      "sport"
+    ],
+    "apiQuery": "Paris",
+    "transportCostRoundTripPlnRange": [
+      180,
+      800
+    ]
+  },
+  {
+    "id": "d014",
+    "displayName": "Londyn",
+    "country": "Wielka Brytania",
+    "region": "Europa - miasto",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 320,
+    "typicalBudgetPerDay": 520,
+    "tags": [
+      "Aktywny",
+      "Mix",
+      "muzea",
+      "spacer",
+      "umiarkowanie",
+      "sport"
+    ],
+    "apiQuery": "London",
+    "transportCostRoundTripPlnRange": [
+      170,
+      770
+    ]
+  },
+  {
+    "id": "d015",
+    "displayName": "Kopenhaga",
+    "country": "Dania",
+    "region": "Europa - miasto",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 300,
+    "typicalBudgetPerDay": 480,
+    "tags": [
+      "Relaks",
+      "Aktywny",
+      "Mix",
+      "kawiarnie",
+      "kultura",
+      "umiarkowanie",
+      "sport"
+    ],
+    "apiQuery": "Copenhagen",
+    "transportCostRoundTripPlnRange": [
+      200,
+      890
+    ]
+  },
+  {
+    "id": "d016",
+    "displayName": "Warszawa",
+    "country": "Polska",
+    "region": "Europa - miasto",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 150,
+    "typicalBudgetPerDay": 240,
+    "tags": [
+      "Relaks",
+      "Zwiedzanie",
+      "Aktywny",
+      "Mix",
+      "spacer",
+      "muzea",
+      "umiarkowanie",
+      "zabytki",
+      "sport"
+    ],
+    "apiQuery": "Warsaw",
+    "transportCostRoundTripPlnRange": [
+      60,
+      400
+    ]
+  },
+  {
+    "id": "d017",
     "displayName": "Reykjavík",
     "country": "Islandia",
     "region": "Europa - miasto",
     "climate": "Chłodny",
-    "minBudgetPerDay": 260,
-    "typicalBudgetPerDay": 420,
-    "tags": ["Aktywny", "natura", "Mix"],
-    "apiQuery": "Reykjavik"
+    "minBudgetPerDay": 340,
+    "typicalBudgetPerDay": 520,
+    "tags": [
+      "Relaks",
+      "Mix",
+      "kultura",
+      "kawiarnie",
+      "chłodno"
+    ],
+    "apiQuery": "Reykjavik",
+    "transportCostRoundTripPlnRange": [
+      220,
+      990
+    ]
   },
   {
-    "id": "d009",
+    "id": "d018",
     "displayName": "Helsinki",
     "country": "Finlandia",
     "region": "Europa - miasto",
     "climate": "Chłodny",
-    "minBudgetPerDay": 240,
-    "typicalBudgetPerDay": 380,
-    "tags": ["Zwiedzanie", "spacer", "Mix"],
-    "apiQuery": "Helsinki"
+    "minBudgetPerDay": 260,
+    "typicalBudgetPerDay": 420,
+    "tags": [
+      "Relaks",
+      "Zwiedzanie",
+      "Mix",
+      "muzea",
+      "spacer",
+      "chłodno",
+      "zabytki"
+    ],
+    "apiQuery": "Helsinki",
+    "transportCostRoundTripPlnRange": [
+      170,
+      770
+    ]
   },
   {
-    "id": "d010",
+    "id": "d019",
+    "displayName": "Sztokholm",
+    "country": "Szwecja",
+    "region": "Europa - miasto",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 280,
+    "typicalBudgetPerDay": 450,
+    "tags": [
+      "Zwiedzanie",
+      "Mix",
+      "kawiarnie",
+      "kultura",
+      "chłodno",
+      "zabytki"
+    ],
+    "apiQuery": "Stockholm",
+    "transportCostRoundTripPlnRange": [
+      210,
+      950
+    ]
+  },
+  {
+    "id": "d020",
+    "displayName": "Oslo",
+    "country": "Norwegia",
+    "region": "Europa - miasto",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 320,
+    "typicalBudgetPerDay": 520,
+    "tags": [
+      "Zwiedzanie",
+      "Aktywny",
+      "Mix",
+      "spacer",
+      "muzea",
+      "chłodno",
+      "zabytki",
+      "sport"
+    ],
+    "apiQuery": "Oslo",
+    "transportCostRoundTripPlnRange": [
+      200,
+      900
+    ]
+  },
+  {
+    "id": "d021",
     "displayName": "Tallinn",
     "country": "Estonia",
     "region": "Europa - miasto",
     "climate": "Chłodny",
-    "minBudgetPerDay": 150,
-    "typicalBudgetPerDay": 230,
-    "tags": ["Zwiedzanie", "starowka", "Relaks"],
-    "apiQuery": "Tallinn"
+    "minBudgetPerDay": 170,
+    "typicalBudgetPerDay": 260,
+    "tags": [
+      "Aktywny",
+      "Mix",
+      "kultura",
+      "kawiarnie",
+      "chłodno",
+      "sport"
+    ],
+    "apiQuery": "Tallinn",
+    "transportCostRoundTripPlnRange": [
+      220,
+      1000
+    ]
   },
-
   {
-    "id": "d011",
-    "displayName": "Valletta",
+    "id": "d022",
+    "displayName": "Ryga",
+    "country": "Łotwa",
+    "region": "Europa - miasto",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 160,
+    "typicalBudgetPerDay": 250,
+    "tags": [
+      "Aktywny",
+      "Mix",
+      "muzea",
+      "spacer",
+      "chłodno",
+      "sport"
+    ],
+    "apiQuery": "Riga",
+    "transportCostRoundTripPlnRange": [
+      220,
+      970
+    ]
+  },
+  {
+    "id": "d023",
+    "displayName": "Wilno",
+    "country": "Litwa",
+    "region": "Europa - miasto",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 150,
+    "typicalBudgetPerDay": 240,
+    "tags": [
+      "Relaks",
+      "Aktywny",
+      "Mix",
+      "kawiarnie",
+      "kultura",
+      "chłodno",
+      "sport"
+    ],
+    "apiQuery": "Vilnius",
+    "transportCostRoundTripPlnRange": [
+      180,
+      790
+    ]
+  },
+  {
+    "id": "d024",
+    "displayName": "Edynburg",
+    "country": "Wielka Brytania",
+    "region": "Europa - miasto",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 250,
+    "typicalBudgetPerDay": 390,
+    "tags": [
+      "Relaks",
+      "Zwiedzanie",
+      "Aktywny",
+      "Mix",
+      "spacer",
+      "muzea",
+      "chłodno",
+      "zabytki",
+      "sport"
+    ],
+    "apiQuery": "Edinburgh",
+    "transportCostRoundTripPlnRange": [
+      190,
+      860
+    ]
+  },
+  {
+    "id": "d025",
+    "displayName": "Malta (Valletta)",
     "country": "Malta",
+    "region": "Morze Śródziemne",
+    "climate": "Ciepły",
+    "minBudgetPerDay": 210,
+    "typicalBudgetPerDay": 330,
+    "tags": [
+      "Relaks",
+      "Mix",
+      "plaża",
+      "kuchnia",
+      "ciepło"
+    ],
+    "apiQuery": "Valletta",
+    "transportCostRoundTripPlnRange": [
+      380,
+      1340
+    ]
+  },
+  {
+    "id": "d026",
+    "displayName": "Cypr (Pafos)",
+    "country": "Cypr",
     "region": "Morze Śródziemne",
     "climate": "Ciepły",
     "minBudgetPerDay": 190,
     "typicalBudgetPerDay": 300,
-    "tags": ["Relaks", "morze", "Zwiedzanie"],
-    "apiQuery": "Valletta"
+    "tags": [
+      "Relaks",
+      "Zwiedzanie",
+      "Mix",
+      "słońce",
+      "morze",
+      "ciepło"
+    ],
+    "apiQuery": "Paphos",
+    "transportCostRoundTripPlnRange": [
+      340,
+      1190
+    ]
   },
   {
-    "id": "d012",
-    "displayName": "Heraklion",
+    "id": "d027",
+    "displayName": "Kreta (Heraklion)",
     "country": "Grecja",
-    "region": "Morze Śródziemne",
-    "climate": "Ciepły",
-    "minBudgetPerDay": 170,
-    "typicalBudgetPerDay": 260,
-    "tags": ["Relaks", "plaża", "Mix"],
-    "apiQuery": "Heraklion"
-  },
-  {
-    "id": "d013",
-    "displayName": "Palma de Mallorca",
-    "country": "Hiszpania",
     "region": "Morze Śródziemne",
     "climate": "Ciepły",
     "minBudgetPerDay": 200,
     "typicalBudgetPerDay": 320,
-    "tags": ["Relaks", "plaża", "nocne_zycie"],
-    "apiQuery": "Palma"
+    "tags": [
+      "Zwiedzanie",
+      "Mix",
+      "kuchnia",
+      "plaża",
+      "ciepło"
+    ],
+    "apiQuery": "Heraklion",
+    "transportCostRoundTripPlnRange": [
+      430,
+      1500
+    ]
   },
   {
-    "id": "d014",
-    "displayName": "Neapol",
+    "id": "d028",
+    "displayName": "Rodos",
+    "country": "Grecja",
+    "region": "Morze Śródziemne",
+    "climate": "Ciepły",
+    "minBudgetPerDay": 190,
+    "typicalBudgetPerDay": 310,
+    "tags": [
+      "Zwiedzanie",
+      "Aktywny",
+      "Mix",
+      "morze",
+      "słońce",
+      "ciepło",
+      "sport"
+    ],
+    "apiQuery": "Rhodes",
+    "transportCostRoundTripPlnRange": [
+      460,
+      1610
+    ]
+  },
+  {
+    "id": "d029",
+    "displayName": "Sardynia (Cagliari)",
     "country": "Włochy",
     "region": "Morze Śródziemne",
     "climate": "Ciepły",
-    "minBudgetPerDay": 170,
-    "typicalBudgetPerDay": 270,
-    "tags": ["Mix", "jedzenie", "Zwiedzanie"],
-    "apiQuery": "Naples"
-  },
-  {
-    "id": "d015",
-    "displayName": "Nicea",
-    "country": "Francja",
-    "region": "Morze Śródziemne",
-    "climate": "Umiarkowany",
     "minBudgetPerDay": 230,
-    "typicalBudgetPerDay": 370,
-    "tags": ["Relaks", "spacer", "Mix"],
-    "apiQuery": "Nice"
+    "typicalBudgetPerDay": 360,
+    "tags": [
+      "Aktywny",
+      "Mix",
+      "plaża",
+      "kuchnia",
+      "ciepło",
+      "sport"
+    ],
+    "apiQuery": "Cagliari",
+    "transportCostRoundTripPlnRange": [
+      400,
+      1410
+    ]
   },
   {
-    "id": "d016",
-    "displayName": "Split",
-    "country": "Chorwacja",
+    "id": "d030",
+    "displayName": "Majorka (Palma)",
+    "country": "Hiszpania",
     "region": "Morze Śródziemne",
-    "climate": "Umiarkowany",
-    "minBudgetPerDay": 160,
-    "typicalBudgetPerDay": 240,
-    "tags": ["Relaks", "morze", "Zwiedzanie"],
-    "apiQuery": "Split"
+    "climate": "Ciepły",
+    "minBudgetPerDay": 220,
+    "typicalBudgetPerDay": 340,
+    "tags": [
+      "Aktywny",
+      "Mix",
+      "słońce",
+      "morze",
+      "ciepło",
+      "sport"
+    ],
+    "apiQuery": "Palma",
+    "transportCostRoundTripPlnRange": [
+      350,
+      1240
+    ]
   },
   {
-    "id": "d017",
+    "id": "d031",
     "displayName": "Dubrownik",
     "country": "Chorwacja",
+    "region": "Morze Śródziemne",
+    "climate": "Ciepły",
+    "minBudgetPerDay": 220,
+    "typicalBudgetPerDay": 350,
+    "tags": [
+      "Relaks",
+      "Aktywny",
+      "Mix",
+      "kuchnia",
+      "plaża",
+      "ciepło",
+      "sport"
+    ],
+    "apiQuery": "Dubrovnik",
+    "transportCostRoundTripPlnRange": [
+      440,
+      1540
+    ]
+  },
+  {
+    "id": "d032",
+    "displayName": "Antalya",
+    "country": "Turcja",
+    "region": "Morze Śródziemne",
+    "climate": "Ciepły",
+    "minBudgetPerDay": 180,
+    "typicalBudgetPerDay": 290,
+    "tags": [
+      "Relaks",
+      "Zwiedzanie",
+      "Aktywny",
+      "Mix",
+      "morze",
+      "słońce",
+      "ciepło",
+      "sport"
+    ],
+    "apiQuery": "Antalya",
+    "transportCostRoundTripPlnRange": [
+      400,
+      1410
+    ]
+  },
+  {
+    "id": "d033",
+    "displayName": "Wenecja",
+    "country": "Włochy",
+    "region": "Morze Śródziemne",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 260,
+    "typicalBudgetPerDay": 410,
+    "tags": [
+      "Relaks",
+      "Mix",
+      "plaża",
+      "kuchnia",
+      "umiarkowanie"
+    ],
+    "apiQuery": "Venice",
+    "transportCostRoundTripPlnRange": [
+      440,
+      1550
+    ]
+  },
+  {
+    "id": "d034",
+    "displayName": "Barcelona (wybrzeże)",
+    "country": "Hiszpania",
+    "region": "Morze Śródziemne",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 200,
+    "typicalBudgetPerDay": 320,
+    "tags": [
+      "Relaks",
+      "Zwiedzanie",
+      "Mix",
+      "słońce",
+      "morze",
+      "umiarkowanie"
+    ],
+    "apiQuery": "Barcelona",
+    "transportCostRoundTripPlnRange": [
+      400,
+      1390
+    ]
+  },
+  {
+    "id": "d035",
+    "displayName": "Marsylia",
+    "country": "Francja",
     "region": "Morze Śródziemne",
     "climate": "Umiarkowany",
     "minBudgetPerDay": 220,
     "typicalBudgetPerDay": 340,
-    "tags": ["Zwiedzanie", "morze", "Mix"],
-    "apiQuery": "Dubrovnik"
+    "tags": [
+      "Zwiedzanie",
+      "Mix",
+      "kuchnia",
+      "plaża",
+      "umiarkowanie"
+    ],
+    "apiQuery": "Marseille",
+    "transportCostRoundTripPlnRange": [
+      390,
+      1370
+    ]
   },
   {
-    "id": "d018",
+    "id": "d036",
+    "displayName": "Split",
+    "country": "Chorwacja",
+    "region": "Morze Śródziemne",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 200,
+    "typicalBudgetPerDay": 320,
+    "tags": [
+      "Zwiedzanie",
+      "Aktywny",
+      "Mix",
+      "morze",
+      "słońce",
+      "umiarkowanie",
+      "sport"
+    ],
+    "apiQuery": "Split",
+    "transportCostRoundTripPlnRange": [
+      430,
+      1520
+    ]
+  },
+  {
+    "id": "d037",
+    "displayName": "Neapol",
+    "country": "Włochy",
+    "region": "Morze Śródziemne",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 210,
+    "typicalBudgetPerDay": 340,
+    "tags": [
+      "Aktywny",
+      "Mix",
+      "plaża",
+      "kuchnia",
+      "umiarkowanie",
+      "sport"
+    ],
+    "apiQuery": "Naples",
+    "transportCostRoundTripPlnRange": [
+      440,
+      1530
+    ]
+  },
+  {
+    "id": "d038",
+    "displayName": "Genua",
+    "country": "Włochy",
+    "region": "Morze Śródziemne",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 200,
+    "typicalBudgetPerDay": 320,
+    "tags": [
+      "Aktywny",
+      "Mix",
+      "słońce",
+      "morze",
+      "umiarkowanie",
+      "sport"
+    ],
+    "apiQuery": "Genoa",
+    "transportCostRoundTripPlnRange": [
+      400,
+      1420
+    ]
+  },
+  {
+    "id": "d039",
+    "displayName": "Nicea (Lazurowe Wybrzeże)",
+    "country": "Francja",
+    "region": "Morze Śródziemne",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 230,
+    "typicalBudgetPerDay": 360,
+    "tags": [
+      "Relaks",
+      "Aktywny",
+      "Mix",
+      "kuchnia",
+      "plaża",
+      "umiarkowanie",
+      "sport"
+    ],
+    "apiQuery": "Nice",
+    "transportCostRoundTripPlnRange": [
+      360,
+      1260
+    ]
+  },
+  {
+    "id": "d040",
+    "displayName": "Valletta (poza sezonem)",
+    "country": "Malta",
+    "region": "Morze Śródziemne",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 200,
+    "typicalBudgetPerDay": 320,
+    "tags": [
+      "Relaks",
+      "Zwiedzanie",
+      "Aktywny",
+      "Mix",
+      "morze",
+      "słońce",
+      "umiarkowanie",
+      "sport"
+    ],
+    "apiQuery": "Valletta",
+    "transportCostRoundTripPlnRange": [
+      410,
+      1430
+    ]
+  },
+  {
+    "id": "d041",
     "displayName": "Triest",
     "country": "Włochy",
     "region": "Morze Śródziemne",
     "climate": "Chłodny",
-    "minBudgetPerDay": 170,
-    "typicalBudgetPerDay": 260,
-    "tags": ["Zwiedzanie", "spacer", "Relaks"],
-    "apiQuery": "Trieste"
+    "minBudgetPerDay": 200,
+    "typicalBudgetPerDay": 320,
+    "tags": [
+      "Relaks",
+      "Mix",
+      "plaża",
+      "kuchnia",
+      "chłodno"
+    ],
+    "apiQuery": "Trieste",
+    "transportCostRoundTripPlnRange": [
+      400,
+      1390
+    ]
   },
   {
-    "id": "d019",
-    "displayName": "Genua",
-    "country": "Włochy",
-    "region": "Morze Śródziemne",
-    "climate": "Chłodny",
-    "minBudgetPerDay": 180,
-    "typicalBudgetPerDay": 270,
-    "tags": ["Mix", "port", "Zwiedzanie"],
-    "apiQuery": "Genoa"
-  },
-  {
-    "id": "d020",
-    "displayName": "Marsylia",
-    "country": "Francja",
+    "id": "d042",
+    "displayName": "Pula",
+    "country": "Chorwacja",
     "region": "Morze Śródziemne",
     "climate": "Chłodny",
     "minBudgetPerDay": 190,
-    "typicalBudgetPerDay": 290,
-    "tags": ["Mix", "jedzenie", "Zwiedzanie"],
-    "apiQuery": "Marseille"
+    "typicalBudgetPerDay": 300,
+    "tags": [
+      "Relaks",
+      "Zwiedzanie",
+      "Mix",
+      "słońce",
+      "morze",
+      "chłodno"
+    ],
+    "apiQuery": "Pula",
+    "transportCostRoundTripPlnRange": [
+      460,
+      1600
+    ]
   },
-
   {
-    "id": "d021",
+    "id": "d043",
+    "displayName": "Piran",
+    "country": "Słowenia",
+    "region": "Morze Śródziemne",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 210,
+    "typicalBudgetPerDay": 330,
+    "tags": [
+      "Zwiedzanie",
+      "Mix",
+      "kuchnia",
+      "plaża",
+      "chłodno"
+    ],
+    "apiQuery": "Piran",
+    "transportCostRoundTripPlnRange": [
+      410,
+      1420
+    ]
+  },
+  {
+    "id": "d044",
+    "displayName": "Tarragona",
+    "country": "Hiszpania",
+    "region": "Morze Śródziemne",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 190,
+    "typicalBudgetPerDay": 300,
+    "tags": [
+      "Zwiedzanie",
+      "Aktywny",
+      "Mix",
+      "morze",
+      "słońce",
+      "chłodno",
+      "sport"
+    ],
+    "apiQuery": "Tarragona",
+    "transportCostRoundTripPlnRange": [
+      360,
+      1260
+    ]
+  },
+  {
+    "id": "d045",
+    "displayName": "Alicante (zimą)",
+    "country": "Hiszpania",
+    "region": "Morze Śródziemne",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 180,
+    "typicalBudgetPerDay": 290,
+    "tags": [
+      "Aktywny",
+      "Mix",
+      "plaża",
+      "kuchnia",
+      "chłodno",
+      "sport"
+    ],
+    "apiQuery": "Alicante",
+    "transportCostRoundTripPlnRange": [
+      370,
+      1300
+    ]
+  },
+  {
+    "id": "d046",
+    "displayName": "Cannes (zimą)",
+    "country": "Francja",
+    "region": "Morze Śródziemne",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 250,
+    "typicalBudgetPerDay": 390,
+    "tags": [
+      "Aktywny",
+      "Mix",
+      "słońce",
+      "morze",
+      "chłodno",
+      "sport"
+    ],
+    "apiQuery": "Cannes",
+    "transportCostRoundTripPlnRange": [
+      410,
+      1450
+    ]
+  },
+  {
+    "id": "d047",
+    "displayName": "Monako",
+    "country": "Monako",
+    "region": "Morze Śródziemne",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 350,
+    "typicalBudgetPerDay": 550,
+    "tags": [
+      "Relaks",
+      "Aktywny",
+      "Mix",
+      "kuchnia",
+      "plaża",
+      "chłodno",
+      "sport"
+    ],
+    "apiQuery": "Monaco",
+    "transportCostRoundTripPlnRange": [
+      420,
+      1470
+    ]
+  },
+  {
+    "id": "d048",
+    "displayName": "Sanremo",
+    "country": "Włochy",
+    "region": "Morze Śródziemne",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 220,
+    "typicalBudgetPerDay": 350,
+    "tags": [
+      "Relaks",
+      "Zwiedzanie",
+      "Aktywny",
+      "Mix",
+      "morze",
+      "słońce",
+      "chłodno",
+      "sport"
+    ],
+    "apiQuery": "Sanremo",
+    "transportCostRoundTripPlnRange": [
+      390,
+      1380
+    ]
+  },
+  {
+    "id": "d049",
     "displayName": "Marrakesz (Atlas)",
     "country": "Maroko",
     "region": "Góry",
     "climate": "Ciepły",
+    "minBudgetPerDay": 220,
+    "typicalBudgetPerDay": 340,
+    "tags": [
+      "Relaks",
+      "Mix",
+      "szlaki",
+      "natura",
+      "ciepło"
+    ],
+    "apiQuery": "Marrakesh",
+    "transportCostRoundTripPlnRange": [
+      100,
+      690
+    ]
+  },
+  {
+    "id": "d050",
+    "displayName": "Cusco (Andy)",
+    "country": "Peru",
+    "region": "Góry",
+    "climate": "Ciepły",
+    "minBudgetPerDay": 180,
+    "typicalBudgetPerDay": 280,
+    "tags": [
+      "Relaks",
+      "Zwiedzanie",
+      "Mix",
+      "widoki",
+      "outdoor",
+      "ciepło"
+    ],
+    "apiQuery": "Cusco",
+    "transportCostRoundTripPlnRange": [
+      90,
+      660
+    ]
+  },
+  {
+    "id": "d051",
+    "displayName": "La Palma (Wyspy Kanaryjskie)",
+    "country": "Hiszpania",
+    "region": "Góry",
+    "climate": "Ciepły",
+    "minBudgetPerDay": 240,
+    "typicalBudgetPerDay": 370,
+    "tags": [
+      "Zwiedzanie",
+      "Mix",
+      "natura",
+      "szlaki",
+      "ciepło"
+    ],
+    "apiQuery": "Santa Cruz de la Palma",
+    "transportCostRoundTripPlnRange": [
+      90,
+      650
+    ]
+  },
+  {
+    "id": "d052",
+    "displayName": "Kapsztad (Table Mountain)",
+    "country": "RPA",
+    "region": "Góry",
+    "climate": "Ciepły",
+    "minBudgetPerDay": 240,
+    "typicalBudgetPerDay": 380,
+    "tags": [
+      "Zwiedzanie",
+      "Aktywny",
+      "Mix",
+      "outdoor",
+      "widoki",
+      "ciepło",
+      "sport"
+    ],
+    "apiQuery": "Cape Town",
+    "transportCostRoundTripPlnRange": [
+      110,
+      790
+    ]
+  },
+  {
+    "id": "d053",
+    "displayName": "Kathmandu",
+    "country": "Nepal",
+    "region": "Góry",
+    "climate": "Ciepły",
+    "minBudgetPerDay": 170,
+    "typicalBudgetPerDay": 260,
+    "tags": [
+      "Aktywny",
+      "Mix",
+      "szlaki",
+      "natura",
+      "ciepło",
+      "sport"
+    ],
+    "apiQuery": "Kathmandu",
+    "transportCostRoundTripPlnRange": [
+      100,
+      720
+    ]
+  },
+  {
+    "id": "d054",
+    "displayName": "Chiang Mai",
+    "country": "Tajlandia",
+    "region": "Góry",
+    "climate": "Ciepły",
     "minBudgetPerDay": 140,
-    "typicalBudgetPerDay": 210,
-    "tags": ["Aktywny", "trekking", "Mix"],
-    "apiQuery": "Marrakesh"
+    "typicalBudgetPerDay": 220,
+    "tags": [
+      "Aktywny",
+      "Mix",
+      "widoki",
+      "outdoor",
+      "ciepło",
+      "sport"
+    ],
+    "apiQuery": "Chiang Mai",
+    "transportCostRoundTripPlnRange": [
+      90,
+      660
+    ]
   },
   {
-    "id": "d022",
-    "displayName": "Antalya (Taurus)",
-    "country": "Turcja",
+    "id": "d055",
+    "displayName": "Granada (Sierra Nevada)",
+    "country": "Hiszpania",
     "region": "Góry",
     "climate": "Ciepły",
-    "minBudgetPerDay": 150,
-    "typicalBudgetPerDay": 230,
-    "tags": ["Aktywny", "widoki", "Relaks"],
-    "apiQuery": "Antalya"
+    "minBudgetPerDay": 180,
+    "typicalBudgetPerDay": 280,
+    "tags": [
+      "Relaks",
+      "Aktywny",
+      "Mix",
+      "natura",
+      "szlaki",
+      "ciepło",
+      "sport"
+    ],
+    "apiQuery": "Granada",
+    "transportCostRoundTripPlnRange": [
+      90,
+      640
+    ]
   },
   {
-    "id": "d023",
-    "displayName": "Medellín (Andy)",
-    "country": "Kolumbia",
+    "id": "d056",
+    "displayName": "Tbilisi (Kaukaz)",
+    "country": "Gruzja",
     "region": "Góry",
     "climate": "Ciepły",
-    "minBudgetPerDay": 130,
-    "typicalBudgetPerDay": 210,
-    "tags": ["Mix", "Aktywny", "kultura"],
-    "apiQuery": "Medellin"
+    "minBudgetPerDay": 160,
+    "typicalBudgetPerDay": 240,
+    "tags": [
+      "Relaks",
+      "Zwiedzanie",
+      "Aktywny",
+      "Mix",
+      "outdoor",
+      "widoki",
+      "ciepło",
+      "sport"
+    ],
+    "apiQuery": "Tbilisi",
+    "transportCostRoundTripPlnRange": [
+      100,
+      720
+    ]
   },
   {
-    "id": "d024",
-    "displayName": "Zakopane (Tatry)",
+    "id": "d057",
+    "displayName": "Zakopane",
     "country": "Polska",
     "region": "Góry",
     "climate": "Umiarkowany",
-    "minBudgetPerDay": 120,
-    "typicalBudgetPerDay": 180,
-    "tags": ["Aktywny", "szlaki", "Relaks"],
-    "apiQuery": "Zakopane"
+    "minBudgetPerDay": 150,
+    "typicalBudgetPerDay": 240,
+    "tags": [
+      "Relaks",
+      "Mix",
+      "szlaki",
+      "natura",
+      "umiarkowanie"
+    ],
+    "apiQuery": "Zakopane",
+    "transportCostRoundTripPlnRange": [
+      50,
+      360
+    ]
   },
   {
-    "id": "d025",
-    "displayName": "Innsbruck (Alpy)",
+    "id": "d058",
+    "displayName": "Innsbruck",
     "country": "Austria",
+    "region": "Góry",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 230,
+    "typicalBudgetPerDay": 360,
+    "tags": [
+      "Relaks",
+      "Zwiedzanie",
+      "Mix",
+      "widoki",
+      "outdoor",
+      "umiarkowanie"
+    ],
+    "apiQuery": "Innsbruck",
+    "transportCostRoundTripPlnRange": [
+      100,
+      680
+    ]
+  },
+  {
+    "id": "d059",
+    "displayName": "Interlaken",
+    "country": "Szwajcaria",
+    "region": "Góry",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 320,
+    "typicalBudgetPerDay": 520,
+    "tags": [
+      "Zwiedzanie",
+      "Mix",
+      "natura",
+      "szlaki",
+      "umiarkowanie"
+    ],
+    "apiQuery": "Interlaken",
+    "transportCostRoundTripPlnRange": [
+      100,
+      690
+    ]
+  },
+  {
+    "id": "d060",
+    "displayName": "Chamonix",
+    "country": "Francja",
+    "region": "Góry",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 330,
+    "typicalBudgetPerDay": 540,
+    "tags": [
+      "Zwiedzanie",
+      "Aktywny",
+      "Mix",
+      "outdoor",
+      "widoki",
+      "umiarkowanie",
+      "sport"
+    ],
+    "apiQuery": "Chamonix",
+    "transportCostRoundTripPlnRange": [
+      100,
+      680
+    ]
+  },
+  {
+    "id": "d061",
+    "displayName": "Bled",
+    "country": "Słowenia",
     "region": "Góry",
     "climate": "Umiarkowany",
     "minBudgetPerDay": 210,
     "typicalBudgetPerDay": 330,
-    "tags": ["Aktywny", "sport", "Mix"],
-    "apiQuery": "Innsbruck"
+    "tags": [
+      "Aktywny",
+      "Mix",
+      "szlaki",
+      "natura",
+      "umiarkowanie",
+      "sport"
+    ],
+    "apiQuery": "Bled",
+    "transportCostRoundTripPlnRange": [
+      90,
+      640
+    ]
   },
-    {
-      "id": "d026",
-      "displayName": "Bled (Alpy Julijskie)",
-      "country": "Słowenia",
-      "region": "Góry",
-      "climate": "Umiarkowany",
-      "minBudgetPerDay": 160,
-      "typicalBudgetPerDay": 240,
-      "tags": ["Relaks", "Aktywny", "Mix"],
-      "apiQuery": "Bled"
-    },
-    {
-      "id": "d027",
-      "displayName": "Chamonix (Alpy)",
-      "country": "Francja",
-      "region": "Góry",
-      "climate": "Chłodny",
-      "minBudgetPerDay": 260,
-      "typicalBudgetPerDay": 420,
-      "tags": ["Aktywny", "trekking", "sport"],
-      "apiQuery": "Chamonix"
-    },
-    {
-      "id": "d028",
-      "displayName": "Banff (Rocky Mountains)",
-      "country": "Kanada",
-      "region": "Góry",
-      "climate": "Chłodny",
-      "minBudgetPerDay": 240,
-      "typicalBudgetPerDay": 390,
-      "tags": ["Aktywny", "natura", "Mix"],
-      "apiQuery": "Banff"
-    },
-    {
-      "id": "d029",
-      "displayName": "Kiruna (Laponia)",
-      "country": "Szwecja",
-      "region": "Góry",
-      "climate": "Chłodny",
-      "minBudgetPerDay": 230,
-      "typicalBudgetPerDay": 370,
-      "tags": ["Aktywny", "widoki", "Relaks"],
-      "apiQuery": "Kiruna"
-    },
-
-    {
-      "id": "d030",
-      "displayName": "Bangkok",
-      "country": "Tajlandia",
-      "region": "Azja",
-      "climate": "Ciepły",
-      "minBudgetPerDay": 110,
-      "typicalBudgetPerDay": 180,
-      "tags": ["Mix", "jedzenie", "Zwiedzanie"],
-      "apiQuery": "Bangkok"
-    },
-    {
-      "id": "d031",
-      "displayName": "Singapur",
-      "country": "Singapur",
-      "region": "Azja",
-      "climate": "Ciepły",
-      "minBudgetPerDay": 230,
-      "typicalBudgetPerDay": 360,
-      "tags": ["Zwiedzanie", "Mix", "nocne_zycie"],
-      "apiQuery": "Singapore"
-    },
-    {
-      "id": "d032",
-      "displayName": "Denpasar (Bali)",
-      "country": "Indonezja",
-      "region": "Azja",
-      "climate": "Ciepły",
-      "minBudgetPerDay": 120,
-      "typicalBudgetPerDay": 200,
-      "tags": ["Relaks", "plaża", "Mix"],
-      "apiQuery": "Denpasar"
-    },
-    {
-      "id": "d033",
-      "displayName": "Hanoi",
-      "country": "Wietnam",
-      "region": "Azja",
-      "climate": "Ciepły",
-      "minBudgetPerDay": 90,
-      "typicalBudgetPerDay": 150,
-      "tags": ["Zwiedzanie", "jedzenie", "Mix"],
-      "apiQuery": "Hanoi"
-    },
-    {
-      "id": "d034",
-      "displayName": "Tokio",
-      "country": "Japonia",
-      "region": "Azja",
-      "climate": "Umiarkowany",
-      "minBudgetPerDay": 220,
-      "typicalBudgetPerDay": 360,
-      "tags": ["Zwiedzanie", "Mix", "jedzenie"],
-      "apiQuery": "Tokyo"
-    },
-    {
-      "id": "d035",
-      "displayName": "Seul",
-      "country": "Korea Południowa",
-      "region": "Azja",
-      "climate": "Umiarkowany",
-      "minBudgetPerDay": 190,
-      "typicalBudgetPerDay": 310,
-      "tags": ["Mix", "Zwiedzanie", "nocne_zycie"],
-      "apiQuery": "Seoul"
-    },
-    {
-      "id": "d036",
-      "displayName": "Tajpej",
-      "country": "Tajwan",
-      "region": "Azja",
-      "climate": "Umiarkowany",
-      "minBudgetPerDay": 160,
-      "typicalBudgetPerDay": 260,
-      "tags": ["Zwiedzanie", "Mix", "jedzenie"],
-      "apiQuery": "Taipei"
-    },
-    {
-      "id": "d037",
-      "displayName": "Ułan Bator",
-      "country": "Mongolia",
-      "region": "Azja",
-      "climate": "Chłodny",
-      "minBudgetPerDay": 120,
-      "typicalBudgetPerDay": 200,
-      "tags": ["Aktywny", "natura", "Mix"],
-      "apiQuery": "Ulaanbaatar"
-    },
-    {
-      "id": "d038",
-      "displayName": "Sapporo",
-      "country": "Japonia",
-      "region": "Azja",
-      "climate": "Chłodny",
-      "minBudgetPerDay": 200,
-      "typicalBudgetPerDay": 320,
-      "tags": ["Aktywny", "Mix", "jedzenie"],
-      "apiQuery": "Sapporo"
-    },
-    {
-      "id": "d039",
-      "displayName": "Harbin",
-      "country": "Chiny",
-      "region": "Azja",
-      "climate": "Chłodny",
-      "minBudgetPerDay": 140,
-      "typicalBudgetPerDay": 230,
-      "tags": ["Zwiedzanie", "Mix", "kultura"],
-      "apiQuery": "Harbin"
-    },
-
-    {
-      "id": "d040",
-      "displayName": "Miami",
-      "country": "USA",
-      "region": "Ameryka",
-      "climate": "Ciepły",
-      "minBudgetPerDay": 230,
-      "typicalBudgetPerDay": 380,
-      "tags": ["Relaks", "plaża", "nocne_zycie"],
-      "apiQuery": "Miami"
-    },
-    {
-      "id": "d041",
-      "displayName": "Cancún",
-      "country": "Meksyk",
-      "region": "Ameryka",
-      "climate": "Ciepły",
-      "minBudgetPerDay": 180,
-      "typicalBudgetPerDay": 300,
-      "tags": ["Relaks", "morze", "Mix"],
-      "apiQuery": "Cancun"
-    },
-    {
-      "id": "d042",
-      "displayName": "Rio de Janeiro",
-      "country": "Brazylia",
-      "region": "Ameryka",
-      "climate": "Ciepły",
-      "minBudgetPerDay": 170,
-      "typicalBudgetPerDay": 280,
-      "tags": ["Mix", "Relaks", "Zwiedzanie"],
-      "apiQuery": "Rio de Janeiro"
-    },
-    {
-      "id": "d043",
-      "displayName": "Cartagena",
-      "country": "Kolumbia",
-      "region": "Ameryka",
-      "climate": "Ciepły",
-      "minBudgetPerDay": 150,
-      "typicalBudgetPerDay": 240,
-      "tags": ["Relaks", "Zwiedzanie", "Mix"],
-      "apiQuery": "Cartagena"
-    },
-    {
-      "id": "d044",
-      "displayName": "Nowy Jork",
-      "country": "USA",
-      "region": "Ameryka",
-      "climate": "Umiarkowany",
-      "minBudgetPerDay": 260,
-      "typicalBudgetPerDay": 420,
-      "tags": ["Zwiedzanie", "muzea", "Mix"],
-      "apiQuery": "New York"
-    },
-    {
-      "id": "d045",
-      "displayName": "San Francisco",
-      "country": "USA",
-      "region": "Ameryka",
-      "climate": "Umiarkowany",
-      "minBudgetPerDay": 250,
-      "typicalBudgetPerDay": 410,
-      "tags": ["Mix", "Zwiedzanie", "spacer"],
-      "apiQuery": "San Francisco"
-    },
-    {
-      "id": "d046",
-      "displayName": "Toronto",
-      "country": "Kanada",
-      "region": "Ameryka",
-      "climate": "Umiarkowany",
-      "minBudgetPerDay": 220,
-      "typicalBudgetPerDay": 360,
-      "tags": ["Zwiedzanie", "Mix", "jedzenie"],
-      "apiQuery": "Toronto"
-    },
-    {
-      "id": "d047",
-      "displayName": "Santiago",
-      "country": "Chile",
-      "region": "Ameryka",
-      "climate": "Umiarkowany",
-      "minBudgetPerDay": 150,
-      "typicalBudgetPerDay": 240,
-      "tags": ["Mix", "Zwiedzanie", "Aktywny"],
-      "apiQuery": "Santiago"
-    },
-    {
-      "id": "d048",
-      "displayName": "Montreal",
-      "country": "Kanada",
-      "region": "Ameryka",
-      "climate": "Chłodny",
-      "minBudgetPerDay": 210,
-      "typicalBudgetPerDay": 340,
-      "tags": ["Zwiedzanie", "kultura", "Mix"],
-      "apiQuery": "Montreal"
-    },
-    {
-      "id": "d049",
-      "displayName": "Anchorage",
-      "country": "USA",
-      "region": "Ameryka",
-      "climate": "Chłodny",
-      "minBudgetPerDay": 240,
-      "typicalBudgetPerDay": 390,
-      "tags": ["Aktywny", "natura", "Mix"],
-      "apiQuery": "Anchorage"
-    },
-    {
-      "id": "d050",
-      "displayName": "Ushuaia",
-      "country": "Argentyna",
-      "region": "Ameryka",
-      "climate": "Chłodny",
-      "minBudgetPerDay": 180,
-      "typicalBudgetPerDay": 300,
-      "tags": ["Aktywny", "natura", "Relaks"],
-      "apiQuery": "Ushuaia"
-    }
-  ]
-
-
-
+  {
+    "id": "d062",
+    "displayName": "Karpacz",
+    "country": "Polska",
+    "region": "Góry",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 140,
+    "typicalBudgetPerDay": 230,
+    "tags": [
+      "Aktywny",
+      "Mix",
+      "widoki",
+      "outdoor",
+      "umiarkowanie",
+      "sport"
+    ],
+    "apiQuery": "Karpacz",
+    "transportCostRoundTripPlnRange": [
+      40,
+      310
+    ]
+  },
+  {
+    "id": "d063",
+    "displayName": "Krynica-Zdrój",
+    "country": "Polska",
+    "region": "Góry",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 140,
+    "typicalBudgetPerDay": 220,
+    "tags": [
+      "Relaks",
+      "Aktywny",
+      "Mix",
+      "natura",
+      "szlaki",
+      "umiarkowanie",
+      "sport"
+    ],
+    "apiQuery": "Krynica-Zdroj",
+    "transportCostRoundTripPlnRange": [
+      50,
+      330
+    ]
+  },
+  {
+    "id": "d064",
+    "displayName": "Sinaia",
+    "country": "Rumunia",
+    "region": "Góry",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 170,
+    "typicalBudgetPerDay": 260,
+    "tags": [
+      "Relaks",
+      "Zwiedzanie",
+      "Aktywny",
+      "Mix",
+      "outdoor",
+      "widoki",
+      "umiarkowanie",
+      "sport"
+    ],
+    "apiQuery": "Sinaia",
+    "transportCostRoundTripPlnRange": [
+      100,
+      680
+    ]
+  },
+  {
+    "id": "d065",
+    "displayName": "Tromsø",
+    "country": "Norwegia",
+    "region": "Góry",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 320,
+    "typicalBudgetPerDay": 520,
+    "tags": [
+      "Relaks",
+      "Mix",
+      "szlaki",
+      "natura",
+      "chłodno"
+    ],
+    "apiQuery": "Tromso",
+    "transportCostRoundTripPlnRange": [
+      100,
+      690
+    ]
+  },
+  {
+    "id": "d066",
+    "displayName": "Rovaniemi",
+    "country": "Finlandia",
+    "region": "Góry",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 280,
+    "typicalBudgetPerDay": 460,
+    "tags": [
+      "Relaks",
+      "Zwiedzanie",
+      "Mix",
+      "widoki",
+      "outdoor",
+      "chłodno"
+    ],
+    "apiQuery": "Rovaniemi",
+    "transportCostRoundTripPlnRange": [
+      90,
+      610
+    ]
+  },
+  {
+    "id": "d067",
+    "displayName": "Banff",
+    "country": "Kanada",
+    "region": "Góry",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 360,
+    "typicalBudgetPerDay": 600,
+    "tags": [
+      "Zwiedzanie",
+      "Mix",
+      "natura",
+      "szlaki",
+      "chłodno"
+    ],
+    "apiQuery": "Banff",
+    "transportCostRoundTripPlnRange": [
+      110,
+      800
+    ]
+  },
+  {
+    "id": "d068",
+    "displayName": "Jasper",
+    "country": "Kanada",
+    "region": "Góry",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 330,
+    "typicalBudgetPerDay": 560,
+    "tags": [
+      "Zwiedzanie",
+      "Aktywny",
+      "Mix",
+      "outdoor",
+      "widoki",
+      "chłodno",
+      "sport"
+    ],
+    "apiQuery": "Jasper",
+    "transportCostRoundTripPlnRange": [
+      110,
+      790
+    ]
+  },
+  {
+    "id": "d069",
+    "displayName": "Anchorage",
+    "country": "USA",
+    "region": "Góry",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 420,
+    "typicalBudgetPerDay": 700,
+    "tags": [
+      "Aktywny",
+      "Mix",
+      "szlaki",
+      "natura",
+      "chłodno",
+      "sport"
+    ],
+    "apiQuery": "Anchorage",
+    "transportCostRoundTripPlnRange": [
+      90,
+      650
+    ]
+  },
+  {
+    "id": "d070",
+    "displayName": "Ułan Bator",
+    "country": "Mongolia",
+    "region": "Góry",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 200,
+    "typicalBudgetPerDay": 320,
+    "tags": [
+      "Aktywny",
+      "Mix",
+      "widoki",
+      "outdoor",
+      "chłodno",
+      "sport"
+    ],
+    "apiQuery": "Ulaanbaatar",
+    "transportCostRoundTripPlnRange": [
+      100,
+      680
+    ]
+  },
+  {
+    "id": "d071",
+    "displayName": "Ałtaj (Gorno-Ałtajsk)",
+    "country": "Rosja",
+    "region": "Góry",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 220,
+    "typicalBudgetPerDay": 350,
+    "tags": [
+      "Relaks",
+      "Aktywny",
+      "Mix",
+      "natura",
+      "szlaki",
+      "chłodno",
+      "sport"
+    ],
+    "apiQuery": "Gorno-Altaysk",
+    "transportCostRoundTripPlnRange": [
+      110,
+      760
+    ]
+  },
+  {
+    "id": "d072",
+    "displayName": "Fairbanks",
+    "country": "USA",
+    "region": "Góry",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 420,
+    "typicalBudgetPerDay": 700,
+    "tags": [
+      "Relaks",
+      "Zwiedzanie",
+      "Aktywny",
+      "Mix",
+      "outdoor",
+      "widoki",
+      "chłodno",
+      "sport"
+    ],
+    "apiQuery": "Fairbanks",
+    "transportCostRoundTripPlnRange": [
+      100,
+      710
+    ]
+  },
+  {
+    "id": "d073",
+    "displayName": "Bangkok",
+    "country": "Tajlandia",
+    "region": "Azja",
+    "climate": "Ciepły",
+    "minBudgetPerDay": 150,
+    "typicalBudgetPerDay": 240,
+    "tags": [
+      "Relaks",
+      "Mix",
+      "street food",
+      "nocne życie",
+      "ciepło"
+    ],
+    "apiQuery": "Bangkok",
+    "transportCostRoundTripPlnRange": [
+      1980,
+      5400
+    ]
+  },
+  {
+    "id": "d074",
+    "displayName": "Bali (Denpasar)",
+    "country": "Indonezja",
+    "region": "Azja",
+    "climate": "Ciepły",
+    "minBudgetPerDay": 160,
+    "typicalBudgetPerDay": 260,
+    "tags": [
+      "Relaks",
+      "Zwiedzanie",
+      "Mix",
+      "świątynie",
+      "kultura",
+      "ciepło",
+      "zabytki"
+    ],
+    "apiQuery": "Denpasar",
+    "transportCostRoundTripPlnRange": [
+      2000,
+      5470
+    ]
+  },
+  {
+    "id": "d075",
+    "displayName": "Singapur",
+    "country": "Singapur",
+    "region": "Azja",
+    "climate": "Ciepły",
+    "minBudgetPerDay": 320,
+    "typicalBudgetPerDay": 520,
+    "tags": [
+      "Zwiedzanie",
+      "Mix",
+      "nocne życie",
+      "street food",
+      "ciepło",
+      "zabytki"
+    ],
+    "apiQuery": "Singapore",
+    "transportCostRoundTripPlnRange": [
+      1870,
+      5110
+    ]
+  },
+  {
+    "id": "d076",
+    "displayName": "Kuala Lumpur",
+    "country": "Malezja",
+    "region": "Azja",
+    "climate": "Ciepły",
+    "minBudgetPerDay": 160,
+    "typicalBudgetPerDay": 260,
+    "tags": [
+      "Zwiedzanie",
+      "Aktywny",
+      "Mix",
+      "kultura",
+      "świątynie",
+      "ciepło",
+      "zabytki",
+      "sport"
+    ],
+    "apiQuery": "Kuala Lumpur",
+    "transportCostRoundTripPlnRange": [
+      2380,
+      6490
+    ]
+  },
+  {
+    "id": "d077",
+    "displayName": "Hanoi",
+    "country": "Wietnam",
+    "region": "Azja",
+    "climate": "Ciepły",
+    "minBudgetPerDay": 130,
+    "typicalBudgetPerDay": 210,
+    "tags": [
+      "Aktywny",
+      "Mix",
+      "street food",
+      "nocne życie",
+      "ciepło",
+      "sport"
+    ],
+    "apiQuery": "Hanoi",
+    "transportCostRoundTripPlnRange": [
+      1990,
+      5430
+    ]
+  },
+  {
+    "id": "d078",
+    "displayName": "Phuket",
+    "country": "Tajlandia",
+    "region": "Azja",
+    "climate": "Ciepły",
+    "minBudgetPerDay": 180,
+    "typicalBudgetPerDay": 300,
+    "tags": [
+      "Aktywny",
+      "Mix",
+      "świątynie",
+      "kultura",
+      "ciepło",
+      "sport"
+    ],
+    "apiQuery": "Phuket",
+    "transportCostRoundTripPlnRange": [
+      2130,
+      5820
+    ]
+  },
+  {
+    "id": "d079",
+    "displayName": "Dubaj",
+    "country": "ZEA",
+    "region": "Azja",
+    "climate": "Ciepły",
+    "minBudgetPerDay": 350,
+    "typicalBudgetPerDay": 600,
+    "tags": [
+      "Relaks",
+      "Aktywny",
+      "Mix",
+      "nocne życie",
+      "street food",
+      "ciepło",
+      "sport"
+    ],
+    "apiQuery": "Dubai",
+    "transportCostRoundTripPlnRange": [
+      1940,
+      5290
+    ]
+  },
+  {
+    "id": "d080",
+    "displayName": "Manila",
+    "country": "Filipiny",
+    "region": "Azja",
+    "climate": "Ciepły",
+    "minBudgetPerDay": 140,
+    "typicalBudgetPerDay": 220,
+    "tags": [
+      "Relaks",
+      "Zwiedzanie",
+      "Aktywny",
+      "Mix",
+      "kultura",
+      "świątynie",
+      "ciepło",
+      "zabytki",
+      "sport"
+    ],
+    "apiQuery": "Manila",
+    "transportCostRoundTripPlnRange": [
+      2340,
+      6390
+    ]
+  },
+  {
+    "id": "d081",
+    "displayName": "Tokio",
+    "country": "Japonia",
+    "region": "Azja",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 350,
+    "typicalBudgetPerDay": 600,
+    "tags": [
+      "Relaks",
+      "Mix",
+      "street food",
+      "nocne życie",
+      "umiarkowanie"
+    ],
+    "apiQuery": "Tokyo",
+    "transportCostRoundTripPlnRange": [
+      2420,
+      6610
+    ]
+  },
+  {
+    "id": "d082",
+    "displayName": "Seul",
+    "country": "Korea Południowa",
+    "region": "Azja",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 280,
+    "typicalBudgetPerDay": 460,
+    "tags": [
+      "Relaks",
+      "Zwiedzanie",
+      "Mix",
+      "świątynie",
+      "kultura",
+      "umiarkowanie",
+      "zabytki"
+    ],
+    "apiQuery": "Seoul",
+    "transportCostRoundTripPlnRange": [
+      2470,
+      6740
+    ]
+  },
+  {
+    "id": "d083",
+    "displayName": "Tajpej",
+    "country": "Tajwan",
+    "region": "Azja",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 220,
+    "typicalBudgetPerDay": 360,
+    "tags": [
+      "Zwiedzanie",
+      "Mix",
+      "nocne życie",
+      "street food",
+      "umiarkowanie",
+      "zabytki"
+    ],
+    "apiQuery": "Taipei",
+    "transportCostRoundTripPlnRange": [
+      2300,
+      6260
+    ]
+  },
+  {
+    "id": "d084",
+    "displayName": "Hongkong",
+    "country": "Chiny",
+    "region": "Azja",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 320,
+    "typicalBudgetPerDay": 520,
+    "tags": [
+      "Zwiedzanie",
+      "Aktywny",
+      "Mix",
+      "kultura",
+      "świątynie",
+      "umiarkowanie",
+      "zabytki",
+      "sport"
+    ],
+    "apiQuery": "Hong Kong",
+    "transportCostRoundTripPlnRange": [
+      2360,
+      6430
+    ]
+  },
+  {
+    "id": "d085",
+    "displayName": "Szanghaj",
+    "country": "Chiny",
+    "region": "Azja",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 260,
+    "typicalBudgetPerDay": 420,
+    "tags": [
+      "Aktywny",
+      "Mix",
+      "street food",
+      "nocne życie",
+      "umiarkowanie",
+      "sport"
+    ],
+    "apiQuery": "Shanghai",
+    "transportCostRoundTripPlnRange": [
+      1940,
+      5280
+    ]
+  },
+  {
+    "id": "d086",
+    "displayName": "Pekin",
+    "country": "Chiny",
+    "region": "Azja",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 240,
+    "typicalBudgetPerDay": 400,
+    "tags": [
+      "Aktywny",
+      "Mix",
+      "świątynie",
+      "kultura",
+      "umiarkowanie",
+      "sport"
+    ],
+    "apiQuery": "Beijing",
+    "transportCostRoundTripPlnRange": [
+      2440,
+      6660
+    ]
+  },
+  {
+    "id": "d087",
+    "displayName": "Osaka",
+    "country": "Japonia",
+    "region": "Azja",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 300,
+    "typicalBudgetPerDay": 500,
+    "tags": [
+      "Relaks",
+      "Aktywny",
+      "Mix",
+      "nocne życie",
+      "street food",
+      "umiarkowanie",
+      "sport"
+    ],
+    "apiQuery": "Osaka",
+    "transportCostRoundTripPlnRange": [
+      2310,
+      6300
+    ]
+  },
+  {
+    "id": "d088",
+    "displayName": "Hiroshima",
+    "country": "Japonia",
+    "region": "Azja",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 260,
+    "typicalBudgetPerDay": 420,
+    "tags": [
+      "Relaks",
+      "Zwiedzanie",
+      "Aktywny",
+      "Mix",
+      "kultura",
+      "świątynie",
+      "umiarkowanie",
+      "zabytki",
+      "sport"
+    ],
+    "apiQuery": "Hiroshima",
+    "transportCostRoundTripPlnRange": [
+      2000,
+      5460
+    ]
+  },
+  {
+    "id": "d089",
+    "displayName": "Sapporo",
+    "country": "Japonia",
+    "region": "Azja",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 300,
+    "typicalBudgetPerDay": 500,
+    "tags": [
+      "Relaks",
+      "Mix",
+      "street food",
+      "nocne życie",
+      "chłodno"
+    ],
+    "apiQuery": "Sapporo",
+    "transportCostRoundTripPlnRange": [
+      2050,
+      5600
+    ]
+  },
+  {
+    "id": "d090",
+    "displayName": "Harbin",
+    "country": "Chiny",
+    "region": "Azja",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 200,
+    "typicalBudgetPerDay": 320,
+    "tags": [
+      "Relaks",
+      "Zwiedzanie",
+      "Mix",
+      "świątynie",
+      "kultura",
+      "chłodno",
+      "zabytki"
+    ],
+    "apiQuery": "Harbin",
+    "transportCostRoundTripPlnRange": [
+      1980,
+      5390
+    ]
+  },
+  {
+    "id": "d091",
+    "displayName": "Ałmaty",
+    "country": "Kazachstan",
+    "region": "Azja",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 200,
+    "typicalBudgetPerDay": 320,
+    "tags": [
+      "Zwiedzanie",
+      "Mix",
+      "nocne życie",
+      "street food",
+      "chłodno",
+      "zabytki"
+    ],
+    "apiQuery": "Almaty",
+    "transportCostRoundTripPlnRange": [
+      1960,
+      5350
+    ]
+  },
+  {
+    "id": "d092",
+    "displayName": "Nur-Sułtan",
+    "country": "Kazachstan",
+    "region": "Azja",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 220,
+    "typicalBudgetPerDay": 360,
+    "tags": [
+      "Zwiedzanie",
+      "Aktywny",
+      "Mix",
+      "kultura",
+      "świątynie",
+      "chłodno",
+      "zabytki",
+      "sport"
+    ],
+    "apiQuery": "Astana",
+    "transportCostRoundTripPlnRange": [
+      1930,
+      5270
+    ]
+  },
+  {
+    "id": "d093",
+    "displayName": "Irkuck",
+    "country": "Rosja",
+    "region": "Azja",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 220,
+    "typicalBudgetPerDay": 350,
+    "tags": [
+      "Aktywny",
+      "Mix",
+      "street food",
+      "nocne życie",
+      "chłodno",
+      "sport"
+    ],
+    "apiQuery": "Irkutsk",
+    "transportCostRoundTripPlnRange": [
+      2460,
+      6700
+    ]
+  },
+  {
+    "id": "d094",
+    "displayName": "Władywostok",
+    "country": "Rosja",
+    "region": "Azja",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 230,
+    "typicalBudgetPerDay": 370,
+    "tags": [
+      "Aktywny",
+      "Mix",
+      "świątynie",
+      "kultura",
+      "chłodno",
+      "sport"
+    ],
+    "apiQuery": "Vladivostok",
+    "transportCostRoundTripPlnRange": [
+      2230,
+      6080
+    ]
+  },
+  {
+    "id": "d095",
+    "displayName": "Srinagar",
+    "country": "Indie",
+    "region": "Azja",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 170,
+    "typicalBudgetPerDay": 270,
+    "tags": [
+      "Relaks",
+      "Aktywny",
+      "Mix",
+      "nocne życie",
+      "street food",
+      "chłodno",
+      "sport"
+    ],
+    "apiQuery": "Srinagar",
+    "transportCostRoundTripPlnRange": [
+      2090,
+      5690
+    ]
+  },
+  {
+    "id": "d096",
+    "displayName": "Leh (Ladakh)",
+    "country": "Indie",
+    "region": "Azja",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 190,
+    "typicalBudgetPerDay": 300,
+    "tags": [
+      "Relaks",
+      "Zwiedzanie",
+      "Aktywny",
+      "Mix",
+      "kultura",
+      "świątynie",
+      "chłodno",
+      "zabytki",
+      "sport"
+    ],
+    "apiQuery": "Leh",
+    "transportCostRoundTripPlnRange": [
+      2320,
+      6310
+    ]
+  },
+  {
+    "id": "d097",
+    "displayName": "Miami",
+    "country": "USA",
+    "region": "Ameryka",
+    "climate": "Ciepły",
+    "minBudgetPerDay": 350,
+    "typicalBudgetPerDay": 580,
+    "tags": [
+      "Relaks",
+      "Mix",
+      "city break",
+      "punkty widokowe",
+      "ciepło"
+    ],
+    "apiQuery": "Miami",
+    "transportCostRoundTripPlnRange": [
+      2470,
+      6910
+    ]
+  },
+  {
+    "id": "d098",
+    "displayName": "Cancún",
+    "country": "Meksyk",
+    "region": "Ameryka",
+    "climate": "Ciepły",
+    "minBudgetPerDay": 250,
+    "typicalBudgetPerDay": 420,
+    "tags": [
+      "Relaks",
+      "Zwiedzanie",
+      "Mix",
+      "roadtrip",
+      "kuchnia",
+      "ciepło",
+      "zabytki"
+    ],
+    "apiQuery": "Cancun",
+    "transportCostRoundTripPlnRange": [
+      2830,
+      7920
+    ]
+  },
+  {
+    "id": "d099",
+    "displayName": "Los Angeles",
+    "country": "USA",
+    "region": "Ameryka",
+    "climate": "Ciepły",
+    "minBudgetPerDay": 380,
+    "typicalBudgetPerDay": 650,
+    "tags": [
+      "Zwiedzanie",
+      "Mix",
+      "punkty widokowe",
+      "city break",
+      "ciepło",
+      "zabytki"
+    ],
+    "apiQuery": "Los Angeles",
+    "transportCostRoundTripPlnRange": [
+      2480,
+      6950
+    ]
+  },
+  {
+    "id": "d100",
+    "displayName": "San Juan",
+    "country": "Portoryko",
+    "region": "Ameryka",
+    "climate": "Ciepły",
+    "minBudgetPerDay": 260,
+    "typicalBudgetPerDay": 430,
+    "tags": [
+      "Zwiedzanie",
+      "Aktywny",
+      "Mix",
+      "kuchnia",
+      "roadtrip",
+      "ciepło",
+      "zabytki",
+      "sport"
+    ],
+    "apiQuery": "San Juan",
+    "transportCostRoundTripPlnRange": [
+      2340,
+      6540
+    ]
+  },
+  {
+    "id": "d101",
+    "displayName": "Hawana",
+    "country": "Kuba",
+    "region": "Ameryka",
+    "climate": "Ciepły",
+    "minBudgetPerDay": 180,
+    "typicalBudgetPerDay": 300,
+    "tags": [
+      "Aktywny",
+      "Mix",
+      "city break",
+      "punkty widokowe",
+      "ciepło",
+      "sport"
+    ],
+    "apiQuery": "Havana",
+    "transportCostRoundTripPlnRange": [
+      2740,
+      7680
+    ]
+  },
+  {
+    "id": "d102",
+    "displayName": "Rio de Janeiro",
+    "country": "Brazylia",
+    "region": "Ameryka",
+    "climate": "Ciepły",
+    "minBudgetPerDay": 240,
+    "typicalBudgetPerDay": 420,
+    "tags": [
+      "Aktywny",
+      "Mix",
+      "roadtrip",
+      "kuchnia",
+      "ciepło",
+      "sport"
+    ],
+    "apiQuery": "Rio de Janeiro",
+    "transportCostRoundTripPlnRange": [
+      2620,
+      7340
+    ]
+  },
+  {
+    "id": "d103",
+    "displayName": "Cartagena",
+    "country": "Kolumbia",
+    "region": "Ameryka",
+    "climate": "Ciepły",
+    "minBudgetPerDay": 220,
+    "typicalBudgetPerDay": 380,
+    "tags": [
+      "Relaks",
+      "Aktywny",
+      "Mix",
+      "punkty widokowe",
+      "city break",
+      "ciepło",
+      "sport"
+    ],
+    "apiQuery": "Cartagena",
+    "transportCostRoundTripPlnRange": [
+      2800,
+      7840
+    ]
+  },
+  {
+    "id": "d104",
+    "displayName": "Lima",
+    "country": "Peru",
+    "region": "Ameryka",
+    "climate": "Ciepły",
+    "minBudgetPerDay": 200,
+    "typicalBudgetPerDay": 330,
+    "tags": [
+      "Relaks",
+      "Zwiedzanie",
+      "Aktywny",
+      "Mix",
+      "kuchnia",
+      "roadtrip",
+      "ciepło",
+      "zabytki",
+      "sport"
+    ],
+    "apiQuery": "Lima",
+    "transportCostRoundTripPlnRange": [
+      2790,
+      7820
+    ]
+  },
+  {
+    "id": "d105",
+    "displayName": "Nowy Jork",
+    "country": "USA",
+    "region": "Ameryka",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 520,
+    "typicalBudgetPerDay": 850,
+    "tags": [
+      "Relaks",
+      "Mix",
+      "city break",
+      "punkty widokowe",
+      "umiarkowanie"
+    ],
+    "apiQuery": "New York",
+    "transportCostRoundTripPlnRange": [
+      2340,
+      6560
+    ]
+  },
+  {
+    "id": "d106",
+    "displayName": "Chicago",
+    "country": "USA",
+    "region": "Ameryka",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 420,
+    "typicalBudgetPerDay": 700,
+    "tags": [
+      "Relaks",
+      "Zwiedzanie",
+      "Mix",
+      "roadtrip",
+      "kuchnia",
+      "umiarkowanie",
+      "zabytki"
+    ],
+    "apiQuery": "Chicago",
+    "transportCostRoundTripPlnRange": [
+      2310,
+      6460
+    ]
+  },
+  {
+    "id": "d107",
+    "displayName": "San Francisco",
+    "country": "USA",
+    "region": "Ameryka",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 520,
+    "typicalBudgetPerDay": 900,
+    "tags": [
+      "Zwiedzanie",
+      "Mix",
+      "punkty widokowe",
+      "city break",
+      "umiarkowanie",
+      "zabytki"
+    ],
+    "apiQuery": "San Francisco",
+    "transportCostRoundTripPlnRange": [
+      2460,
+      6880
+    ]
+  },
+  {
+    "id": "d108",
+    "displayName": "Seattle",
+    "country": "USA",
+    "region": "Ameryka",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 420,
+    "typicalBudgetPerDay": 700,
+    "tags": [
+      "Zwiedzanie",
+      "Aktywny",
+      "Mix",
+      "kuchnia",
+      "roadtrip",
+      "umiarkowanie",
+      "zabytki",
+      "sport"
+    ],
+    "apiQuery": "Seattle",
+    "transportCostRoundTripPlnRange": [
+      2690,
+      7530
+    ]
+  },
+  {
+    "id": "d109",
+    "displayName": "Waszyngton",
+    "country": "USA",
+    "region": "Ameryka",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 450,
+    "typicalBudgetPerDay": 750,
+    "tags": [
+      "Aktywny",
+      "Mix",
+      "city break",
+      "punkty widokowe",
+      "umiarkowanie",
+      "sport"
+    ],
+    "apiQuery": "Washington, D.C.",
+    "transportCostRoundTripPlnRange": [
+      2450,
+      6870
+    ]
+  },
+  {
+    "id": "d110",
+    "displayName": "Boston",
+    "country": "USA",
+    "region": "Ameryka",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 500,
+    "typicalBudgetPerDay": 820,
+    "tags": [
+      "Aktywny",
+      "Mix",
+      "roadtrip",
+      "kuchnia",
+      "umiarkowanie",
+      "sport"
+    ],
+    "apiQuery": "Boston",
+    "transportCostRoundTripPlnRange": [
+      2600,
+      7290
+    ]
+  },
+  {
+    "id": "d111",
+    "displayName": "Vancouver",
+    "country": "Kanada",
+    "region": "Ameryka",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 420,
+    "typicalBudgetPerDay": 680,
+    "tags": [
+      "Relaks",
+      "Aktywny",
+      "Mix",
+      "punkty widokowe",
+      "city break",
+      "umiarkowanie",
+      "sport"
+    ],
+    "apiQuery": "Vancouver",
+    "transportCostRoundTripPlnRange": [
+      2350,
+      6590
+    ]
+  },
+  {
+    "id": "d112",
+    "displayName": "Toronto",
+    "country": "Kanada",
+    "region": "Ameryka",
+    "climate": "Umiarkowany",
+    "minBudgetPerDay": 380,
+    "typicalBudgetPerDay": 620,
+    "tags": [
+      "Relaks",
+      "Zwiedzanie",
+      "Aktywny",
+      "Mix",
+      "kuchnia",
+      "roadtrip",
+      "umiarkowanie",
+      "zabytki",
+      "sport"
+    ],
+    "apiQuery": "Toronto",
+    "transportCostRoundTripPlnRange": [
+      2560,
+      7160
+    ]
+  },
+  {
+    "id": "d113",
+    "displayName": "Montreal",
+    "country": "Kanada",
+    "region": "Ameryka",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 360,
+    "typicalBudgetPerDay": 600,
+    "tags": [
+      "Relaks",
+      "Mix",
+      "city break",
+      "punkty widokowe",
+      "chłodno"
+    ],
+    "apiQuery": "Montreal",
+    "transportCostRoundTripPlnRange": [
+      2800,
+      7840
+    ]
+  },
+  {
+    "id": "d114",
+    "displayName": "Ottawa",
+    "country": "Kanada",
+    "region": "Ameryka",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 340,
+    "typicalBudgetPerDay": 580,
+    "tags": [
+      "Relaks",
+      "Zwiedzanie",
+      "Mix",
+      "roadtrip",
+      "kuchnia",
+      "chłodno",
+      "zabytki"
+    ],
+    "apiQuery": "Ottawa",
+    "transportCostRoundTripPlnRange": [
+      2180,
+      6100
+    ]
+  },
+  {
+    "id": "d115",
+    "displayName": "Winnipeg",
+    "country": "Kanada",
+    "region": "Ameryka",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 300,
+    "typicalBudgetPerDay": 500,
+    "tags": [
+      "Zwiedzanie",
+      "Mix",
+      "punkty widokowe",
+      "city break",
+      "chłodno",
+      "zabytki"
+    ],
+    "apiQuery": "Winnipeg",
+    "transportCostRoundTripPlnRange": [
+      2730,
+      7650
+    ]
+  },
+  {
+    "id": "d116",
+    "displayName": "Anchorage (zima)",
+    "country": "USA",
+    "region": "Ameryka",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 420,
+    "typicalBudgetPerDay": 700,
+    "tags": [
+      "Zwiedzanie",
+      "Aktywny",
+      "Mix",
+      "kuchnia",
+      "roadtrip",
+      "chłodno",
+      "zabytki",
+      "sport"
+    ],
+    "apiQuery": "Anchorage",
+    "transportCostRoundTripPlnRange": [
+      2160,
+      6040
+    ]
+  },
+  {
+    "id": "d117",
+    "displayName": "Minneapolis",
+    "country": "USA",
+    "region": "Ameryka",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 340,
+    "typicalBudgetPerDay": 560,
+    "tags": [
+      "Aktywny",
+      "Mix",
+      "city break",
+      "punkty widokowe",
+      "chłodno",
+      "sport"
+    ],
+    "apiQuery": "Minneapolis",
+    "transportCostRoundTripPlnRange": [
+      2260,
+      6320
+    ]
+  },
+  {
+    "id": "d118",
+    "displayName": "Calgary",
+    "country": "Kanada",
+    "region": "Ameryka",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 360,
+    "typicalBudgetPerDay": 600,
+    "tags": [
+      "Aktywny",
+      "Mix",
+      "roadtrip",
+      "kuchnia",
+      "chłodno",
+      "sport"
+    ],
+    "apiQuery": "Calgary",
+    "transportCostRoundTripPlnRange": [
+      2470,
+      6910
+    ]
+  },
+  {
+    "id": "d119",
+    "displayName": "Quebec City",
+    "country": "Kanada",
+    "region": "Ameryka",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 360,
+    "typicalBudgetPerDay": 600,
+    "tags": [
+      "Relaks",
+      "Aktywny",
+      "Mix",
+      "punkty widokowe",
+      "city break",
+      "chłodno",
+      "sport"
+    ],
+    "apiQuery": "Quebec City",
+    "transportCostRoundTripPlnRange": [
+      2760,
+      7730
+    ]
+  },
+  {
+    "id": "d120",
+    "displayName": "Fairbanks (Alaska)",
+    "country": "USA",
+    "region": "Ameryka",
+    "climate": "Chłodny",
+    "minBudgetPerDay": 420,
+    "typicalBudgetPerDay": 700,
+    "tags": [
+      "Relaks",
+      "Zwiedzanie",
+      "Aktywny",
+      "Mix",
+      "kuchnia",
+      "roadtrip",
+      "chłodno",
+      "zabytki",
+      "sport"
+    ],
+    "apiQuery": "Fairbanks",
+    "transportCostRoundTripPlnRange": [
+      2200,
+      6160
+    ]
+  }
+]

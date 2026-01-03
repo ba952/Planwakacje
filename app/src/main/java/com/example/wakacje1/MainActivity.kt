@@ -5,7 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import com.example.wakacje1.ui.theme.NavGraph
+import com.example.wakacje1.ui.navigation.NavGraph
 import com.example.wakacje1.ui.theme.Wakacje1Theme   // jeśli w Theme.kt nazwa jest inna, podmień tu
 
 class MainActivity : ComponentActivity() {

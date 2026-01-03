@@ -1,4 +1,6 @@
-package com.example.wakacje1.data.model
+package com.example.wakacje1.domain.model
+
+import com.example.wakacje1.domain.model.SlotPlan
 
 data class InternalDayPlan(
     val day: Int,

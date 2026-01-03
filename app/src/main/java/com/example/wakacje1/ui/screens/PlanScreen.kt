@@ -12,7 +12,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.AlertDialog
@@ -20,11 +22,14 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -37,12 +42,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.wakacje1.data.model.DayPlan
-import com.example.wakacje1.data.model.DaySlot
-import com.example.wakacje1.ui.viewmodel.VacationViewModel
+import com.example.wakacje1.domain.model.DayPlan
+import com.example.wakacje1.domain.model.DaySlot
+import com.example.wakacje1.presentation.common.UiEvent
+import com.example.wakacje1.presentation.viewmodel.VacationViewModel
 import kotlin.math.roundToInt
+
+private val MaxContentWidth = 520.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,124 +62,163 @@ fun PlanScreen(
     val plan = viewModel.plan
     val dest = viewModel.chosenDestination
 
-    // domyślnie kompaktowy PODGLĄD
-    val editMode = rememberSaveable { mutableStateOf(false) }
+    // Snackbar / Events
+    val snack = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
-        if (plan.isEmpty() && dest != null) {
-            viewModel.generatePlan()
+        viewModel.events.collect { ev ->
+            when (ev) {
+                is UiEvent.Message -> snack.showSnackbar(ev.text)
+                is UiEvent.Error -> snack.showSnackbar(ev.error.userMessage)
+            }
         }
     }
+
+    // żeby nie odpalać generowania 2x przy wejściu
+    val didInit = rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(dest?.displayName) {
+        if (!didInit.value) {
+            didInit.value = true
+            if (plan.isEmpty() && dest != null && !viewModel.isBlockingUi) {
+                viewModel.generatePlan()
+            }
+        }
+    }
+
+    val editMode = rememberSaveable { mutableStateOf(false) }
+    val editEnabled = viewModel.canEditPlan && !viewModel.isBlockingUi
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Plan wyjazdu") },
-                navigationIcon = {
-                    TextButton(onClick = onBack) { Text("Wstecz") }
-                },
-                actions = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Edycja",
-                            style = MaterialTheme.typography.labelLarge
-                        )
-                        Spacer(Modifier.padding(horizontal = 4.dp))
-                        Switch(
-                            checked = editMode.value,
-                            onCheckedChange = { editMode.value = it },
-                            enabled = !viewModel.isBlockingUi
-                        )
-                        Spacer(Modifier.padding(horizontal = 6.dp))
-                        TextButton(onClick = onGoMyPlans) { Text("Moje plany") }
-                    }
-                }
+                navigationIcon = { TextButton(onClick = onBack) { Text("Wstecz") } },
+                actions = { TextButton(onClick = onGoMyPlans) { Text("Moje plany") } }
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(hostState = snack) }
     ) { padding ->
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            Column(
+
+            Centered(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(14.dp)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
-                if (dest != null) {
-                    Text(
-                        text = if (dest.country.isBlank()) dest.displayName else "${dest.displayName}, ${dest.country}",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                viewModel.forecastNotice?.let {
-                    Spacer(Modifier.height(6.dp))
-                    Text(it, color = MaterialTheme.colorScheme.error)
-                }
-
-                viewModel.uiMessage?.let {
-                    Spacer(Modifier.height(8.dp))
-                    Text(it)
-                }
-
-                Spacer(Modifier.height(10.dp))
-
-                // akcje globalne (zostają, ale wciąż dość kompaktowe)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .imePadding(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    OutlinedButton(
-                        onClick = { viewModel.savePlanLocally() },
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
-                        enabled = !viewModel.isBlockingUi
-                    ) { Text("Zapisz") }
+                    if (dest != null) {
+                        Text(
+                            text = if (dest.country.isBlank()) dest.displayName else "${dest.displayName}, ${dest.country}",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
 
-                    OutlinedButton(
-                        onClick = { viewModel.loadPlanLocally() },
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
-                        enabled = !viewModel.isBlockingUi
-                    ) { Text("Wczytaj") }
+                    viewModel.forecastNotice?.let {
+                        Text(it, color = MaterialTheme.colorScheme.error)
+                    }
 
-                    Button(
-                        onClick = { viewModel.exportCurrentPlanToPdf() },
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
-                        enabled = !viewModel.isBlockingUi
-                    ) { Text("PDF") }
-                }
+                    // Panel góra: przełącznik edycji + szybkie akcje
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                    ) {
+                        Column(Modifier.padding(12.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(Modifier.weight(1f)) {
+                                    Text("Tryb edycji", fontWeight = FontWeight.SemiBold)
+                                    Text(
+                                        text = if (editMode.value) "Możesz losować i edytować sloty." else "Widok tylko do podglądu.",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                                Switch(
+                                    checked = editMode.value,
+                                    onCheckedChange = { editMode.value = it },
+                                    enabled = editEnabled
+                                )
+                            }
 
-                Spacer(Modifier.height(10.dp))
+                            Spacer(Modifier.height(10.dp))
 
-                if (plan.isEmpty()) {
-                    Text(
-                        text = "Brak planu. Wróć i wybierz miejsce albo wygeneruj ponownie.",
-                        color = MaterialTheme.colorScheme.error
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    OutlinedButton(
-                        onClick = { viewModel.generatePlan() },
-                        enabled = !viewModel.isBlockingUi
-                    ) { Text("Wygeneruj plan") }
-                } else {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = { viewModel.savePlanLocally(uid) },
+                                    modifier = Modifier.weight(1f),
+                                    enabled = !viewModel.isBlockingUi,
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
+                                ) { Text("Zapisz") }
+
+                                Button(
+                                    onClick = { viewModel.exportCurrentPlanToPdf() },
+                                    modifier = Modifier.weight(1f),
+                                    enabled = !viewModel.isBlockingUi,
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
+                                ) { Text("PDF") }
+
+                                OutlinedButton(
+                                    onClick = { viewModel.loadPlanLocally(uid) },
+                                    modifier = Modifier.weight(1f),
+                                    enabled = !viewModel.isBlockingUi,
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
+                                ) { Text("Wczytaj") }
+                            }
+                        }
+                    }
+
+                    if (plan.isEmpty()) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                        ) {
+                            Column(Modifier.padding(12.dp)) {
+                                Text(
+                                    text = "Brak planu. Jeśli dopiero wybrałeś miejsce, poczekaj chwilę albo wygeneruj ponownie.",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Spacer(Modifier.height(10.dp))
+                                OutlinedButton(
+                                    onClick = { viewModel.generatePlan() },
+                                    enabled = !viewModel.isBlockingUi
+                                ) { Text("Wygeneruj plan") }
+                            }
+                        }
+                        return@Centered
+                    }
+
+                    Divider()
+
+                    // Lista dni
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(bottom = 24.dp)
                     ) {
                         itemsIndexed(plan) { index, day ->
-                            DayCardCompact(
+                            DayCard(
                                 viewModel = viewModel,
                                 day = day,
                                 dayIndex = index,
                                 editMode = editMode.value,
-                                enabled = !viewModel.isBlockingUi && viewModel.canEditPlan && editMode.value,
+                                editEnabled = editEnabled,
                                 onMoveUp = { viewModel.moveDayUp(index) },
                                 onMoveDown = { viewModel.moveDayDown(index) },
                                 onRegenerateDay = { viewModel.regenerateDay(index) },
@@ -186,17 +232,13 @@ fun PlanScreen(
                 }
             }
 
-            // overlay: blokada klikania + spinner
             if (viewModel.isBlockingUi) {
                 val interaction = remember { MutableInteractionSource() }
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.35f))
-                        .clickable(
-                            interactionSource = interaction,
-                            indication = null
-                        ) { },
+                        .clickable(interactionSource = interaction, indication = null) { },
                     contentAlignment = Alignment.Center
                 ) {
                     Card(
@@ -219,12 +261,26 @@ fun PlanScreen(
 }
 
 @Composable
-private fun DayCardCompact(
+private fun Centered(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    Box(modifier = modifier, contentAlignment = Alignment.TopCenter) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .widthIn(max = MaxContentWidth)
+        ) { content() }
+    }
+}
+
+@Composable
+private fun DayCard(
     viewModel: VacationViewModel,
     day: DayPlan,
     dayIndex: Int,
     editMode: Boolean,
-    enabled: Boolean,
+    editEnabled: Boolean,
     onMoveUp: () -> Unit,
     onMoveDown: () -> Unit,
     onRegenerateDay: () -> Unit,
@@ -235,44 +291,33 @@ private fun DayCardCompact(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-        Column(Modifier.padding(12.dp)) {
+        Column(Modifier.padding(14.dp)) {
 
-            // nagłówek dnia
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top
             ) {
                 Column(Modifier.weight(1f)) {
+                    Text("Dzień ${day.day}", fontWeight = FontWeight.SemiBold)
                     Text(
-                        text = "Dzień ${day.day}",
+                        text = day.title,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                 }
 
-                // przyciski przesuwania tylko w trybie edycji
                 if (editMode) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        OutlinedButton(
-                            onClick = onMoveUp,
-                            enabled = enabled,
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
-                        ) { Text("↑") }
-
-                        OutlinedButton(
-                            onClick = onMoveDown,
-                            enabled = enabled,
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
-                        ) { Text("↓") }
+                    Column(horizontalAlignment = Alignment.End) {
+                        TextButton(onClick = onMoveUp, enabled = editEnabled) { Text("W górę") }
+                        TextButton(onClick = onMoveDown, enabled = editEnabled) { Text("W dół") }
                     }
                 }
             }
 
-            // prognoza dzienna
             val w = viewModel.getDayWeatherForIndex(dayIndex)
             if (w != null && (!w.description.isNullOrBlank() || w.tempMin != null || w.tempMax != null)) {
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(8.dp))
                 val temps = if (w.tempMin != null && w.tempMax != null) {
                     " (${w.tempMin.roundToInt()}°C – ${w.tempMax.roundToInt()}°C)"
                 } else ""
@@ -283,55 +328,50 @@ private fun DayCardCompact(
                 )
             }
 
-            // regeneracja dnia tylko w trybie edycji
             if (editMode) {
                 Spacer(Modifier.height(10.dp))
                 OutlinedButton(
                     onClick = onRegenerateDay,
-                    enabled = enabled,
+                    enabled = editEnabled,
                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
-                ) { Text("Wygeneruj dzień ponownie") }
+                ) { Text("Losuj cały dzień") }
             }
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(8.dp))
 
-            // sloty – kompaktowo, bez dodatkowych kart w kartach
-            Text("Sloty:", fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(6.dp))
-
-            SlotRow(
+            SlotSection(
                 label = "Poranek",
                 slot = DaySlot.MORNING,
                 dayIndex = dayIndex,
                 viewModel = viewModel,
                 editMode = editMode,
-                enabled = enabled,
+                enabled = editEnabled,
                 onRoll = { onRollSlot(DaySlot.MORNING) },
                 onCustom = { t, d -> onCustomSlot(DaySlot.MORNING, t, d) }
             )
 
             Spacer(Modifier.height(8.dp))
 
-            SlotRow(
+            SlotSection(
                 label = "Południe",
                 slot = DaySlot.MIDDAY,
                 dayIndex = dayIndex,
                 viewModel = viewModel,
                 editMode = editMode,
-                enabled = enabled,
+                enabled = editEnabled,
                 onRoll = { onRollSlot(DaySlot.MIDDAY) },
                 onCustom = { t, d -> onCustomSlot(DaySlot.MIDDAY, t, d) }
             )
 
             Spacer(Modifier.height(8.dp))
 
-            SlotRow(
+            SlotSection(
                 label = "Wieczór",
                 slot = DaySlot.EVENING,
                 dayIndex = dayIndex,
                 viewModel = viewModel,
                 editMode = editMode,
-                enabled = enabled,
+                enabled = editEnabled,
                 onRoll = { onRollSlot(DaySlot.EVENING) },
                 onCustom = { t, d -> onCustomSlot(DaySlot.EVENING, t, d) }
             )
@@ -340,7 +380,7 @@ private fun DayCardCompact(
 }
 
 @Composable
-private fun SlotRow(
+private fun SlotSection(
     label: String,
     slot: DaySlot,
     dayIndex: Int,
@@ -350,68 +390,52 @@ private fun SlotRow(
     onRoll: () -> Unit,
     onCustom: (String, String) -> Unit
 ) {
+    val showDialog = rememberSaveable(dayIndex, slot.name) { mutableStateOf(false) }
+    val descExpanded = rememberSaveable(dayIndex, "desc_${slot.name}") { mutableStateOf(false) }
+
     val s = viewModel.getSlotOrNull(dayIndex, slot)
     val title = s?.title?.takeIf { it.isNotBlank() } ?: "—"
     val desc = s?.description?.takeIf { it.isNotBlank() } ?: ""
 
-    val expanded = rememberSaveable(dayIndex, "desc_${slot.name}") { mutableStateOf(false) }
-    val showDialog = rememberSaveable(dayIndex, "dlg_${slot.name}") { mutableStateOf(false) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = desc.isNotBlank() && !editMode) {
-                expanded.value = !expanded.value
-            }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Text(label, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Bold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
+        Column(Modifier.padding(6.dp)) {
+            Text(label, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(6.dp))
+            Text(title, fontWeight = FontWeight.Bold)
 
-        // PODGLĄD: opis dopiero po rozwinięciu
-        if (!editMode && desc.isNotBlank()) {
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = if (expanded.value) "Zwiń opis" else "Rozwiń opis",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable { expanded.value = !expanded.value }
-            )
-
-            if (expanded.value) {
-                Spacer(Modifier.height(6.dp))
-                Text(
+            if (desc.isNotBlank()) {
+                Spacer(Modifier.height(4.dp))
+                ExpandableText(
                     text = desc,
-                    style = MaterialTheme.typography.bodyMedium
+                    expanded = descExpanded.value,
+                    onToggle = { descExpanded.value = !descExpanded.value }
                 )
             }
-        }
 
-        // EDYCJA: przyciski dopiero w trybie edycji
-        if (editMode) {
-            Spacer(Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                OutlinedButton(
-                    onClick = onRoll,
-                    enabled = enabled,
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
-                ) { Text("Losuj") }
+            if (editMode) {
+                Spacer(Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onRoll,
+                        enabled = enabled,
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
+                    ) { Text("Losuj") }
 
-                Button(
-                    onClick = { showDialog.value = true },
-                    enabled = enabled,
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
-                ) { Text("Własne") }
+                    Button(
+                        onClick = { showDialog.value = true },
+                        enabled = enabled,
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
+                    ) { Text("Własne") }
+                }
             }
         }
     }
@@ -448,7 +472,7 @@ private fun CustomSlotDialog(
                     label = { Text("Tytuł") },
                     modifier = Modifier.fillMaxWidth()
                 )
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(6.dp))
                 OutlinedTextField(
                     value = desc.value,
                     onValueChange = { desc.value = it },
@@ -467,5 +491,38 @@ private fun CustomSlotDialog(
         dismissButton = {
             OutlinedButton(onClick = onDismiss) { Text("Anuluj") }
         }
+    )
+}
+
+@Composable
+private fun ExpandableText(
+    text: String,
+    expanded: Boolean,
+    onToggle: () -> Unit
+) {
+    if (text.isBlank()) return
+
+    if (!expanded) {
+        Text(
+            text = "Rozwiń",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.clickable { onToggle() }
+        )
+        return
+    }
+
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyMedium
+    )
+
+    Spacer(Modifier.height(6.dp))
+
+    Text(
+        text = "Zwiń",
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.clickable { onToggle() }
     )
 }

@@ -24,7 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import com.example.wakacje1.ui.viewmodel.AuthViewModel
+import com.example.wakacje1.presentation.viewmodel.AuthViewModel
 
 @Composable
 fun RegisterScreen(

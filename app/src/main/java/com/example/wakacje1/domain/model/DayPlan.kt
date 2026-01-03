@@ -1,4 +1,4 @@
-package com.example.wakacje1.data.model
+package com.example.wakacje1.domain.model
 
 data class DayPlan(
     val day: Int,
