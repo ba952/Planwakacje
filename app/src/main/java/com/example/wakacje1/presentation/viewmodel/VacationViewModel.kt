@@ -29,6 +29,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Calendar
 import kotlin.math.abs
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 
 data class WeatherUiState(
     val loading: Boolean = false,
@@ -580,30 +583,37 @@ class VacationViewModel(application: Application) : AndroidViewModel(application
         uiMessage = "Wczytano plan."
     }
 
-    fun exportCurrentPlanToPdf() {
-        val ctx = getApplication<Application>()
+    fun exportCurrentPlanToPdf(activity: Activity) {
         val destName = chosenDestination?.displayName
         val tripStart = preferences?.startDateMillis
+        val currentPlan = plan
 
         viewModelScope.launch {
             isBlockingUi = true
             try {
                 val msg = exportPlanPdfUseCase.execute(
-                    ctx = ctx,
+                    activity = activity,
                     destinationName = destName,
                     tripStartDateMillis = tripStart,
-                    plan = plan
+                    plan = currentPlan
                 )
                 uiMessage = msg
                 postMessage(msg)
             } catch (e: Exception) {
-                uiMessage = "Błąd PDF: ${ErrorMapper.userMessage(e, "Nie udało się zapisać PDF.")}"
-                postError(e, "Nie udało się zapisać PDF.")
+                uiMessage = "Błąd PDF: ${ErrorMapper.userMessage(e, "Nie udało się utworzyć PDF.")}"
+                postError(e, "Nie udało się utworzyć PDF.")
             } finally {
                 isBlockingUi = false
             }
         }
     }
+
+    private tailrec fun Context.findActivity(): Activity? = when (this) {
+        is Activity -> this
+        is ContextWrapper -> baseContext.findActivity()
+        else -> null
+    }
+
 
     private fun rebuildUiPlan(): List<DayPlan> {
         val dest = chosenDestination ?: return emptyList()

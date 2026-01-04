@@ -1,5 +1,6 @@
 package com.example.wakacje1.ui.screens
 
+import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -38,15 +39,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.wakacje1.domain.model.DayPlan
 import com.example.wakacje1.domain.model.DaySlot
 import com.example.wakacje1.presentation.common.UiEvent
 import com.example.wakacje1.presentation.viewmodel.VacationViewModel
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 private val MaxContentWidth = 520.dp
@@ -59,6 +63,10 @@ fun PlanScreen(
     onBack: () -> Unit,
     onGoMyPlans: () -> Unit
 ) {
+    val context = LocalContext.current
+    val activity = context as? Activity
+    val scope = rememberCoroutineScope()
+
     val plan = viewModel.plan
     val dest = viewModel.chosenDestination
 
@@ -168,9 +176,16 @@ fun PlanScreen(
                                 ) { Text("Zapisz") }
 
                                 Button(
-                                    onClick = { viewModel.exportCurrentPlanToPdf() },
+                                    onClick = {
+                                        val a = activity
+                                        if (a == null) {
+                                            scope.launch { snack.showSnackbar("PDF działa tylko z Activity context.") }
+                                            return@Button
+                                        }
+                                        viewModel.exportCurrentPlanToPdf(a)
+                                    },
                                     modifier = Modifier.weight(1f),
-                                    enabled = !viewModel.isBlockingUi,
+                                    enabled = activity != null && !viewModel.isBlockingUi,
                                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
                                 ) { Text("PDF") }
 
