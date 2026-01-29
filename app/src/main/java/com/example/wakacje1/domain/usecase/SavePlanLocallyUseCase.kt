@@ -1,79 +1,57 @@
 package com.example.wakacje1.domain.usecase
 
-import android.content.Context
-import com.example.wakacje1.data.local.PlanStorage
-import com.example.wakacje1.data.local.StoredDestination
-import com.example.wakacje1.data.local.StoredInternalDayPlan
-import com.example.wakacje1.data.local.StoredPlan
-import com.example.wakacje1.data.local.StoredPreferences
-import com.example.wakacje1.data.remote.CloudPlansRepository
+import com.example.wakacje1.data.local.PlansLocalRepository
+import com.example.wakacje1.data.remote.PlansCloudRepository
 import com.example.wakacje1.domain.model.Destination
 import com.example.wakacje1.domain.model.InternalDayPlan
 import com.example.wakacje1.domain.model.Preferences
+import com.example.wakacje1.domain.engine.PlanGenerator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
-import java.util.UUID
 
-data class SaveLocalResult(
+data class SaveResult(
     val planId: String,
     val createdAtMillis: Long,
     val cloudError: Throwable? = null
 )
 
-class SavePlanLocallyUseCase {
+class SavePlanLocallyUseCase(
+    private val localRepository: PlansLocalRepository,
+    private val cloudRepository: PlansCloudRepository
+) {
     suspend fun execute(
-        ctx: Context,
         uid: String,
         prefs: Preferences,
         dest: Destination,
         internalDays: List<InternalDayPlan>,
         currentPlanId: String?,
         currentCreatedAtMillis: Long?
-    ): SaveLocalResult {
+    ): SaveResult = withContext(Dispatchers.IO) {
+
+        // ZMIANA: Generujemy czas aktualizacji tutaj, raz dla obu źródeł
         val now = System.currentTimeMillis()
-        val id = currentPlanId ?: UUID.randomUUID().toString()
-        val createdAt = currentCreatedAtMillis ?: now
 
-        val stored = StoredPlan(
-            id = id,
-            createdAtMillis = createdAt,
-            destination = StoredDestination.from(dest),
-            preferences = StoredPreferences.from(prefs),
-            internalDays = internalDays.map { StoredInternalDayPlan.from(it) }
+        // 1. Zapisz lokalnie
+        val stored = localRepository.upsertPlan(
+            uid = uid,
+            planId = currentPlanId,
+            createdAtMillis = currentCreatedAtMillis,
+            prefs = prefs,
+            dest = dest,
+            internalDays = internalDays,
+            updatedAtMillis = now // Przekazujemy 'now'
         )
 
-        val title = dest.displayName.ifBlank { "Plan" }
-        val start = prefs.startDateMillis
-        val end = prefs.endDateMillis
+        var cloudErr: Throwable? = null
 
-        // 1) zapis lokalny
-        withContext(Dispatchers.IO) {
-            PlanStorage.upsertPlan(
-                context = ctx,
-                uid = uid,
-                plan = stored,
-                title = title,
-                startDateMillis = start,
-                endDateMillis = end,
-                updatedAtMillis = now
-            )
+        // 2. Wyślij do chmury
+        try {
+            // Używamy zmiennej 'now' zamiast stored.updatedAtMillis
+            cloudRepository.upsertPlan(uid, stored, now)
+        } catch (e: Exception) {
+            cloudErr = e
         }
 
-        // 2) próba zapisu do chmury (żeby działało między urządzeniami od razu)
-        val cloudErr: Throwable? = try {
-            withTimeout(15_000) {
-                CloudPlansRepository.upsertPlan(uid, stored, updatedAtMillis = now)
-            }
-            null
-        } catch (t: Throwable) {
-            t
-        }
-
-        return SaveLocalResult(
-            planId = stored.id,
-            createdAtMillis = stored.createdAtMillis,
-            cloudError = cloudErr
-        )
+        SaveResult(stored.id, stored.createdAtMillis, cloudErr)
     }
 }

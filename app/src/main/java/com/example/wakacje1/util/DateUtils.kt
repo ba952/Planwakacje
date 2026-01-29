@@ -3,7 +3,6 @@ package com.example.wakacje1.util
 import java.util.Calendar
 
 object DateUtils {
-    private const val ONE_DAY = 24L * 60 * 60 * 1000L
 
     fun normalizeToLocalMidnight(millis: Long): Long {
         val cal = Calendar.getInstance()
@@ -15,6 +14,8 @@ object DateUtils {
         return cal.timeInMillis
     }
 
-    fun dayMillisForIndex(startMidnightMillis: Long, dayIndex: Int): Long =
-        startMidnightMillis + ONE_DAY * dayIndex
+    fun dayMillisForIndex(startMillis: Long, dayIndex: Int): Long {
+        val oneDay = 24L * 60 * 60 * 1000L
+        return startMillis + (oneDay * dayIndex)
+    }
 }

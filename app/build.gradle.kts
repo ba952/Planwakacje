@@ -74,7 +74,8 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material:material-icons-extended-android:1.6.8")
-
+    implementation("io.insert-koin:koin-android:3.5.6")
+    implementation("io.insert-koin:koin-androidx-compose:3.5.6")
     // Compose Navigation
     implementation("androidx.navigation:navigation-compose:2.8.3")
 
@@ -112,4 +113,8 @@ dependencies {
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    // --- TESTY JEDNOSTKOWE (UNIT TESTS) ---
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("io.mockk:mockk:1.13.8")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
 }

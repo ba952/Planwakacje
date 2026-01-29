@@ -1,19 +1,21 @@
 package com.example.wakacje1.presentation.viewmodel
 
-import android.app.Application
-import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.AndroidViewModel
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseUser
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope // Do uruchamiania korutyn (jeśli repo jest suspend)
+import com.example.wakacje1.data.remote.AuthRepository
+import com.google.firebase.auth.FirebaseUser
+import kotlinx.coroutines.launch
 
-class AuthViewModel(application: Application) : AndroidViewModel(application) {
+// ZMIANA: Zwykły ViewModel + wstrzyknięte Repozytorium
+class AuthViewModel(
+    private val authRepository: AuthRepository
+) : ViewModel() {
 
-    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
-
-    var user: FirebaseUser? by mutableStateOf(auth.currentUser)
+    // Stan UI (można też użyć StateFlow, ale Compose State jest OK dla prostych przypadków)
+    var user: FirebaseUser? by mutableStateOf(authRepository.currentUser)
         private set
 
     var loading by mutableStateOf(false)
@@ -30,74 +32,64 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         info = null
     }
 
-    fun signIn(email: String, password: String, onSuccess: () -> Unit) {
+    fun signIn(email: String, pass: String, onSuccess: () -> Unit) {
         clearMessages()
-        val e = email.trim()
-        if (e.isBlank() || password.isBlank()) {
+        if (email.isBlank() || pass.isBlank()) {
             error = "Podaj email i hasło."
             return
         }
 
         loading = true
-        auth.signInWithEmailAndPassword(e, password)
-            .addOnSuccessListener {
-                user = auth.currentUser
-                loading = false
+        // ZMIANA: Wywołanie repozytorium (asynchroniczne)
+        viewModelScope.launch {
+            val result = authRepository.signIn(email, pass)
+            loading = false
+            if (result.isSuccess) {
+                user = authRepository.currentUser
                 onSuccess()
+            } else {
+                error = result.exceptionOrNull()?.message ?: "Błąd logowania"
             }
-            .addOnFailureListener { ex ->
-                loading = false
-                error = ex.message ?: "Nie udało się zalogować."
-            }
+        }
     }
 
-    fun register(email: String, password: String, onSuccess: () -> Unit) {
+    fun register(email: String, pass: String, onSuccess: () -> Unit) {
         clearMessages()
-        val e = email.trim()
-        if (e.isBlank() || password.isBlank()) {
-            error = "Podaj email i hasło."
-            return
-        }
-        if (password.length < 6) {
-            error = "Hasło musi mieć co najmniej 6 znaków."
+        if (pass.length < 6) {
+            error = "Hasło za krótkie (min 6 znaków)."
             return
         }
 
         loading = true
-        auth.createUserWithEmailAndPassword(e, password)
-            .addOnSuccessListener {
-                user = auth.currentUser
-                loading = false
+        viewModelScope.launch {
+            val result = authRepository.register(email, pass)
+            loading = false
+            if (result.isSuccess) {
+                user = authRepository.currentUser
                 onSuccess()
+            } else {
+                error = result.exceptionOrNull()?.message ?: "Błąd rejestracji"
             }
-            .addOnFailureListener { ex ->
-                loading = false
-                error = ex.message ?: "Nie udało się zarejestrować."
-            }
+        }
     }
 
     fun sendPasswordReset(email: String) {
-        clearMessages()
-        val e = email.trim()
-        if (e.isBlank()) {
-            error = "Podaj email."
-            return
-        }
+        if (email.isBlank()) { error = "Podaj email."; return }
 
         loading = true
-        auth.sendPasswordResetEmail(e)
-            .addOnSuccessListener {
-                loading = false
-                info = "Wysłano link do resetu hasła na: $e"
+        viewModelScope.launch {
+            val result = authRepository.sendPasswordReset(email)
+            loading = false
+            if (result.isSuccess) {
+                info = "Wysłano link resetujący."
+            } else {
+                error = result.exceptionOrNull()?.message ?: "Błąd wysyłania."
             }
-            .addOnFailureListener { ex ->
-                loading = false
-                error = ex.message ?: "Nie udało się wysłać resetu hasła."
-            }
+        }
     }
 
     fun signOut() {
-        auth.signOut()
+        authRepository.signOut()
         user = null
     }
 }

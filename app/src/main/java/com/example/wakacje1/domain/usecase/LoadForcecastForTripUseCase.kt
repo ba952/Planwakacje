@@ -3,7 +3,7 @@ package com.example.wakacje1.domain.usecase
 import com.example.wakacje1.data.remote.WeatherRepository
 import com.example.wakacje1.domain.model.Destination
 import com.example.wakacje1.domain.model.Preferences
-import com.example.wakacje1.presentation.viewmodel.DayWeatherUi
+import com.example.wakacje1.presentation.viewmodel.DayWeatherUi // Upewnij się, że ten import jest poprawny
 import com.example.wakacje1.util.DateUtils
 
 data class ForecastResult(
@@ -11,13 +11,16 @@ data class ForecastResult(
     val notice: String?
 )
 
-class LoadForecastForTripUseCase {
+class LoadForecastForTripUseCase(
+    private val weatherRepository: WeatherRepository // <--- WSTRZYKUJEMY REPOZYTORIUM
+) {
     suspend fun execute(prefs: Preferences, dest: Destination, force: Boolean): ForecastResult {
         val startMillis = prefs.startDateMillis ?: return ForecastResult(emptyMap(), null)
         val days = prefs.days.coerceAtLeast(1)
 
         return try {
-            val forecast = WeatherRepository.getForecastForCity(dest.apiQuery, forceRefresh = force)
+            // ZMIANA: Wywołanie na instancji (mała litera 'w')
+            val forecast = weatherRepository.getForecastForCity(dest.apiQuery, forceRefresh = force)
             val byDate = forecast.associateBy { it.dateMillis }
 
             val startNorm = DateUtils.normalizeToLocalMidnight(startMillis)
@@ -39,8 +42,8 @@ class LoadForecastForTripUseCase {
             }
 
             val notice = when {
-                covered == 0 -> "Prognoza dzienna jest niedostępna dla tego terminu (API ma ograniczony horyzont)."
-                covered < days -> "Prognoza dzienna dostępna tylko dla części wyjazdu: $covered/$days dni (ograniczenie API)."
+                covered == 0 -> "Prognoza dzienna jest niedostępna dla tego terminu."
+                covered < days -> "Prognoza dzienna dostępna tylko dla części wyjazdu: $covered/$days dni."
                 else -> null
             }
 

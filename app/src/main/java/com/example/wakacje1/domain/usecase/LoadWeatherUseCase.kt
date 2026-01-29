@@ -3,10 +3,14 @@ package com.example.wakacje1.domain.usecase
 import com.example.wakacje1.data.remote.WeatherRepository
 import com.example.wakacje1.presentation.viewmodel.WeatherUiState
 
-class LoadWeatherUseCase {
+class LoadWeatherUseCase(
+    private val weatherRepository: WeatherRepository // <--- WSTRZYKUJEMY REPOZYTORIUM
+) {
     suspend fun execute(cityQuery: String, force: Boolean): WeatherUiState {
         return try {
-            val r = WeatherRepository.getWeatherForCity(cityQuery, forceRefresh = force)
+            // Używamy instancji 'weatherRepository' (z małej litery)
+            val r = weatherRepository.getWeatherForCity(cityQuery, forceRefresh = force)
+
             WeatherUiState(
                 loading = false,
                 city = r.city,

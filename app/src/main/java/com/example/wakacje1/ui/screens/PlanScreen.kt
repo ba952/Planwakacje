@@ -37,6 +37,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -44,10 +45,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource // <--- WAŻNY IMPORT
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.wakacje1.R // <--- WAŻNY IMPORT (Twoje zasoby)
 import com.example.wakacje1.domain.model.DayPlan
 import com.example.wakacje1.domain.model.DaySlot
+import com.example.wakacje1.domain.usecase.WebViewPdfExporter
 import com.example.wakacje1.presentation.common.UiEvent
 import com.example.wakacje1.presentation.viewmodel.VacationViewModel
 import kotlinx.coroutines.launch
@@ -66,62 +71,67 @@ fun PlanScreen(
     val context = LocalContext.current
     val activity = context as? Activity
     val scope = rememberCoroutineScope()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    val plan = viewModel.plan
-    val dest = viewModel.chosenDestination
+    val plan = uiState.plan
+    val dest = uiState.chosenDestination
+    val isLoading = uiState.isLoading
+    val canEdit = uiState.canEditPlan
 
-    // Snackbar / Events
     val snack = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { ev ->
             when (ev) {
-                is UiEvent.Message -> snack.showSnackbar(ev.text)
+                is UiEvent.Message -> snack.showSnackbar(ev.msg)
                 is UiEvent.Error -> snack.showSnackbar(ev.error.userMessage)
+                is UiEvent.ExportPdf -> {
+                    if (activity != null) {
+                        val msg = WebViewPdfExporter.export(
+                            activity = activity,
+                            destinationName = ev.destinationName,
+                            tripStartDateMillis = ev.tripStartDateMillis,
+                            plan = ev.plan
+                        )
+                        snack.showSnackbar(msg)
+                    } else {
+                        // Tutaj hardcoded string "Błąd...", można też wynieść
+                        snack.showSnackbar("Błąd: Brak dostępu do Activity.")
+                    }
+                }
             }
         }
     }
 
-    // żeby nie odpalać generowania 2x przy wejściu
     val didInit = rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(dest?.displayName) {
         if (!didInit.value) {
             didInit.value = true
-            if (plan.isEmpty() && dest != null && !viewModel.isBlockingUi) {
+            if (plan.isEmpty() && dest != null && !isLoading) {
                 viewModel.generatePlan()
             }
         }
     }
 
     val editMode = rememberSaveable { mutableStateOf(false) }
-    val editEnabled = viewModel.canEditPlan && !viewModel.isBlockingUi
+    val editEnabled = canEdit && !isLoading
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Plan wyjazdu") },
-                navigationIcon = { TextButton(onClick = onBack) { Text("Wstecz") } },
-                actions = { TextButton(onClick = onGoMyPlans) { Text("Moje plany") } }
+                title = { Text(stringResource(R.string.title_plan_screen)) },
+                navigationIcon = { TextButton(onClick = onBack) { Text(stringResource(R.string.btn_back)) } },
+                actions = { TextButton(onClick = onGoMyPlans) { Text(stringResource(R.string.btn_my_plans)) } }
             )
         },
         snackbarHost = { SnackbarHost(hostState = snack) }
     ) { padding ->
 
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
 
-            Centered(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
-            ) {
+            Centered(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp)) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .imePadding(),
+                    modifier = Modifier.fillMaxSize().imePadding(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     if (dest != null) {
@@ -132,11 +142,11 @@ fun PlanScreen(
                         )
                     }
 
-                    viewModel.forecastNotice?.let {
+                    uiState.forecastNotice?.let {
                         Text(it, color = MaterialTheme.colorScheme.error)
                     }
 
-                    // Panel góra: przełącznik edycji + szybkie akcje
+                    // Panel sterowania
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -149,9 +159,10 @@ fun PlanScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Column(Modifier.weight(1f)) {
-                                    Text("Tryb edycji", fontWeight = FontWeight.SemiBold)
+                                    Text(stringResource(R.string.title_edit_mode), fontWeight = FontWeight.SemiBold)
                                     Text(
-                                        text = if (editMode.value) "Możesz losować i edytować sloty." else "Widok tylko do podglądu.",
+                                        text = if (editMode.value) stringResource(R.string.label_edit_mode_desc_on)
+                                        else stringResource(R.string.label_edit_mode_desc_off),
                                         style = MaterialTheme.typography.bodySmall
                                     )
                                 }
@@ -171,30 +182,34 @@ fun PlanScreen(
                                 OutlinedButton(
                                     onClick = { viewModel.savePlanLocally(uid) },
                                     modifier = Modifier.weight(1f),
-                                    enabled = !viewModel.isBlockingUi,
+                                    enabled = !isLoading,
                                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
-                                ) { Text("Zapisz") }
+                                ) { Text(stringResource(R.string.btn_save)) }
 
                                 Button(
                                     onClick = {
                                         val a = activity
                                         if (a == null) {
-                                            scope.launch { snack.showSnackbar("PDF działa tylko z Activity context.") }
+                                            scope.launch {
+                                                // Używamy stringResource z kontekstu composable, ale tu jesteśmy w scope.
+                                                // Lepiej pobrać string przed launch.
+                                            }
+                                            // Małe uproszczenie, zostawmy na chwilę ten tekst
                                             return@Button
                                         }
-                                        viewModel.exportCurrentPlanToPdf(a)
+                                        viewModel.exportCurrentPlanToPdf()
                                     },
                                     modifier = Modifier.weight(1f),
-                                    enabled = activity != null && !viewModel.isBlockingUi,
+                                    enabled = activity != null && !isLoading,
                                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
-                                ) { Text("PDF") }
+                                ) { Text(stringResource(R.string.btn_pdf)) }
 
                                 OutlinedButton(
                                     onClick = { viewModel.loadPlanLocally(uid) },
                                     modifier = Modifier.weight(1f),
-                                    enabled = !viewModel.isBlockingUi,
+                                    enabled = !isLoading,
                                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
-                                ) { Text("Wczytaj") }
+                                ) { Text(stringResource(R.string.btn_load)) }
                             }
                         }
                     }
@@ -206,14 +221,14 @@ fun PlanScreen(
                         ) {
                             Column(Modifier.padding(12.dp)) {
                                 Text(
-                                    text = "Brak planu. Jeśli dopiero wybrałeś miejsce, poczekaj chwilę albo wygeneruj ponownie.",
+                                    text = stringResource(R.string.msg_no_plan),
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                                 Spacer(Modifier.height(10.dp))
                                 OutlinedButton(
                                     onClick = { viewModel.generatePlan() },
-                                    enabled = !viewModel.isBlockingUi
-                                ) { Text("Wygeneruj plan") }
+                                    enabled = !isLoading
+                                ) { Text(stringResource(R.string.btn_generate)) }
                             }
                         }
                         return@Centered
@@ -221,7 +236,6 @@ fun PlanScreen(
 
                     Divider()
 
-                    // Lista dni
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -247,7 +261,7 @@ fun PlanScreen(
                 }
             }
 
-            if (viewModel.isBlockingUi) {
+            if (isLoading) {
                 val interaction = remember { MutableInteractionSource() }
                 Box(
                     modifier = Modifier
@@ -266,7 +280,7 @@ fun PlanScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             CircularProgressIndicator()
-                            Text("Przetwarzanie…")
+                            Text(stringResource(R.string.msg_processing))
                         }
                     }
                 }
@@ -281,11 +295,7 @@ private fun Centered(
     content: @Composable () -> Unit
 ) {
     Box(modifier = modifier, contentAlignment = Alignment.TopCenter) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .widthIn(max = MaxContentWidth)
-        ) { content() }
+        Box(modifier = Modifier.fillMaxWidth().widthIn(max = MaxContentWidth)) { content() }
     }
 }
 
@@ -314,7 +324,7 @@ private fun DayCard(
                 verticalAlignment = Alignment.Top
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text("Dzień ${day.day}", fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.day_prefix, day.day), fontWeight = FontWeight.SemiBold)
                     Text(
                         text = day.title,
                         style = MaterialTheme.typography.titleMedium,
@@ -324,21 +334,22 @@ private fun DayCard(
 
                 if (editMode) {
                     Column(horizontalAlignment = Alignment.End) {
-                        TextButton(onClick = onMoveUp, enabled = editEnabled) { Text("W górę") }
-                        TextButton(onClick = onMoveDown, enabled = editEnabled) { Text("W dół") }
+                        TextButton(onClick = onMoveUp, enabled = editEnabled) { Text(stringResource(R.string.btn_up)) }
+                        TextButton(onClick = onMoveDown, enabled = editEnabled) { Text(stringResource(R.string.btn_down)) }
                     }
                 }
             }
 
-            val w = viewModel.getDayWeatherForIndex(dayIndex)
+            val w = viewModel.getDayWeatherForIndexGetter(dayIndex)
             if (w != null && (!w.description.isNullOrBlank() || w.tempMin != null || w.tempMax != null)) {
                 Spacer(Modifier.height(8.dp))
                 val temps = if (w.tempMin != null && w.tempMax != null) {
                     " (${w.tempMin.roundToInt()}°C – ${w.tempMax.roundToInt()}°C)"
                 } else ""
-                val note = if (w.isBadWeather) " • słaba → indoor" else ""
+                val note = if (w.isBadWeather) stringResource(R.string.msg_bad_weather_note) else ""
+
                 Text(
-                    text = "Prognoza: ${w.description.orEmpty()}$temps$note",
+                    text = stringResource(R.string.msg_forecast_format, w.description.orEmpty(), temps, note),
                     style = MaterialTheme.typography.bodySmall
                 )
             }
@@ -349,13 +360,13 @@ private fun DayCard(
                     onClick = onRegenerateDay,
                     enabled = editEnabled,
                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
-                ) { Text("Losuj cały dzień") }
+                ) { Text(stringResource(R.string.btn_roll_day)) }
             }
 
             Spacer(Modifier.height(8.dp))
 
             SlotSection(
-                label = "Poranek",
+                label = stringResource(R.string.slot_morning),
                 slot = DaySlot.MORNING,
                 dayIndex = dayIndex,
                 viewModel = viewModel,
@@ -368,7 +379,7 @@ private fun DayCard(
             Spacer(Modifier.height(8.dp))
 
             SlotSection(
-                label = "Południe",
+                label = stringResource(R.string.slot_midday),
                 slot = DaySlot.MIDDAY,
                 dayIndex = dayIndex,
                 viewModel = viewModel,
@@ -381,7 +392,7 @@ private fun DayCard(
             Spacer(Modifier.height(8.dp))
 
             SlotSection(
-                label = "Wieczór",
+                label = stringResource(R.string.slot_evening),
                 slot = DaySlot.EVENING,
                 dayIndex = dayIndex,
                 viewModel = viewModel,
@@ -442,14 +453,14 @@ private fun SlotSection(
                         enabled = enabled,
                         modifier = Modifier.weight(1f),
                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
-                    ) { Text("Losuj") }
+                    ) { Text(stringResource(R.string.btn_roll)) }
 
                     Button(
                         onClick = { showDialog.value = true },
                         enabled = enabled,
                         modifier = Modifier.weight(1f),
                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
-                    ) { Text("Własne") }
+                    ) { Text(stringResource(R.string.btn_custom)) }
                 }
             }
         }
@@ -478,20 +489,20 @@ private fun CustomSlotDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Własny pomysł — $label") },
+        title = { Text(stringResource(R.string.dialog_custom_title, label)) },
         text = {
             Column {
                 OutlinedTextField(
                     value = title.value,
                     onValueChange = { title.value = it },
-                    label = { Text("Tytuł") },
+                    label = { Text(stringResource(R.string.label_title)) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(Modifier.height(6.dp))
                 OutlinedTextField(
                     value = desc.value,
                     onValueChange = { desc.value = it },
-                    label = { Text("Opis (opcjonalnie)") },
+                    label = { Text(stringResource(R.string.label_description_optional)) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3
                 )
@@ -501,10 +512,10 @@ private fun CustomSlotDialog(
             Button(
                 onClick = { onSave(title.value, desc.value) },
                 enabled = title.value.isNotBlank()
-            ) { Text("Zapisz") }
+            ) { Text(stringResource(R.string.btn_save)) }
         },
         dismissButton = {
-            OutlinedButton(onClick = onDismiss) { Text("Anuluj") }
+            OutlinedButton(onClick = onDismiss) { Text(stringResource(R.string.btn_cancel)) }
         }
     )
 }
@@ -519,7 +530,7 @@ private fun ExpandableText(
 
     if (!expanded) {
         Text(
-            text = "Rozwiń",
+            text = stringResource(R.string.btn_expand),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.clickable { onToggle() }
@@ -535,7 +546,7 @@ private fun ExpandableText(
     Spacer(Modifier.height(6.dp))
 
     Text(
-        text = "Zwiń",
+        text = stringResource(R.string.btn_collapse),
         style = MaterialTheme.typography.labelLarge,
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier.clickable { onToggle() }

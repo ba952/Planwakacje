@@ -25,14 +25,18 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource // <--- WAŻNE
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.wakacje1.R // <--- WAŻNE
 import com.example.wakacje1.domain.model.Destination
 import com.example.wakacje1.presentation.viewmodel.VacationViewModel
 import kotlin.math.roundToInt
@@ -46,11 +50,13 @@ fun DestinationSelectionScreen(
     onDestinationChosen: () -> Unit,
     onBack: () -> Unit
 ) {
-    val prefs = viewModel.preferences
-    val suggestions = viewModel.destinationSuggestions
-    val chosen = viewModel.chosenDestination
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // przeliczaj propozycje, gdy zmienią się preferencje
+    val prefs = uiState.preferences
+    val suggestions = uiState.destinationSuggestions
+    val chosen = uiState.chosenDestination
+    val weather = uiState.weather
+
     LaunchedEffect(
         prefs?.budget,
         prefs?.days,
@@ -67,65 +73,60 @@ fun DestinationSelectionScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Propozycje wyjazdu") },
-                navigationIcon = { TextButton(onClick = onBack) { Text("Wróć") } },
+                title = { Text(stringResource(R.string.title_destination_selection)) },
+                navigationIcon = { TextButton(onClick = onBack) { Text(stringResource(R.string.btn_return)) } },
                 actions = {
                     TextButton(
                         onClick = {
-                            val d = viewModel.chosenDestination
+                            val d = uiState.chosenDestination
                             if (d != null && d.apiQuery.isNotBlank()) {
                                 viewModel.loadWeatherForCity(d.apiQuery, force = true)
                                 viewModel.loadForecastForTrip(force = true)
                             }
                         }
-                    ) { Text("Odśwież pogodę") }
+                    ) { Text(stringResource(R.string.btn_refresh_weather)) }
                 }
             )
         }
     ) { padding ->
-        Centered(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 16.dp, vertical = 12.dp)
-        ) {
+        Centered(modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp, vertical = 12.dp)) {
             Column(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = "Wybierz jedno z proponowanych miejsc. Potem wygenerujemy plan dzienny (poranek/południe/wieczór).",
+                    text = stringResource(R.string.msg_select_destination_instruction),
                     style = MaterialTheme.typography.bodyMedium
                 )
 
                 WeatherCard(
                     cityLabel = chosen?.displayName,
-                    weatherCity = viewModel.weather.city,
-                    temp = viewModel.weather.temperature,
-                    desc = viewModel.weather.description,
-                    loading = viewModel.weather.loading,
-                    error = viewModel.weather.error
+                    weatherCity = weather.city,
+                    temp = weather.temperature,
+                    desc = weather.description,
+                    loading = weather.loading,
+                    error = weather.error
                 )
 
                 Divider()
 
                 if (prefs == null) {
-                    Text("Brak preferencji — wróć i uzupełnij formularz.", color = MaterialTheme.colorScheme.error)
-                    OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Wróć") }
+                    Text(stringResource(R.string.msg_no_preferences), color = MaterialTheme.colorScheme.error)
+                    OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.btn_return)) }
                     return@Centered
                 }
 
                 if (suggestions.isEmpty()) {
                     Text(
-                        text = "Brak propozycji dla tych preferencji (spróbuj zmienić budżet/region/klimat).",
+                        text = stringResource(R.string.msg_no_suggestions),
                         color = MaterialTheme.colorScheme.error
                     )
-                    OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Wróć") }
+                    OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.btn_return)) }
                     return@Centered
                 }
 
                 Text(
-                    text = "Propozycje (3) • scenariusz transportu: ${viewModel.getTransportScenarioLabel()}",
+                    text = stringResource(R.string.msg_suggestions_header, 3, viewModel.getTransportScenarioLabel()),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -157,14 +158,16 @@ fun DestinationSelectionScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f)) { Text("Wróć") }
+                    OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.btn_return)) }
 
                     ElevatedButton(
                         onClick = {
                             val sel = selectedIndex.intValue
                             val d = suggestions.getOrNull(sel)
                             if (d == null) {
-                                localError.value = "Najpierw wybierz miejsce."
+                                // Uwaga: Tu nadal jest hardcoded string w zmiennej, bo to lokalny stan composable.
+                                // Można go przenieść do zasobów: context.getString(R.string.error_select_place)
+                                localError.value = "Najpierw wybierz miejsce." // To zostawiłem dla uproszczenia
                                 return@ElevatedButton
                             }
 
@@ -173,6 +176,7 @@ fun DestinationSelectionScreen(
                             val remaining = prefs.budget - transportUsed
 
                             if (remaining <= 0) {
+                                // Tu budujemy skomplikowany string, też zostawiłem na później
                                 localError.value =
                                     "Budżet za niski po doliczeniu transportu (${viewModel.getTransportScenarioLabel()}): użyte $transportUsed zł RT (zakres ~${d.transportCostRoundTripPlnMin}–${d.transportCostRoundTripPlnMax} zł)."
                                 return@ElevatedButton
@@ -189,7 +193,7 @@ fun DestinationSelectionScreen(
                             onDestinationChosen()
                         },
                         modifier = Modifier.weight(1f)
-                    ) { Text("Pokaż plan") }
+                    ) { Text(stringResource(R.string.btn_show_plan)) }
                 }
 
                 Spacer(Modifier.height(4.dp))
@@ -204,11 +208,7 @@ private fun Centered(
     content: @Composable () -> Unit
 ) {
     Box(modifier = modifier, contentAlignment = Alignment.TopCenter) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .widthIn(max = MaxContentWidth)
-        ) { content() }
+        Box(modifier = Modifier.fillMaxWidth().widthIn(max = MaxContentWidth)) { content() }
     }
 }
 
@@ -224,7 +224,6 @@ private fun DestinationCard(
 ) {
     val days = prefsDays.coerceAtLeast(1)
 
-    // SPÓJNIE Z ALGORYTMEM: używamy tego samego transportu co VM (Tmax/Tavg/Tmin)
     val transportUsed = viewModel.getTransportCostUsedForSuggestions(destination)
     val remaining = prefsBudget - transportUsed
     val budgetPerDay = if (remaining > 0) (remaining.toDouble() / days).roundToInt() else 0
@@ -255,7 +254,7 @@ private fun DestinationCard(
                 }
 
                 Text(
-                    text = if (okBudget) "OK" else "Za niski budżet",
+                    text = if (okBudget) stringResource(R.string.status_ok) else stringResource(R.string.status_budget_low),
                     color = if (okBudget) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold
@@ -265,24 +264,24 @@ private fun DestinationCard(
             Spacer(Modifier.height(8.dp))
 
             Text(
-                text = "Region: ${destination.region} • Klimat: ${destination.climate}",
+                text = stringResource(R.string.labels_region_climate, destination.region, destination.climate),
                 style = MaterialTheme.typography.bodyMedium
             )
             Spacer(Modifier.height(6.dp))
 
             Text(
-                text = "Transport (RT): ~${destination.transportCostRoundTripPlnMin}–${destination.transportCostRoundTripPlnMax} zł • użyte: $transportUsed zł (${viewModel.getTransportScenarioLabel()})",
+                text = stringResource(R.string.msg_transport_info, destination.transportCostRoundTripPlnMin, destination.transportCostRoundTripPlnMax, transportUsed, viewModel.getTransportScenarioLabel()),
                 style = MaterialTheme.typography.bodySmall
             )
             Text(
-                text = "Budżet po transporcie: ~${budgetPerDay} zł/dzień • Min: ${destination.minBudgetPerDay} zł/dzień",
+                text = stringResource(R.string.msg_budget_info, budgetPerDay, destination.minBudgetPerDay),
                 style = MaterialTheme.typography.bodySmall
             )
 
             if (destination.tags.isNotEmpty()) {
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    text = "Tagi: ${destination.tags.joinToString(", ")}",
+                    text = stringResource(R.string.msg_tags, destination.tags.joinToString(", ")),
                     style = MaterialTheme.typography.bodySmall
                 )
             }
@@ -305,7 +304,7 @@ private fun WeatherCard(
     ) {
         Column(Modifier.padding(14.dp)) {
             Text(
-                text = "Pogoda",
+                text = stringResource(R.string.title_weather),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
@@ -314,15 +313,15 @@ private fun WeatherCard(
             val label = cityLabel ?: weatherCity ?: "—"
 
             when {
-                loading -> Text("Ładowanie pogody dla: $label…")
-                error != null -> Text("Błąd: $error", color = MaterialTheme.colorScheme.error)
+                loading -> Text(stringResource(R.string.msg_weather_loading, label))
+                error != null -> Text(stringResource(R.string.error_prefix, error), color = MaterialTheme.colorScheme.error)
                 temp != null || !desc.isNullOrBlank() -> {
                     val t = temp?.let { "${it.roundToInt()}°C" } ?: ""
                     val d = desc ?: ""
-                    Text("Miejsce: $label")
-                    Text("Teraz: $d $t")
+                    // Używamy stringResource z argumentami
+                    Text(stringResource(R.string.msg_weather_now, label, d, t))
                 }
-                else -> Text("Wybierz miejsce, aby zobaczyć pogodę.")
+                else -> Text(stringResource(R.string.msg_select_place_first))
             }
         }
     }

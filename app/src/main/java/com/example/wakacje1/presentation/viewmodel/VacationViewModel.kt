@@ -1,15 +1,9 @@
 package com.example.wakacje1.presentation.viewmodel
 
-import android.app.Application
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.wakacje1.data.assets.ActivitiesRepository
 import com.example.wakacje1.data.assets.DestinationRepository
 import com.example.wakacje1.data.local.StoredPlan
-import com.example.wakacje1.data.remote.WeatherRepository
 import com.example.wakacje1.domain.engine.PlanGenerator
 import com.example.wakacje1.domain.model.DayPlan
 import com.example.wakacje1.domain.model.DaySlot
@@ -17,50 +11,62 @@ import com.example.wakacje1.domain.model.Destination
 import com.example.wakacje1.domain.model.InternalDayPlan
 import com.example.wakacje1.domain.model.Preferences
 import com.example.wakacje1.domain.model.SlotPlan
-import com.example.wakacje1.domain.usecase.ExportPlanPdfUseCase
+import com.example.wakacje1.domain.usecase.GeneratePlanUseCase
+import com.example.wakacje1.domain.usecase.LoadForecastForTripUseCase
+import com.example.wakacje1.domain.usecase.LoadLatestLocalPlanUseCase
+import com.example.wakacje1.domain.usecase.LoadWeatherUseCase
+import com.example.wakacje1.domain.usecase.RegenerateDayUseCase
+import com.example.wakacje1.domain.usecase.RollNewActivityUseCase
 import com.example.wakacje1.domain.usecase.SavePlanLocallyUseCase
+import com.example.wakacje1.domain.usecase.SuggestDestinationsUseCase
+import com.example.wakacje1.domain.usecase.TransportPass
 import com.example.wakacje1.presentation.common.ErrorMapper
 import com.example.wakacje1.presentation.common.UiEvent
+import com.example.wakacje1.util.DateUtils
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.Calendar
-import kotlin.math.abs
-import android.app.Activity
-import android.content.Context
-import android.content.ContextWrapper
 
-data class WeatherUiState(
-    val loading: Boolean = false,
-    val city: String? = null,
-    val temperature: Double? = null,
-    val description: String? = null,
-    val error: String? = null
-)
+// UWAGA: Klasy WeatherUiState i DayWeatherUi zostały przeniesione do VacationUiState.kt
+// Tutaj ich NIE MA, aby uniknąć błędu "Redeclaration".
 
-data class DayWeatherUi(
-    val dateMillis: Long,
-    val tempMin: Double?,
-    val tempMax: Double?,
-    val description: String?,
-    val isBadWeather: Boolean
-)
+class VacationViewModel(
+    private val destinationRepository: DestinationRepository,
+    private val savePlanLocallyUseCase: SavePlanLocallyUseCase,
+    private val loadLatestLocalPlanUseCase: LoadLatestLocalPlanUseCase,
+    private val suggestDestinationsUseCase: SuggestDestinationsUseCase,
+    // UseCases Logiki Planu
+    private val generatePlanUseCase: GeneratePlanUseCase,
+    private val regenerateDayUseCase: RegenerateDayUseCase,
+    private val rollNewActivityUseCase: RollNewActivityUseCase,
+    // Engine
+    private val planGenerator: PlanGenerator,
+    // UseCases Pogodowe (ZMIANA: UseCases zamiast Repo)
+    private val loadWeatherUseCase: LoadWeatherUseCase,
+    private val loadForecastForTripUseCase: LoadForecastForTripUseCase
+) : ViewModel() {
 
-class VacationViewModel(application: Application) : AndroidViewModel(application) {
+    // --- STATE FLOW (Serce UI) ---
+    private val _uiState = MutableStateFlow(VacationUiState())
+    val uiState: StateFlow<VacationUiState> = _uiState.asStateFlow()
 
-    private val destinationRepository = DestinationRepository(application)
-    private val activitiesRepository = ActivitiesRepository(application)
-
-    private val savePlanLocallyUseCase = SavePlanLocallyUseCase()
-    private val exportPlanPdfUseCase = ExportPlanPdfUseCase()
-
-    // --- events (pod snackbar/toast) ---
+    // --- Events (Jednorazowe komunikaty) ---
     private val _events = MutableSharedFlow<UiEvent>(extraBufferCapacity = 8)
     val events = _events.asSharedFlow()
 
+    // --- Stan wewnętrzny (nie dla UI) ---
+    private var internalPlanDays: MutableList<InternalDayPlan> = mutableListOf()
+    private var currentPlanId: String? = null
+    private var currentCreatedAtMillis: Long? = null
+
+    // --- Helpers ---
     private fun postMessage(msg: String) {
         viewModelScope.launch { _events.emit(UiEvent.Message(msg)) }
     }
@@ -69,204 +75,55 @@ class VacationViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch { _events.emit(UiEvent.Error(ErrorMapper.map(t, fallback))) }
     }
 
-    var preferences by mutableStateOf<Preferences?>(null)
-        private set
-
-    var destinationSuggestions by mutableStateOf<List<Destination>>(emptyList())
-        private set
-
-    var chosenDestination by mutableStateOf<Destination?>(null)
-        private set
-
-    var plan by mutableStateOf<List<DayPlan>>(emptyList())
-        private set
-
-    private var internalPlanDays: MutableList<InternalDayPlan> = mutableListOf()
-
-    var canEditPlan by mutableStateOf(true)
-        private set
-
-    var weather by mutableStateOf(WeatherUiState())
-        private set
-
-    var dayWeatherByDate by mutableStateOf<Map<Long, DayWeatherUi>>(emptyMap())
-        private set
-
-    var isBlockingUi by mutableStateOf(false)
-        private set
-
-    var uiMessage by mutableStateOf<String?>(null)
-        private set
-
-    var forecastNotice by mutableStateOf<String?>(null)
-        private set
-
-    private var currentPlanId: String? = null
-    private var currentCreatedAtMillis: Long? = null
-
-    private enum class TransportPass { T_MAX, T_AVG, T_MIN }
-    private var lastTransportPass by mutableStateOf(TransportPass.T_MAX)
-
     fun clearUiMessage() {
-        uiMessage = null
-    }
-    fun getTransportCostUsedForSuggestions(d: Destination): Int {
-        return when (lastTransportPass) {
-            TransportPass.T_MAX -> d.transportCostRoundTripPlnMax
-            TransportPass.T_AVG -> d.transportCostRoundTripPlnAvg
-            TransportPass.T_MIN -> d.transportCostRoundTripPlnMin
-        }
+        _uiState.update { it.copy(uiMessage = null) }
     }
 
-    fun getTransportScenarioLabel(): String {
-        return when (lastTransportPass) {
-            TransportPass.T_MAX -> "Tmax (konserwatywnie)"
-            TransportPass.T_AVG -> "Tavg (średnio)"
-            TransportPass.T_MIN -> "Tmin (optymistycznie)"
-        }
-    }
+    // --- Główne Metody ---
 
     fun updatePreferences(prefs: Preferences) {
-        preferences = prefs
-        destinationSuggestions = emptyList()
-        chosenDestination = null
-        plan = emptyList()
-        internalPlanDays = mutableListOf()
-        canEditPlan = true
-        weather = WeatherUiState()
-        dayWeatherByDate = emptyMap()
-        forecastNotice = null
-        uiMessage = null
+        internalPlanDays.clear()
         currentPlanId = null
         currentCreatedAtMillis = null
-        lastTransportPass = TransportPass.T_MAX
+
+        _uiState.update {
+            VacationUiState(
+                preferences = prefs,
+                isLoading = false
+            )
+        }
     }
 
-    /**
-     * NOWY DOBÓR DESTYNACJI:
-     * - budżet liczony jako (budżet - transportRoundTrip)/dni
-     * - 3 przebiegi: Tmax → Tavg → Tmin
-     * - hard-filtry region/klimat; styl wpływa na ranking
-     * - ranking bez "wag": sortowanie krotką (dopasowanie → trafienie w typical → tańszy transport)
-     */
     fun prepareDestinationSuggestions() {
-        val prefs = preferences ?: run {
-            destinationSuggestions = emptyList()
+        val prefs = _uiState.value.preferences ?: run {
+            _uiState.update { it.copy(destinationSuggestions = emptyList()) }
             return
         }
 
-        val all = destinationRepository.getAllDestinations()
-        val days = prefs.days.coerceAtLeast(1)
+        val result = suggestDestinationsUseCase.execute(prefs)
 
-        fun transportFor(d: Destination, pass: TransportPass): Int = when (pass) {
-            TransportPass.T_MAX -> d.transportCostRoundTripPlnMax
-            TransportPass.T_AVG -> d.transportCostRoundTripPlnAvg
-            TransportPass.T_MIN -> d.transportCostRoundTripPlnMin
+        _uiState.update {
+            it.copy(
+                destinationSuggestions = result.suggestions,
+                lastTransportPass = result.transportPass
+            )
         }
-
-        fun budgetPerDayFor(d: Destination, pass: TransportPass): Int {
-            val remaining = prefs.budget - transportFor(d, pass)
-            if (remaining <= 0) return 0
-            return remaining / days
-        }
-
-        fun styleMatch(d: Destination): Boolean =
-            d.tags.any { it.equals(prefs.style, ignoreCase = true) } ||
-                    d.tags.any { it.equals("Mix", ignoreCase = true) && prefs.style.equals("Mix", true) }
-
-        fun matchTuple(d: Destination): Triple<Int, Int, Int> {
-            val regionOk = d.region.equals(prefs.region, true)
-            val climateOk = d.climate.equals(prefs.climate, true)
-            val styleOk = styleMatch(d)
-            // 3..0 – im wyżej tym lepiej
-            val lvl = (if (regionOk) 1 else 0) + (if (climateOk) 1 else 0) + (if (styleOk) 1 else 0)
-            return Triple(lvl, if (regionOk) 1 else 0, if (climateOk) 1 else 0)
-        }
-
-        data class Candidate(val d: Destination, val pass: TransportPass, val bpd: Int)
-
-        fun computeForPass(pass: TransportPass): List<Destination> {
-            val strict = all.filter { it.region.equals(prefs.region, true) && it.climate.equals(prefs.climate, true) }
-            val relaxed1 = all.filter { it.region.equals(prefs.region, true) } // luzujemy klimat
-            val relaxed2 = all // luzujemy wszystko (awaryjnie)
-
-            fun rank(list: List<Destination>): List<Destination> {
-                val cands = list.map { d -> Candidate(d, pass, budgetPerDayFor(d, pass)) }
-
-                // najpierw "stać mnie" (minBudgetPerDay), ale jak będzie za mało wyników,
-                // dopełnimy najtańszymi minBudgetPerDay
-                val ok = cands.filter { it.bpd >= it.d.minBudgetPerDay }
-                val fill = cands.filter { it.bpd < it.d.minBudgetPerDay }
-                    .sortedBy { it.d.minBudgetPerDay } // dopełniamy możliwie "najbliżej"
-
-                val merged = (ok + fill).distinctBy { it.d.id }
-
-                return merged
-                    .sortedWith(
-                        compareByDescending<Candidate> { matchTuple(it.d).first } // ile dopasowań
-                            .thenBy { abs(it.bpd - it.d.typicalBudgetPerDay) }   // trafienie w typical
-                            .thenBy { it.d.transportCostRoundTripPlnAvg }        // tańszy transport
-                            .thenBy { it.d.displayName }
-                    )
-                    .map { it.d }
-                    .take(3)
-            }
-
-            // hard -> luzowanie, aż uzbieramy 3
-            val r1 = rank(strict)
-            if (r1.size >= 3) return r1
-
-            val r2 = (r1 + rank(relaxed1)).distinctBy { it.id }.take(3)
-            if (r2.size >= 3) return r2
-
-            return (r2 + rank(relaxed2)).distinctBy { it.id }.take(3)
-        }
-
-        // 3 przebiegi: Tmax -> Tavg -> Tmin
-        val p1 = computeForPass(TransportPass.T_MAX)
-        if (p1.size >= 3) {
-            lastTransportPass = TransportPass.T_MAX
-            destinationSuggestions = p1
-            return
-        }
-
-        val p2 = computeForPass(TransportPass.T_AVG)
-        if (p2.size >= 3) {
-            lastTransportPass = TransportPass.T_AVG
-            destinationSuggestions = p2
-            return
-        }
-
-        val p3 = computeForPass(TransportPass.T_MIN)
-        lastTransportPass = TransportPass.T_MIN
-        destinationSuggestions = p3
-    }
-
-    /**
-     * Przydaje się w UI, żeby sprawdzać budżet "uczciwie" (z transportem).
-     */
-    fun getBudgetPerDayWithTransport(d: Destination): Int {
-        val prefs = preferences ?: return 0
-        val days = prefs.days.coerceAtLeast(1)
-        val t = when (lastTransportPass) {
-            TransportPass.T_MAX -> d.transportCostRoundTripPlnMax
-            TransportPass.T_AVG -> d.transportCostRoundTripPlnAvg
-            TransportPass.T_MIN -> d.transportCostRoundTripPlnMin
-        }
-        val remaining = prefs.budget - t
-        if (remaining <= 0) return 0
-        return remaining / days
     }
 
     fun chooseDestination(destination: Destination) {
-        chosenDestination = destination
-        plan = emptyList()
-        internalPlanDays = mutableListOf()
-        canEditPlan = true
-        dayWeatherByDate = emptyMap()
-        forecastNotice = null
+        internalPlanDays.clear()
         currentPlanId = null
         currentCreatedAtMillis = null
+
+        _uiState.update {
+            it.copy(
+                chosenDestination = destination,
+                plan = emptyList(),
+                dayWeatherByDate = emptyMap(),
+                forecastNotice = null,
+                canEditPlan = true
+            )
+        }
 
         if (destination.apiQuery.isNotBlank()) {
             loadWeatherForCity(destination.apiQuery)
@@ -274,84 +131,216 @@ class VacationViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun loadWeatherForCity(cityQuery: String, force: Boolean = false) {
+    fun generatePlan() {
+        val currentState = _uiState.value
+        val prefs = currentState.preferences ?: return
+        val dest = currentState.chosenDestination ?: return
+
         viewModelScope.launch {
-            weather = WeatherUiState(loading = true)
+            _uiState.update { it.copy(isLoading = true) }
             try {
-                val r = WeatherRepository.getWeatherForCity(cityQuery, forceRefresh = force)
-                weather = WeatherUiState(
-                    loading = false,
-                    city = r.city,
-                    temperature = r.temperature,
-                    description = r.description
+                // Generujemy plan (Clean Architecture)
+                val newInternal = generatePlanUseCase.execute(
+                    prefs = prefs,
+                    dest = dest,
+                    isBadWeatherForDayIndex = { idx -> isBadWeatherForDayIndex(idx) }
                 )
+                internalPlanDays = newInternal
+
+                val uiPlan = rebuildUiPlan()
+                _uiState.update {
+                    it.copy(
+                        plan = uiPlan,
+                        canEditPlan = true,
+                        isLoading = false
+                    )
+                }
             } catch (e: Exception) {
-                weather = WeatherUiState(
-                    loading = false,
-                    error = ErrorMapper.userMessage(e, "Nie udało się pobrać pogody.")
-                )
+                _uiState.update { it.copy(isLoading = false) }
+                postError(e, "Błąd generowania planu")
             }
         }
     }
 
-    fun loadForecastForTrip(force: Boolean = false) {
-        val prefs = preferences ?: return
-        val dest = chosenDestination ?: return
-        val startMillis = prefs.startDateMillis ?: return
-        val days = prefs.days.coerceAtLeast(1)
+    fun regenerateDay(dayIndex: Int) {
+        if (!_uiState.value.canEditPlan) return
+        val currentState = _uiState.value
+        val prefs = currentState.preferences ?: return
+        val dest = currentState.chosenDestination ?: return
 
         viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
             try {
-                val forecast = WeatherRepository.getForecastForCity(dest.apiQuery, forceRefresh = force)
-                val byDate = forecast.associateBy { it.dateMillis }
+                regenerateDayUseCase.execute(
+                    dayIndex = dayIndex,
+                    prefs = prefs,
+                    dest = dest,
+                    internal = internalPlanDays,
+                    isBadWeatherForDayIndex = { idx -> isBadWeatherForDayIndex(idx) }
+                )
+                val uiPlan = rebuildUiPlan()
+                _uiState.update { it.copy(plan = uiPlan, isLoading = false) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false) }
+                postError(e, "Błąd regeneracji dnia")
+            }
+        }
+    }
 
-                val oneDay = 24L * 60 * 60 * 1000L
-                val startNorm = normalizeToLocalMidnight(startMillis)
+    fun rollNewActivity(dayIndex: Int, slot: DaySlot) {
+        if (!_uiState.value.canEditPlan) return
+        val currentState = _uiState.value
+        val prefs = currentState.preferences ?: return
+        val dest = currentState.chosenDestination ?: return
 
-                val map = mutableMapOf<Long, DayWeatherUi>()
-                var covered = 0
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                rollNewActivityUseCase.execute(
+                    dayIndex = dayIndex,
+                    slot = slot,
+                    prefs = prefs,
+                    dest = dest,
+                    internal = internalPlanDays,
+                    isBadWeatherForDayIndex = { idx -> isBadWeatherForDayIndex(idx) }
+                )
+                val uiPlan = rebuildUiPlan()
+                _uiState.update { it.copy(plan = uiPlan, isLoading = false) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false) }
+                postError(e, "Błąd losowania")
+            }
+        }
+    }
 
-                for (i in 0 until days) {
-                    val dayMillis = startNorm + oneDay * i
-                    val f = byDate[dayMillis]
-                    if (f != null) covered++
+    fun setCustomActivity(dayIndex: Int, slot: DaySlot, title: String, description: String) {
+        if (!_uiState.value.canEditPlan) return
+        planGenerator.setCustomSlot(dayIndex, slot, title, description, internalPlanDays)
+        val uiPlan = rebuildUiPlan()
+        _uiState.update { it.copy(plan = uiPlan) }
+    }
 
-                    map[dayMillis] = DayWeatherUi(
-                        dateMillis = dayMillis,
-                        tempMin = f?.tempMin,
-                        tempMax = f?.tempMax,
-                        description = f?.description,
-                        isBadWeather = f?.isBadWeather ?: false
-                    )
-                }
+    // --- Weather Logic (Z użyciem nowych UseCase) ---
 
-                dayWeatherByDate = map
+    fun loadWeatherForCity(cityQuery: String, force: Boolean = false) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(weather = WeatherUiState(loading = true)) }
 
-                forecastNotice = when {
-                    covered == 0 -> "Prognoza dzienna jest niedostępna dla tego terminu (API ma ograniczony horyzont)."
-                    covered < days -> "Prognoza dzienna dostępna tylko dla części wyjazdu: $covered/$days dni (ograniczenie API)."
-                    else -> null
-                }
-            } catch (_: Exception) {
-                dayWeatherByDate = emptyMap()
-                forecastNotice = "Nie udało się pobrać prognozy dziennej."
+            // ZMIANA: Użycie UseCase
+            val result = loadWeatherUseCase.execute(cityQuery, force)
+
+            _uiState.update { it.copy(weather = result) }
+        }
+    }
+
+    fun loadForecastForTrip(force: Boolean = false) {
+        val currentState = _uiState.value
+        val prefs = currentState.preferences ?: return
+        val dest = currentState.chosenDestination ?: return
+
+        viewModelScope.launch {
+            // ZMIANA: Użycie UseCase
+            val result = loadForecastForTripUseCase.execute(prefs, dest, force)
+
+            _uiState.update {
+                it.copy(
+                    dayWeatherByDate = result.byDate,
+                    forecastNotice = result.notice
+                )
             }
         }
     }
 
     private fun isBadWeatherForDayIndex(dayIndex: Int): Boolean {
-        val prefs = preferences ?: return false
+        val prefs = _uiState.value.preferences ?: return false
         val startMillis = prefs.startDateMillis ?: return false
 
-        val oneDay = 24L * 60 * 60 * 1000L
-        val startNorm = normalizeToLocalMidnight(startMillis)
-        val dayMillis = startNorm + oneDay * dayIndex
+        // ZMIANA: Użycie DateUtils
+        val startNorm = DateUtils.normalizeToLocalMidnight(startMillis)
+        val dayMillis = DateUtils.dayMillisForIndex(startNorm, dayIndex)
 
-        return dayWeatherByDate[dayMillis]?.isBadWeather ?: false
+        return _uiState.value.dayWeatherByDate[dayMillis]?.isBadWeather ?: false
     }
 
-    fun getInternalDayOrNull(dayIndex: Int): InternalDayPlan? =
-        internalPlanDays.getOrNull(dayIndex)
+    // --- Storage & Utils ---
+
+    fun savePlanLocally(uid: String? = null) {
+        val realUid = uid ?: FirebaseAuth.getInstance().currentUser?.uid
+        if (realUid.isNullOrBlank()) { postMessage("Brak usera"); return }
+
+        val currentState = _uiState.value
+        val prefs = currentState.preferences ?: return
+        val dest = currentState.chosenDestination ?: return
+        if (internalPlanDays.isEmpty()) return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                val res = savePlanLocallyUseCase.execute(realUid, prefs, dest, internalPlanDays, currentPlanId, currentCreatedAtMillis)
+                currentPlanId = res.planId
+                currentCreatedAtMillis = res.createdAtMillis
+                postMessage("Zapisano.")
+            } catch (e: Exception) {
+                postError(e, "Błąd zapisu")
+            } finally {
+                _uiState.update { it.copy(isLoading = false) }
+            }
+        }
+    }
+
+    fun loadPlanLocally(uid: String? = null) {
+        val realUid = uid ?: FirebaseAuth.getInstance().currentUser?.uid ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                val stored = withContext(Dispatchers.IO) { loadLatestLocalPlanUseCase.execute(realUid) }
+                if (stored == null) { postMessage("Brak planów"); return@launch }
+                applyStoredPlan(stored)
+                postMessage("Wczytano.")
+            } catch (e: Exception) {
+                postError(e, "Błąd wczytania")
+            } finally {
+                _uiState.update { it.copy(isLoading = false) }
+            }
+        }
+    }
+
+    fun applyStoredPlan(stored: StoredPlan) {
+        internalPlanDays = stored.internalDays.map { it.toInternalDayPlan() }.toMutableList()
+        currentPlanId = stored.id
+        currentCreatedAtMillis = stored.createdAtMillis
+
+        val uiPlan = planGenerator.rebuildDayPlans(internalPlanDays, stored.destination.displayName)
+
+        _uiState.update {
+            VacationUiState(
+                preferences = stored.preferences?.toPreferences(),
+                chosenDestination = stored.destination.toDestination(),
+                plan = uiPlan,
+                weather = WeatherUiState(),
+                canEditPlan = true,
+                isLoading = false
+            )
+        }
+    }
+
+    fun exportCurrentPlanToPdf() {
+        val currentState = _uiState.value
+        val destName = currentState.chosenDestination?.displayName
+        val tripStart = currentState.preferences?.startDateMillis
+
+        if (destName.isNullOrBlank() || internalPlanDays.isEmpty()) {
+            postMessage("Brak planu.")
+            return
+        }
+        viewModelScope.launch {
+            _events.emit(UiEvent.ExportPdf(destName, tripStart, internalPlanDays.toList()))
+        }
+    }
+
+    // --- Getters dla UI ---
+
+    fun getInternalDayOrNull(dayIndex: Int) = internalPlanDays.getOrNull(dayIndex)
 
     fun getSlotOrNull(dayIndex: Int, slot: DaySlot): SlotPlan? {
         val d = internalPlanDays.getOrNull(dayIndex) ?: return null
@@ -362,271 +351,60 @@ class VacationViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun getDayWeatherForIndex(dayIndex: Int): DayWeatherUi? {
-        val prefs = preferences ?: return null
+    fun getDayWeatherForIndexGetter(dayIndex: Int): com.example.wakacje1.presentation.viewmodel.DayWeatherUi? {
+        val prefs = _uiState.value.preferences ?: return null
         val startMillis = prefs.startDateMillis ?: return null
-        val startNorm = normalizeToLocalMidnight(startMillis)
-        val oneDay = 24L * 60 * 60 * 1000L
-        val key = startNorm + oneDay * dayIndex
-        return dayWeatherByDate[key]
+        val startNorm = DateUtils.normalizeToLocalMidnight(startMillis)
+        val key = DateUtils.dayMillisForIndex(startNorm, dayIndex)
+        return _uiState.value.dayWeatherByDate[key]
     }
 
-    fun generatePlan() {
-        val prefs = preferences ?: return
-        val dest = chosenDestination ?: return
+    fun getBudgetPerDayWithTransport(d: Destination): Int {
+        val prefs = _uiState.value.preferences ?: return 0
+        val days = prefs.days.coerceAtLeast(1)
+        val t = getTransportCostUsedForSuggestions(d)
+        val remaining = prefs.budget - t
+        return if (remaining <= 0) 0 else remaining / days
+    }
 
-        viewModelScope.launch {
-            isBlockingUi = true
-            try {
-                val allActivities = withContext(Dispatchers.IO) { activitiesRepository.getAllActivities() }
-
-                val newInternal = withContext(Dispatchers.Default) {
-                    PlanGenerator.generateInternalPlan(
-                        prefs = prefs,
-                        dest = dest,
-                        allActivities = allActivities,
-                        isBadWeatherForDayIndex = { idx -> isBadWeatherForDayIndex(idx) }
-                    )
-                }
-
-                internalPlanDays = newInternal
-                canEditPlan = true
-                plan = rebuildUiPlan()
-            } finally {
-                isBlockingUi = false
-            }
+    fun getTransportCostUsedForSuggestions(d: Destination): Int {
+        return when (_uiState.value.lastTransportPass) {
+            TransportPass.T_MAX -> d.transportCostRoundTripPlnMax
+            TransportPass.T_AVG -> d.transportCostRoundTripPlnAvg
+            TransportPass.T_MIN -> d.transportCostRoundTripPlnMin
         }
     }
 
-    fun regenerateDay(dayIndex: Int) {
-        if (!canEditPlan) return
-        val prefs = preferences ?: return
-        val dest = chosenDestination ?: return
-
-        viewModelScope.launch {
-            isBlockingUi = true
-            try {
-                val allActivities = withContext(Dispatchers.IO) { activitiesRepository.getAllActivities() }
-
-                withContext(Dispatchers.Default) {
-                    PlanGenerator.regenerateWholeDay(
-                        dayIndex = dayIndex,
-                        prefs = prefs,
-                        dest = dest,
-                        allActivities = allActivities,
-                        internal = internalPlanDays,
-                        isBadWeatherForDayIndex = { idx -> isBadWeatherForDayIndex(idx) }
-                    )
-                }
-
-                plan = rebuildUiPlan()
-            } finally {
-                isBlockingUi = false
-            }
+    fun getTransportScenarioLabel(): String {
+        return when (_uiState.value.lastTransportPass) {
+            TransportPass.T_MAX -> "Tmax (konserwatywnie)"
+            TransportPass.T_AVG -> "Tavg (średnio)"
+            TransportPass.T_MIN -> "Tmin (optymistycznie)"
         }
     }
 
     fun moveDayUp(index: Int) {
-        if (!canEditPlan) return
-        if (index <= 0 || index >= internalPlanDays.size) return
+        if (!_uiState.value.canEditPlan || index <= 0 || index >= internalPlanDays.size) return
         val tmp = internalPlanDays[index - 1]
         internalPlanDays[index - 1] = internalPlanDays[index]
         internalPlanDays[index] = tmp
-        plan = rebuildUiPlan()
+
+        val uiPlan = rebuildUiPlan()
+        _uiState.update { it.copy(plan = uiPlan) }
     }
 
     fun moveDayDown(index: Int) {
-        if (!canEditPlan) return
-        if (index < 0 || index >= internalPlanDays.size - 1) return
+        if (!_uiState.value.canEditPlan || index < 0 || index >= internalPlanDays.size - 1) return
         val tmp = internalPlanDays[index + 1]
         internalPlanDays[index + 1] = internalPlanDays[index]
         internalPlanDays[index] = tmp
-        plan = rebuildUiPlan()
+
+        val uiPlan = rebuildUiPlan()
+        _uiState.update { it.copy(plan = uiPlan) }
     }
-
-    fun rollNewActivity(dayIndex: Int, slot: DaySlot) {
-        if (!canEditPlan) return
-        val prefs = preferences ?: return
-        val dest = chosenDestination ?: return
-
-        viewModelScope.launch {
-            isBlockingUi = true
-            try {
-                val allActivities = withContext(Dispatchers.IO) { activitiesRepository.getAllActivities() }
-
-                withContext(Dispatchers.Default) {
-                    PlanGenerator.rollNewSlot(
-                        dayIndex = dayIndex,
-                        slot = slot,
-                        prefs = prefs,
-                        dest = dest,
-                        allActivities = allActivities,
-                        internal = internalPlanDays,
-                        isBadWeatherForDayIndex = { idx -> isBadWeatherForDayIndex(idx) }
-                    )
-                }
-
-                plan = rebuildUiPlan()
-            } finally {
-                isBlockingUi = false
-            }
-        }
-    }
-
-    fun setCustomActivity(dayIndex: Int, slot: DaySlot, title: String, description: String) {
-        if (!canEditPlan) return
-        PlanGenerator.setCustomSlot(
-            dayIndex = dayIndex,
-            slot = slot,
-            title = title,
-            description = description,
-            internal = internalPlanDays
-        )
-        plan = rebuildUiPlan()
-    }
-
-    fun savePlanLocally(uid: String? = null) {
-        val ctx = getApplication<Application>()
-        val realUid = uid ?: FirebaseAuth.getInstance().currentUser?.uid
-        if (realUid.isNullOrBlank()) {
-            uiMessage = "Brak zalogowanego użytkownika."
-            postMessage("Brak zalogowanego użytkownika.")
-            return
-        }
-
-        val prefs = preferences ?: run { uiMessage = "Brak preferencji."; postMessage("Brak preferencji."); return }
-        val dest = chosenDestination ?: run { uiMessage = "Brak wybranego miejsca."; postMessage("Brak wybranego miejsca."); return }
-        if (internalPlanDays.isEmpty()) { uiMessage = "Brak planu do zapisu."; postMessage("Brak planu do zapisu."); return }
-
-        viewModelScope.launch {
-            isBlockingUi = true
-            try {
-                val res = savePlanLocallyUseCase.execute(
-                    ctx = ctx,
-                    uid = realUid,
-                    prefs = prefs,
-                    dest = dest,
-                    internalDays = internalPlanDays,
-                    currentPlanId = currentPlanId,
-                    currentCreatedAtMillis = currentCreatedAtMillis
-                )
-
-                currentPlanId = res.planId
-                currentCreatedAtMillis = res.createdAtMillis
-
-                uiMessage = if (res.cloudError == null) {
-                    "Zapisano (lokalnie + chmura)."
-                } else {
-                    "Zapisano lokalnie. Chmura: ${ErrorMapper.userMessage(res.cloudError, "Błąd synchronizacji.")}"
-                }
-
-                postMessage(uiMessage ?: "Zapisano.")
-                res.cloudError?.let { postError(it, "Nie udało się zsynchronizować z chmurą.") }
-
-            } catch (e: Exception) {
-                uiMessage = "Błąd zapisu: ${ErrorMapper.userMessage(e, "Błąd zapisu.")}"
-                postError(e, "Nie udało się zapisać planu.")
-            } finally {
-                isBlockingUi = false
-            }
-        }
-    }
-
-    fun loadPlanLocally(uid: String? = null) {
-        val ctx = getApplication<Application>()
-        val realUid = uid ?: FirebaseAuth.getInstance().currentUser?.uid
-        if (realUid.isNullOrBlank()) {
-            uiMessage = "Brak zalogowanego użytkownika."
-            postMessage("Brak zalogowanego użytkownika.")
-            return
-        }
-
-        viewModelScope.launch {
-            isBlockingUi = true
-            try {
-                val stored = withContext(Dispatchers.IO) {
-                    com.example.wakacje1.data.local.PlanStorage.loadLatestPlan(ctx, realUid)
-                }
-
-                if (stored == null) {
-                    uiMessage = "Brak zapisanych planów lokalnie."
-                    postMessage("Brak zapisanych planów.")
-                    return@launch
-                }
-
-                applyStoredPlan(stored)
-                uiMessage = "Wczytano ostatni plan lokalny."
-                postMessage("Wczytano plan.")
-            } catch (e: Exception) {
-                uiMessage = "Błąd wczytania: ${ErrorMapper.userMessage(e, "Błąd wczytania.")}"
-                postError(e, "Nie udało się wczytać planu.")
-            } finally {
-                isBlockingUi = false
-            }
-        }
-    }
-
-    fun applyStoredPlan(stored: StoredPlan) {
-        preferences = stored.preferences?.toPreferences()
-        chosenDestination = stored.destination.toDestination()
-        internalPlanDays = stored.internalDays.map { it.toInternalDayPlan() }.toMutableList()
-
-        currentPlanId = stored.id
-        currentCreatedAtMillis = stored.createdAtMillis
-
-        canEditPlan = true
-        plan = PlanGenerator.rebuildDayPlans(internalPlanDays, chosenDestination?.displayName ?: "")
-
-        weather = WeatherUiState()
-        dayWeatherByDate = emptyMap()
-        forecastNotice = null
-        uiMessage = "Wczytano plan."
-    }
-
-    fun exportCurrentPlanToPdf(activity: Activity) {
-        val destName = chosenDestination?.displayName
-        val tripStart = preferences?.startDateMillis
-        val currentPlan = plan
-
-        viewModelScope.launch {
-            isBlockingUi = true
-            try {
-                val msg = exportPlanPdfUseCase.execute(
-                    activity = activity,
-                    destinationName = destName,
-                    tripStartDateMillis = tripStart,
-                    plan = currentPlan
-                )
-                uiMessage = msg
-                postMessage(msg)
-            } catch (e: Exception) {
-                uiMessage = "Błąd PDF: ${ErrorMapper.userMessage(e, "Nie udało się utworzyć PDF.")}"
-                postError(e, "Nie udało się utworzyć PDF.")
-            } finally {
-                isBlockingUi = false
-            }
-        }
-    }
-
-    private tailrec fun Context.findActivity(): Activity? = when (this) {
-        is Activity -> this
-        is ContextWrapper -> baseContext.findActivity()
-        else -> null
-    }
-
 
     private fun rebuildUiPlan(): List<DayPlan> {
-        val dest = chosenDestination ?: return emptyList()
-        return PlanGenerator.rebuildDayPlans(internalPlanDays, dest.displayName)
-    }
-
-    private fun normalizeToLocalMidnight(millis: Long): Long {
-        val cal = Calendar.getInstance()
-        cal.timeInMillis = millis
-        cal.set(Calendar.HOUR_OF_DAY, 0)
-        cal.set(Calendar.MINUTE, 0)
-        cal.set(Calendar.SECOND, 0)
-        cal.set(Calendar.MILLISECOND, 0)
-        return cal.timeInMillis
+        val dest = _uiState.value.chosenDestination ?: return emptyList()
+        return planGenerator.rebuildDayPlans(internalPlanDays, dest.displayName)
     }
 }

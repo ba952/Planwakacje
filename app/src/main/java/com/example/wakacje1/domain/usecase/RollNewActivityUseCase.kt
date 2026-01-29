@@ -10,7 +10,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class RollNewActivityUseCase(
-    private val activitiesRepository: ActivitiesRepository
+    private val activitiesRepository: ActivitiesRepository,
+    private val planGenerator: PlanGenerator
 ) {
     suspend fun execute(
         dayIndex: Int,
@@ -18,6 +19,7 @@ class RollNewActivityUseCase(
         prefs: Preferences,
         dest: Destination,
         internal: MutableList<InternalDayPlan>,
+        // NAPRAWA BŁĘDU: Jawnie określamy typ funkcji, żeby Kotlin wiedział co to jest
         isBadWeatherForDayIndex: (Int) -> Boolean
     ) {
         val allActivities = withContext(Dispatchers.IO) {
@@ -25,7 +27,7 @@ class RollNewActivityUseCase(
         }
 
         withContext(Dispatchers.Default) {
-            PlanGenerator.rollNewSlot(
+            planGenerator.rollNewSlot(
                 dayIndex = dayIndex,
                 slot = slot,
                 prefs = prefs,

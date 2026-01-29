@@ -17,7 +17,8 @@ import java.util.Calendar
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
-object WeatherRepository {
+// ZMIANA: class zamiast object
+class WeatherRepository {
 
     // ------------------ MODELE (dla UI/ViewModel) ------------------
 
@@ -38,9 +39,9 @@ object WeatherRepository {
     )
 
     // ------------------ CACHE (in-memory) ------------------
-    // TTL: bieżąca pogoda 10 min, prognoza 30 min
-    private const val TTL_CURRENT_MS = 10L * 60 * 1000
-    private const val TTL_FORECAST_MS = 30L * 60 * 1000
+    // Cache jest teraz per instancja (co jest OK, bo Koin trzyma singleton)
+    private val TTL_CURRENT_MS = 10L * 60 * 1000
+    private val TTL_FORECAST_MS = 30L * 60 * 1000
 
     private data class CacheEntry<T>(val timestampMs: Long, val value: T)
 
@@ -78,7 +79,7 @@ object WeatherRepository {
 
     private val api: WeatherApi by lazy {
         Retrofit.Builder()
-            .baseUrl("https://api.openweathermap.org/") // musi kończyć się "/"
+            .baseUrl("https://api.openweathermap.org/")
             .client(okHttp)
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
@@ -220,7 +221,6 @@ object WeatherRepository {
     private fun isBadWeather(conditionId: Int, desc: String): Boolean {
         val group = conditionId / 100
         if (group in setOf(2, 3, 5, 6, 7)) return true
-
         val d = desc.lowercase()
         return d.contains("deszcz") || d.contains("burz") || d.contains("śnieg") || d.contains("mgł")
     }

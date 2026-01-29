@@ -10,7 +10,7 @@ import com.example.wakacje1.domain.model.Preferences
 import com.example.wakacje1.domain.model.SlotPlan
 import kotlin.collections.plusAssign
 
-object PlanGenerator {
+class PlanGenerator {
 
     fun generateInternalPlan(
         prefs: Preferences,
