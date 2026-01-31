@@ -1,19 +1,19 @@
 package com.example.wakacje1.presentation.common
 
-import com.example.wakacje1.domain.model.DayPlan
+import com.example.wakacje1.domain.model.InternalDayPlan
 
 sealed interface UiEvent {
-    // Zdarzenie informacyjne (np. "Zapisano plan")
-    data class Message(val msg: String) : UiEvent
+    // ZMIANA 1: Typ pola to UiText (zamiast String), żeby obsługiwać R.string
+    // ZMIANA 2: Nazwa pola to 'uiText' (zamiast 'msg'), żeby pasowało do kodu w PlanScreen
+    data class Message(val uiText: UiText) : UiEvent
 
-    // ZMIANA: Error przyjmuje teraz obiekt AppError (nie String!)
-    // Dzięki temu w UI (Activity/Compose) możesz zdecydować, czy pokazać Toast, Dialog, czy Snackbar
+    // Error przechowuje obiekt AppError (który w środku ma już pole uiText)
     data class Error(val error: AppError) : UiEvent
 
-    // Zdarzenie zlecające eksport PDF (odbierane przez Activity/Fragment)
+    // Eksport PDF bez zmian
     data class ExportPdf(
         val destinationName: String,
         val tripStartDateMillis: Long?,
-        val plan: List<com.example.wakacje1.domain.model.InternalDayPlan> // <-- ZMIANA TYPU
+        val plan: List<InternalDayPlan>
     ) : UiEvent
 }

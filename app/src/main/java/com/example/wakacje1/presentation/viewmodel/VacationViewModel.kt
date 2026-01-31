@@ -2,6 +2,7 @@ package com.example.wakacje1.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.wakacje1.R
 import com.example.wakacje1.data.assets.DestinationRepository
 import com.example.wakacje1.data.local.StoredPlan
 import com.example.wakacje1.domain.engine.PlanGenerator
@@ -20,8 +21,10 @@ import com.example.wakacje1.domain.usecase.RollNewActivityUseCase
 import com.example.wakacje1.domain.usecase.SavePlanLocallyUseCase
 import com.example.wakacje1.domain.usecase.SuggestDestinationsUseCase
 import com.example.wakacje1.domain.usecase.TransportPass
+import com.example.wakacje1.presentation.common.AppError
 import com.example.wakacje1.presentation.common.ErrorMapper
 import com.example.wakacje1.presentation.common.UiEvent
+import com.example.wakacje1.presentation.common.UiText
 import com.example.wakacje1.util.DateUtils
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Dispatchers
@@ -34,9 +37,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-// UWAGA: Klasy WeatherUiState i DayWeatherUi zostały przeniesione do VacationUiState.kt
-// Tutaj ich NIE MA, aby uniknąć błędu "Redeclaration".
-
 class VacationViewModel(
     private val destinationRepository: DestinationRepository,
     private val savePlanLocallyUseCase: SavePlanLocallyUseCase,
@@ -48,31 +48,48 @@ class VacationViewModel(
     private val rollNewActivityUseCase: RollNewActivityUseCase,
     // Engine
     private val planGenerator: PlanGenerator,
-    // UseCases Pogodowe (ZMIANA: UseCases zamiast Repo)
+    // UseCases Pogodowe
     private val loadWeatherUseCase: LoadWeatherUseCase,
     private val loadForecastForTripUseCase: LoadForecastForTripUseCase
 ) : ViewModel() {
 
-    // --- STATE FLOW (Serce UI) ---
+    // --- STATE FLOW ---
     private val _uiState = MutableStateFlow(VacationUiState())
     val uiState: StateFlow<VacationUiState> = _uiState.asStateFlow()
 
-    // --- Events (Jednorazowe komunikaty) ---
+    // --- Events ---
     private val _events = MutableSharedFlow<UiEvent>(extraBufferCapacity = 8)
     val events = _events.asSharedFlow()
 
-    // --- Stan wewnętrzny (nie dla UI) ---
+    // --- Stan wewnętrzny ---
     private var internalPlanDays: MutableList<InternalDayPlan> = mutableListOf()
     private var currentPlanId: String? = null
     private var currentCreatedAtMillis: Long? = null
 
     // --- Helpers ---
-    private fun postMessage(msg: String) {
+    private fun postMessage(msg: UiText) {
         viewModelScope.launch { _events.emit(UiEvent.Message(msg)) }
     }
 
-    private fun postError(t: Throwable, fallback: String) {
-        viewModelScope.launch { _events.emit(UiEvent.Error(ErrorMapper.map(t, fallback))) }
+    // POPRAWIONA FUNKCJA postError
+    private fun postError(t: Throwable, fallback: UiText) {
+        // 1. Używamy ErrorMapper, żeby rozpoznać typ błędu (np. brak sieci, timeout).
+        // Przekazujemy pusty string jako fallback do mappera, bo i tak go nadpiszemy poniżej.
+        val mappedError = ErrorMapper.map(t, "")
+
+        // 2. Jeśli mapper zwrócił "Unknown" (nie rozpoznał typu),
+        // to wstawiamy nasz konkretny komunikat (fallback z argumentu) zamiast ogólnego tekstu.
+        val finalError = if (mappedError is AppError.Unknown) {
+            AppError.Unknown(fallback = fallback, tech = t.message)
+        } else {
+            // Jeśli to konkretny błąd (np. Network), zostawiamy go jak jest
+            mappedError
+        }
+
+        // 3. Emitujemy event z obiektem AppError
+        viewModelScope.launch {
+            _events.emit(UiEvent.Error(finalError))
+        }
     }
 
     fun clearUiMessage() {
@@ -139,7 +156,6 @@ class VacationViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                // Generujemy plan (Clean Architecture)
                 val newInternal = generatePlanUseCase.execute(
                     prefs = prefs,
                     dest = dest,
@@ -157,7 +173,7 @@ class VacationViewModel(
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false) }
-                postError(e, "Błąd generowania planu")
+                postError(e, UiText.StringResource(R.string.error_generating_plan))
             }
         }
     }
@@ -182,7 +198,7 @@ class VacationViewModel(
                 _uiState.update { it.copy(plan = uiPlan, isLoading = false) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false) }
-                postError(e, "Błąd regeneracji dnia")
+                postError(e, UiText.StringResource(R.string.error_regenerating_day))
             }
         }
     }
@@ -208,7 +224,7 @@ class VacationViewModel(
                 _uiState.update { it.copy(plan = uiPlan, isLoading = false) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false) }
-                postError(e, "Błąd losowania")
+                postError(e, UiText.StringResource(R.string.error_rolling_activity))
             }
         }
     }
@@ -220,15 +236,12 @@ class VacationViewModel(
         _uiState.update { it.copy(plan = uiPlan) }
     }
 
-    // --- Weather Logic (Z użyciem nowych UseCase) ---
+    // --- Weather Logic ---
 
     fun loadWeatherForCity(cityQuery: String, force: Boolean = false) {
         viewModelScope.launch {
             _uiState.update { it.copy(weather = WeatherUiState(loading = true)) }
-
-            // ZMIANA: Użycie UseCase
             val result = loadWeatherUseCase.execute(cityQuery, force)
-
             _uiState.update { it.copy(weather = result) }
         }
     }
@@ -239,9 +252,7 @@ class VacationViewModel(
         val dest = currentState.chosenDestination ?: return
 
         viewModelScope.launch {
-            // ZMIANA: Użycie UseCase
             val result = loadForecastForTripUseCase.execute(prefs, dest, force)
-
             _uiState.update {
                 it.copy(
                     dayWeatherByDate = result.byDate,
@@ -255,7 +266,6 @@ class VacationViewModel(
         val prefs = _uiState.value.preferences ?: return false
         val startMillis = prefs.startDateMillis ?: return false
 
-        // ZMIANA: Użycie DateUtils
         val startNorm = DateUtils.normalizeToLocalMidnight(startMillis)
         val dayMillis = DateUtils.dayMillisForIndex(startNorm, dayIndex)
 
@@ -266,7 +276,10 @@ class VacationViewModel(
 
     fun savePlanLocally(uid: String? = null) {
         val realUid = uid ?: FirebaseAuth.getInstance().currentUser?.uid
-        if (realUid.isNullOrBlank()) { postMessage("Brak usera"); return }
+        if (realUid.isNullOrBlank()) {
+            postMessage(UiText.StringResource(R.string.msg_no_user))
+            return
+        }
 
         val currentState = _uiState.value
         val prefs = currentState.preferences ?: return
@@ -279,9 +292,9 @@ class VacationViewModel(
                 val res = savePlanLocallyUseCase.execute(realUid, prefs, dest, internalPlanDays, currentPlanId, currentCreatedAtMillis)
                 currentPlanId = res.planId
                 currentCreatedAtMillis = res.createdAtMillis
-                postMessage("Zapisano.")
+                postMessage(UiText.StringResource(R.string.msg_saved))
             } catch (e: Exception) {
-                postError(e, "Błąd zapisu")
+                postError(e, UiText.StringResource(R.string.error_saving))
             } finally {
                 _uiState.update { it.copy(isLoading = false) }
             }
@@ -294,11 +307,14 @@ class VacationViewModel(
             _uiState.update { it.copy(isLoading = true) }
             try {
                 val stored = withContext(Dispatchers.IO) { loadLatestLocalPlanUseCase.execute(realUid) }
-                if (stored == null) { postMessage("Brak planów"); return@launch }
+                if (stored == null) {
+                    postMessage(UiText.StringResource(R.string.msg_no_plans))
+                    return@launch
+                }
                 applyStoredPlan(stored)
-                postMessage("Wczytano.")
+                postMessage(UiText.StringResource(R.string.msg_loaded))
             } catch (e: Exception) {
-                postError(e, "Błąd wczytania")
+                postError(e, UiText.StringResource(R.string.error_loading))
             } finally {
                 _uiState.update { it.copy(isLoading = false) }
             }
@@ -330,7 +346,7 @@ class VacationViewModel(
         val tripStart = currentState.preferences?.startDateMillis
 
         if (destName.isNullOrBlank() || internalPlanDays.isEmpty()) {
-            postMessage("Brak planu.")
+            postMessage(UiText.StringResource(R.string.msg_no_plan_to_export))
             return
         }
         viewModelScope.launch {
@@ -375,11 +391,11 @@ class VacationViewModel(
         }
     }
 
-    fun getTransportScenarioLabel(): String {
+    fun getTransportScenarioLabel(): UiText {
         return when (_uiState.value.lastTransportPass) {
-            TransportPass.T_MAX -> "Tmax (konserwatywnie)"
-            TransportPass.T_AVG -> "Tavg (średnio)"
-            TransportPass.T_MIN -> "Tmin (optymistycznie)"
+            TransportPass.T_MAX -> UiText.StringResource(R.string.transport_label_max)
+            TransportPass.T_AVG -> UiText.StringResource(R.string.transport_label_avg)
+            TransportPass.T_MIN -> UiText.StringResource(R.string.transport_label_min)
         }
     }
 

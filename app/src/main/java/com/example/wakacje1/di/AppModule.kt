@@ -15,6 +15,7 @@ import com.example.wakacje1.domain.usecase.RegenerateDayUseCase
 import com.example.wakacje1.domain.usecase.RollNewActivityUseCase
 import com.example.wakacje1.domain.usecase.SavePlanLocallyUseCase
 import com.example.wakacje1.domain.usecase.SuggestDestinationsUseCase
+import com.example.wakacje1.domain.usecase.ValidatePasswordUseCase // <--- NOWY IMPORT
 import com.example.wakacje1.presentation.viewmodel.AuthViewModel
 import com.example.wakacje1.presentation.viewmodel.MyPlansViewModel
 import com.example.wakacje1.presentation.viewmodel.VacationViewModel
@@ -25,36 +26,47 @@ import org.koin.dsl.module
 
 val appModule = module {
 
-    // 1. ZEWNĘTRZNE
+    // --- 1. ZEWNĘTRZNE (Firebase) ---
     single { FirebaseAuth.getInstance() }
 
-    // 2. REPOZYTORIA
+    // --- 2. REPOZYTORIA (Singletons) ---
     single { DestinationRepository(androidContext()) }
     single { ActivitiesRepository(androidContext()) }
     single { AuthRepository(firebaseAuth = get()) }
     single { PlansLocalRepository(context = androidContext()) }
     single { PlansCloudRepository() }
-    single { WeatherRepository() } // Klasa repozytorium
+    single { WeatherRepository() }
 
-    // 3. LOGIKA BIZNESOWA (UseCases)
+    // --- 3. DOMENA / USE CASES (Factories) ---
     factory { PlanGenerator() }
 
+    // Logika biznesowa planu
     factory { GeneratePlanUseCase(activitiesRepository = get(), planGenerator = get()) }
     factory { RegenerateDayUseCase(activitiesRepository = get(), planGenerator = get()) }
     factory { RollNewActivityUseCase(activitiesRepository = get(), planGenerator = get()) }
 
-    // UseCase do prognozy (długoterminowej)
+    // Logika pogodowa
+    factory { LoadWeatherUseCase(weatherRepository = get()) }
     factory { LoadForecastForTripUseCase(weatherRepository = get()) }
 
-    // NOWOŚĆ: UseCase do pogody bieżącej
-    factory { LoadWeatherUseCase(weatherRepository = get()) }
-
+    // Inne
     factory { SuggestDestinationsUseCase(destinationRepository = get()) }
     factory { SavePlanLocallyUseCase(localRepository = get(), cloudRepository = get()) }
     factory { LoadLatestLocalPlanUseCase(localRepository = get()) }
 
-    // 4. VIEW MODELS
-    viewModel { AuthViewModel(authRepository = get()) }
+    // NOWOŚĆ: Walidacja hasła
+    factory { ValidatePasswordUseCase() }
+
+    // --- 4. VIEW MODELS ---
+
+    // AuthViewModel z wstrzykniętym repozytorium ORAZ walidatorem hasła
+    viewModel {
+        AuthViewModel(
+            authRepository = get(),
+            validatePasswordUseCase = get()
+        )
+    }
+
     viewModel { MyPlansViewModel(localRepository = get(), cloudRepository = get()) }
 
     viewModel {
@@ -67,7 +79,6 @@ val appModule = module {
             regenerateDayUseCase = get(),
             rollNewActivityUseCase = get(),
             planGenerator = get(),
-            // ZAMIANA: Zamiast weatherRepository -> LoadWeatherUseCase
             loadWeatherUseCase = get(),
             loadForecastForTripUseCase = get()
         )

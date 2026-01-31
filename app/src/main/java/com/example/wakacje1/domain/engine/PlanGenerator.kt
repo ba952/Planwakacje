@@ -341,8 +341,6 @@ class PlanGenerator {
 
     private fun isUnique(slot: SlotPlan): Boolean = slot.baseActivityId != null && slot.baseActivityId!!.startsWith("u_")
 
-    // jeśli nie masz prefiksu u_ w id unikalnych, to użyj tego zamiast powyższego:
-    // private fun isUnique(slot: SlotPlan): Boolean = false
 
     private fun countUniqueInDayExcludingSlot(day: InternalDayPlan, exclude: DaySlot): Int {
         fun isUniqueId(id: String?): Boolean = !id.isNullOrBlank() && id.startsWith("u_")

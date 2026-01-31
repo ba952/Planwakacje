@@ -32,11 +32,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource // <--- WAŻNE
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.wakacje1.R // <--- WAŻNE
+import com.example.wakacje1.R
 import com.example.wakacje1.domain.model.Destination
 import com.example.wakacje1.presentation.viewmodel.VacationViewModel
 import kotlin.math.roundToInt
@@ -51,6 +52,7 @@ fun DestinationSelectionScreen(
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     val prefs = uiState.preferences
     val suggestions = uiState.destinationSuggestions
@@ -125,8 +127,11 @@ fun DestinationSelectionScreen(
                     return@Centered
                 }
 
+                // --- POPRAWKA 1: Wyciągamy string z UiText ---
+                val transportLabel = viewModel.getTransportScenarioLabel().asString()
+
                 Text(
-                    text = stringResource(R.string.msg_suggestions_header, 3, viewModel.getTransportScenarioLabel()),
+                    text = stringResource(R.string.msg_suggestions_header, 3, transportLabel), // Używamy transportLabel
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -143,6 +148,8 @@ fun DestinationSelectionScreen(
                             selected = selectedIndex.intValue == idx,
                             prefsBudget = prefs.budget,
                             prefsDays = prefs.days,
+                            // Przekazujemy już odpakowany String w dół
+                            transportLabelString = transportLabel,
                             onSelect = {
                                 selectedIndex.intValue = idx
                                 localError.value = null
@@ -165,9 +172,7 @@ fun DestinationSelectionScreen(
                             val sel = selectedIndex.intValue
                             val d = suggestions.getOrNull(sel)
                             if (d == null) {
-                                // Uwaga: Tu nadal jest hardcoded string w zmiennej, bo to lokalny stan composable.
-                                // Można go przenieść do zasobów: context.getString(R.string.error_select_place)
-                                localError.value = "Najpierw wybierz miejsce." // To zostawiłem dla uproszczenia
+                                localError.value = context.getString(R.string.error_select_place)
                                 return@ElevatedButton
                             }
 
@@ -175,17 +180,31 @@ fun DestinationSelectionScreen(
                             val transportUsed = viewModel.getTransportCostUsedForSuggestions(d)
                             val remaining = prefs.budget - transportUsed
 
+                            // Pobieramy etykietę transportu jako String do komunikatów błędów
+                            val tLabel = viewModel.getTransportScenarioLabel().asString(context)
+
                             if (remaining <= 0) {
-                                // Tu budujemy skomplikowany string, też zostawiłem na później
-                                localError.value =
-                                    "Budżet za niski po doliczeniu transportu (${viewModel.getTransportScenarioLabel()}): użyte $transportUsed zł RT (zakres ~${d.transportCostRoundTripPlnMin}–${d.transportCostRoundTripPlnMax} zł)."
+                                localError.value = context.getString(
+                                    R.string.error_budget_too_low_transport,
+                                    tLabel, // Używamy Stringa
+                                    transportUsed,
+                                    d.transportCostRoundTripPlnMin,
+                                    d.transportCostRoundTripPlnMax
+                                )
                                 return@ElevatedButton
                             }
 
                             val budgetPerDay = (remaining.toDouble() / days).roundToInt()
                             if (budgetPerDay < d.minBudgetPerDay) {
-                                localError.value =
-                                    "Budżet za niski po transporcie (${viewModel.getTransportScenarioLabel()}): ok. $budgetPerDay zł/dzień (RT użyte: $transportUsed zł; zakres ~${d.transportCostRoundTripPlnMin}–${d.transportCostRoundTripPlnMax} zł), a minimum to ${d.minBudgetPerDay} zł/dzień."
+                                localError.value = context.getString(
+                                    R.string.error_budget_too_low_daily,
+                                    tLabel, // Używamy Stringa
+                                    budgetPerDay,
+                                    transportUsed,
+                                    d.transportCostRoundTripPlnMin,
+                                    d.transportCostRoundTripPlnMax,
+                                    d.minBudgetPerDay
+                                )
                                 return@ElevatedButton
                             }
 
@@ -220,6 +239,7 @@ private fun DestinationCard(
     selected: Boolean,
     prefsBudget: Int,
     prefsDays: Int,
+    transportLabelString: String, // <--- NOWY PARAMETR
     onSelect: () -> Unit
 ) {
     val days = prefsDays.coerceAtLeast(1)
@@ -269,8 +289,15 @@ private fun DestinationCard(
             )
             Spacer(Modifier.height(6.dp))
 
+            // --- POPRAWKA 2: Używamy przekazanego Stringa ---
             Text(
-                text = stringResource(R.string.msg_transport_info, destination.transportCostRoundTripPlnMin, destination.transportCostRoundTripPlnMax, transportUsed, viewModel.getTransportScenarioLabel()),
+                text = stringResource(
+                    R.string.msg_transport_info,
+                    destination.transportCostRoundTripPlnMin,
+                    destination.transportCostRoundTripPlnMax,
+                    transportUsed,
+                    transportLabelString // <-- Tutaj wstawiamy tekst, nie obiekt UiText
+                ),
                 style = MaterialTheme.typography.bodySmall
             )
             Text(
@@ -318,7 +345,6 @@ private fun WeatherCard(
                 temp != null || !desc.isNullOrBlank() -> {
                     val t = temp?.let { "${it.roundToInt()}°C" } ?: ""
                     val d = desc ?: ""
-                    // Używamy stringResource z argumentami
                     Text(stringResource(R.string.msg_weather_now, label, d, t))
                 }
                 else -> Text(stringResource(R.string.msg_select_place_first))

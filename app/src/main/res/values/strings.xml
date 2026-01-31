@@ -2,14 +2,13 @@
     <string name="app_name">Wakacje1</string>
 
     <string name="btn_back">Wstecz</string>
-    <string name="btn_return">Wróć</string>
+
     <string name="btn_my_plans">Moje plany</string>
     <string name="btn_save">Zapisz</string>
     <string name="btn_load">Wczytaj</string>
     <string name="btn_pdf">PDF</string>
     <string name="btn_generate">Wygeneruj plan</string>
-    <string name="btn_show_plan">Pokaż plan</string>
-    <string name="btn_refresh_weather">Odśwież pogodę</string>
+
     <string name="btn_cancel">Anuluj</string>
     <string name="btn_roll">Losuj</string>
     <string name="btn_roll_day">Losuj cały dzień</string>
@@ -20,8 +19,7 @@
     <string name="btn_collapse">Zwiń</string>
 
     <string name="title_plan_screen">Plan wyjazdu</string>
-    <string name="title_destination_selection">Propozycje wyjazdu</string>
-    <string name="title_weather">Pogoda</string>
+
     <string name="title_edit_mode">Tryb edycji</string>
     <string name="label_edit_mode_desc_on">Możesz losować i edytować sloty.</string>
     <string name="label_edit_mode_desc_off">Widok tylko do podglądu.</string>
@@ -37,25 +35,148 @@
 
     <string name="msg_processing">Przetwarzanie…</string>
     <string name="msg_no_plan">Brak planu. Jeśli dopiero wybrałeś miejsce, poczekaj chwilę albo wygeneruj ponownie.</string>
-    <string name="msg_select_destination_instruction">Wybierz jedno z proponowanych miejsc. Potem wygenerujemy plan dzienny.</string>
-    <string name="msg_no_preferences">Brak preferencji — wróć i uzupełnij formularz.</string>
-    <string name="msg_no_suggestions">Brak propozycji dla tych preferencji (spróbuj zmienić budżet/region/klimat).</string>
-    <string name="msg_weather_loading">Ładowanie pogody dla: %1$s…</string>
-    <string name="msg_select_place_first">Wybierz miejsce, aby zobaczyć pogodę.</string>
-    <string name="msg_weather_now">Miejsce: %1$s\nTeraz: %2$s %3$s</string>
-    <string name="msg_transport_info">Transport (RT): ~%1$d–%2$d zł • użyte: %3$d zł (%4$s)</string>
-    <string name="msg_budget_info">Budżet po transporcie: ~%1$d zł/dzień • Min: %2$d zł/dzień</string>
-    <string name="msg_tags">Tagi: %1$s</string>
+
     <string name="msg_forecast_format">Prognoza: %1$s%2$s%3$s</string>
     <string name="msg_bad_weather_note"> • słaba → indoor</string>
-    <string name="msg_suggestions_header">Propozycje (%1$d) • scenariusz transportu: %2$s</string>
 
-    <string name="error_prefix">Błąd: %1$s</string>
-    <string name="error_select_place">Najpierw wybierz miejsce.</string>
+
+
     <string name="error_budget_too_low">Budżet za niski po doliczeniu transportu.</string>
-    <string name="status_ok">OK</string>
-    <string name="status_budget_low">Za niski budżet</string>
-    <string name="labels_region_climate">Region: %1$s • Klimat: %2$s</string>
+
     <string name="msg_pdf_activity_error">PDF działa tylko z Activity context.</string>
+    <string name="auth_error_empty_credentials">Podaj email i hasło.</string>
+    <string name="auth_error_email_empty">Podaj email.</string>
+    <string name="auth_error_login_generic">Błąd logowania.</string>
+    <string name="auth_error_register_generic">Błąd rejestracji.</string>
+    <string name="auth_error_reset_generic">Błąd wysyłania resetu.</string>
+    <string name="auth_info_reset_sent">Wysłano link resetujący.</string>
+    <string name="login_title">Zaloguj się</string>
+    <string name="label_email">Email</string>
+    <string name="label_password">Hasło</string>
+    <string name="btn_login">Zaloguj</string>
+    <string name="btn_forgot_password">Zapomniałem hasła</string>
+    <string name="btn_go_to_register">Zarejestruj się</string>
+
+    <string name="dialog_reset_title">Reset hasła</string>
+    <string name="dialog_reset_msg">Podaj email, na który mamy wysłać link do resetu hasła.</string>
+    <string name="btn_send">Wyślij</string>
+    <string name="register_title">Rejestracja</string>
+    <string name="btn_register_action">Zarejestruj się</string>
+    <string name="password_requirements_hint">Hasło: min. 8 znaków, duża litera, cyfra, znak specjalny.</string>
+    <string name="btn_have_account_login">Masz już konto? Zaloguj się</string>
+    <string name="prefs_screen_title">Preferencje podróży</string>
+
+    <string name="prefs_intro_text">Ustaw parametry, a aplikacja zaproponuje 3 miejsca i wygeneruje plan dzień po dniu.</string>
+
+    <string name="section_budget">Budżet</string>
+    <string name="section_preferences">Preferencje</string>
+    <string name="section_dates">Daty wyjazdu</string>
+
+    <string name="label_total_budget">Budżet całkowity (PLN)</string>
+    <string name="hint_budget_digits">Wpisuj tylko cyfry. Aplikacja przelicza budżet na dzień.</string>
+    <string name="label_region">Region</string>
+    <string name="label_climate">Klimat</string>
+    <string name="label_travel_style">Typ podróży</string>
+
+    <string name="label_start_date_colon">Start: %s</string>
+    <string name="label_end_date_colon">Koniec: %s</string>
+    <string name="label_days_count_colon">Liczba dni: %s</string>
+
+    <string name="btn_pick_start_date">Wybierz datę startu</string>
+    <string name="btn_pick_end_date">Wybierz datę końca</string>
+    <string name="btn_next">Dalej</string>
+    <string name="btn_ok">OK</string>
+
+
+    <string name="error_invalid_budget">Podaj poprawny budżet (liczba > 0).</string>
+    <string name="error_dates_missing">Wybierz datę startu i końca.</string>
+    <string name="error_invalid_date_range">Niepoprawny zakres dat.</string>
+    <string name="error_too_long_trip">Za długi wyjazd jak na demo (max 21 dni).</string>
+    <string name="error_end_date_before_start">Data końca nie może być wcześniejsza niż start.</string>
+
+    <string name="region_europe_city">Europa - miasto</string>
+    <string name="region_mediterranean">Morze Śródziemne</string>
+    <string name="region_mountains">Góry</string>
+    <string name="region_asia">Azja</string>
+    <string name="region_america">Ameryka</string>
+
+    <string name="climate_warm">Ciepły</string>
+    <string name="climate_moderate">Umiarkowany</string>
+    <string name="climate_cool">Chłodny</string>
+
+    <string name="style_relax">Relaks</string>
+    <string name="style_sightseeing">Zwiedzanie</string>
+    <string name="style_active">Aktywny</string>
+    <string name="style_mix">Mix</string>
+    <string name="my_plans_title">Moje plany</string>
+    <string name="btn_logout">Wyloguj</string>
+    <string name="btn_new_plan">Nowy plan</string>
+    <string name="btn_delete">Usuń</string>
+
+    <string name="error_no_user">Brak zalogowanego użytkownika.</string>
+    <string name="error_cloud_prefix">Chmura:</string>
+    <string name="state_loading_plans">Ładowanie planów…</string>
+
+    <string name="empty_plans_title">Nie masz jeszcze zapisanych planów.</string>
+    <string name="empty_plans_body">Kliknij „Nowy plan”, aby wygenerować pierwszy.</string>
+    <string name="title_destination_selection">Wybierz cel podróży</string>
+    <string name="btn_return">Powrót</string>
+    <string name="btn_refresh_weather">Odśwież pogodę</string>
+    <string name="btn_show_plan">Pokaż plan</string>
+
+    <string name="msg_select_destination_instruction">Wybierz jedno z proponowanych miejsc.</string>
+    <string name="msg_no_preferences">Brak preferencji. Wróć i ustaw.</string>
+    <string name="msg_no_suggestions">Brak propozycji spełniających kryteria.</string>
+
+    <string name="msg_suggestions_header">Proponowane %1$d miejsca (transport: %2$s):</string>
+
+    <string name="title_weather">Pogoda (teraz)</string>
+    <string name="msg_weather_loading">Ładowanie pogody dla %s...</string>
+    <string name="error_prefix">Błąd: %s</string>
+    <string name="msg_weather_now">%1$s: %2$s, %3$s</string>
+    <string name="msg_select_place_first">Wybierz miejsce z listy, aby zobaczyć pogodę.</string>
+
+    <string name="status_ok">BUDŻET OK</string>
+    <string name="status_budget_low">ZA MAŁO ŚRODKÓW</string>
+
+    <string name="labels_region_climate">Region: %1$s • Klimat: %2$s</string>
+
+    <string name="msg_transport_info">Transport (zakres ~%1$d–%2$d zł), liczymy: %3$d zł (%4$s)</string>
+
+    <string name="msg_budget_info">Budżet na dzień: ok. %1$d zł (min. wymagane %2$d zł)</string>
+    <string name="msg_tags">Tagi: %s</string>
+
+    <string name="error_select_place">Najpierw wybierz miejsce.</string>
+
+    <string name="error_budget_too_low_transport">Budżet za niski po doliczeniu transportu (%1$s): użyte %2$d zł RT (zakres ~%3$d–%4$d zł).</string>
+
+    <string name="error_budget_too_low_daily">Budżet za niski po transporcie (%1$s): ok. %2$d zł/dzień (RT użyte: %3$d zł; zakres ~%4$d–%5$d zł), a minimum to %6$d zł/dzień.</string>
+
+    <string name="plan_date_range">%1$s → %2$s</string>
+    <string name="error_network">Brak połączenia z internetem lub problem z serwerem.</string>
+    <string name="error_timeout">Operacja trwa zbyt długo. Spróbuj ponownie.</string>
+    <string name="error_permission">Brak uprawnień do wykonania tej operacji.</string>
+    <string name="error_auth">Problem z logowaniem. Zaloguj się ponownie.</string>
+    <string name="error_not_found">Nie znaleziono danych.</string>
+    <string name="error_storage">Błąd zapisu/odczytu danych na urządzeniu.</string>
+    <string name="error_unknown">Coś poszło nie tak.</string>
+    <string name="msg_no_user">Brak zalogowanego użytkownika.</string>
+    <string name="msg_saved">Zapisano pomyślnie.</string>
+    <string name="msg_no_plans">Brak zapisanych planów.</string>
+    <string name="msg_loaded">Plan wczytany.</string>
+    <string name="msg_no_plan_to_export">Brak planu do wyeksportowania.</string>
+
+    <string name="error_generating_plan">Błąd generowania planu.</string>
+    <string name="error_regenerating_day">Błąd regeneracji dnia.</string>
+    <string name="error_rolling_activity">Błąd losowania atrakcji.</string>
+    <string name="error_saving">Błąd zapisu planu.</string>
+    <string name="error_loading">Błąd wczytywania planu.</string>
+
+    <string name="transport_label_max">Tmax (konserwatywnie)</string>
+    <string name="transport_label_avg">Tavg (średnio)</string>
+    <string name="transport_label_min">Tmin (optymistycznie)</string>
+
+    <string name="error_no_activity">Błąd: Brak dostępu do Activity.</string>
+
 
 </resources>

@@ -1,46 +1,53 @@
 package com.example.wakacje1.presentation.common
 
+import com.example.wakacje1.R
+
 sealed class AppError(
-    val userMessage: String,
+    val uiText: UiText, // To pole przechowuje tekst dla UI
     val technicalMessage: String? = null
 ) {
     class Network(tech: String? = null) : AppError(
-        userMessage = "Brak połączenia z internetem lub problem z serwerem.",
+        uiText = UiText.StringResource(R.string.error_network),
         technicalMessage = tech
     )
 
     class Timeout(tech: String? = null) : AppError(
-        userMessage = "Operacja trwa zbyt długo. Spróbuj ponownie.",
+        uiText = UiText.StringResource(R.string.error_timeout),
         technicalMessage = tech
     )
 
     class Permission(tech: String? = null) : AppError(
-        userMessage = "Brak uprawnień do wykonania tej operacji.",
+        uiText = UiText.StringResource(R.string.error_permission),
         technicalMessage = tech
     )
 
     class Auth(tech: String? = null) : AppError(
-        userMessage = "Problem z logowaniem. Zaloguj się ponownie.",
+        uiText = UiText.StringResource(R.string.error_auth),
         technicalMessage = tech
     )
 
     class NotFound(tech: String? = null) : AppError(
-        userMessage = "Nie znaleziono danych.",
+        uiText = UiText.StringResource(R.string.error_not_found),
         technicalMessage = tech
     )
 
+    // Validation przyjmuje String w konstruktorze, ale zamienia go na UiText.DynamicString
     class Validation(message: String, tech: String? = null) : AppError(
-        userMessage = message,
+        uiText = UiText.DynamicString(message),
         technicalMessage = tech
     )
 
     class Storage(tech: String? = null) : AppError(
-        userMessage = "Błąd zapisu/odczytu danych na urządzeniu.",
+        uiText = UiText.StringResource(R.string.error_storage),
         technicalMessage = tech
     )
 
-    class Unknown(fallback: String = "Coś poszło nie tak.", tech: String? = null) : AppError(
-        userMessage = fallback,
+    // POPRAWKA TUTAJ: Konstruktor przyjmuje UiText, a nie String!
+    class Unknown(
+        fallback: UiText = UiText.StringResource(R.string.error_unknown),
+        tech: String? = null
+    ) : AppError(
+        uiText = fallback,
         technicalMessage = tech
     )
 }

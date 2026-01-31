@@ -94,7 +94,7 @@ fun NavGraph(
                         popUpTo(Dest.Register.route) { inclusive = true }
                     }
                 },
-                onBackToLogin = { navController.popBackStack() }
+                onGoLogin = { navController.popBackStack() }
             )
         }
 

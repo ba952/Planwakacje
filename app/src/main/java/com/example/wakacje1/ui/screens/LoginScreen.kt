@@ -26,9 +26,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource // <--- WAŻNE
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.example.wakacje1.R // <--- Twój plik R
 import com.example.wakacje1.presentation.viewmodel.AuthViewModel
 
 @Composable
@@ -48,13 +50,14 @@ fun LoginScreen(
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Zaloguj się", style = MaterialTheme.typography.headlineMedium)
+            // String Resource
+            Text(stringResource(R.string.login_title), style = MaterialTheme.typography.headlineMedium)
             Spacer(Modifier.height(16.dp))
 
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
-                label = { Text("Email") },
+                label = { Text(stringResource(R.string.label_email)) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
@@ -63,7 +66,7 @@ fun LoginScreen(
             OutlinedTextField(
                 value = pass,
                 onValueChange = { pass = it },
-                label = { Text("Hasło") },
+                label = { Text(stringResource(R.string.label_password)) },
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 singleLine = true,
@@ -72,14 +75,23 @@ fun LoginScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            // komunikaty
-            authVm.error?.let {
+            // --- OBSŁUGA BŁĘDÓW (UiText) ---
+            // Teraz 'it' to UiText, więc musimy zawołać .asString()
+            authVm.error?.let { uiText ->
                 Spacer(Modifier.height(6.dp))
-                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    text = uiText.asString(), // <--- KLUCZOWA ZMIANA
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium
+                )
             }
-            authVm.info?.let {
+            authVm.info?.let { uiText ->
                 Spacer(Modifier.height(6.dp))
-                Text(it, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    text = uiText.asString(), // <--- KLUCZOWA ZMIANA
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
 
             Spacer(Modifier.height(14.dp))
@@ -89,14 +101,14 @@ fun LoginScreen(
                 enabled = !authVm.loading,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Zaloguj")
+                Text(stringResource(R.string.btn_login))
             }
 
             Spacer(Modifier.height(10.dp))
 
             // Link reset
             Text(
-                text = "Zapomniałem hasła",
+                text = stringResource(R.string.btn_forgot_password),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
@@ -115,7 +127,7 @@ fun LoginScreen(
                 enabled = !authVm.loading,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Zarejestruj się")
+                Text(stringResource(R.string.btn_go_to_register))
             }
         }
 
@@ -146,14 +158,14 @@ private fun ResetPasswordDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Reset hasła") },
+        title = { Text(stringResource(R.string.dialog_reset_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Podaj email, na który mamy wysłać link do resetu hasła.")
+                Text(stringResource(R.string.dialog_reset_msg))
                 OutlinedTextField(
                     value = mail,
                     onValueChange = { mail = it },
-                    label = { Text("Email") },
+                    label = { Text(stringResource(R.string.label_email)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -161,10 +173,10 @@ private fun ResetPasswordDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSend(mail) }) { Text("Wyślij") }
+            TextButton(onClick = { onSend(mail) }) { Text(stringResource(R.string.btn_send)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Anuluj") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.btn_cancel)) }
         }
     )
 }

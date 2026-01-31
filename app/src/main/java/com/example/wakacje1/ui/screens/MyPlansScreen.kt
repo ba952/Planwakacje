@@ -31,8 +31,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.wakacje1.R
 import com.example.wakacje1.presentation.viewmodel.AuthViewModel
 import com.example.wakacje1.presentation.viewmodel.MyPlansViewModel
 import com.example.wakacje1.presentation.viewmodel.VacationViewModel
@@ -57,7 +59,6 @@ fun MyPlansScreen(
         if (uid != null) plansVm.start(uid)
     }
 
-
     DisposableEffect(Unit) {
         onDispose { plansVm.stop() }
     }
@@ -67,6 +68,9 @@ fun MyPlansScreen(
     val rows = plansVm.localPlans
 
     val snack = remember { SnackbarHostState() }
+
+    // Pobieramy string "Chmura: " tutaj, aby użyć go w LaunchedEffect
+    val cloudErrorPrefix = stringResource(R.string.error_cloud_prefix)
 
     // lokalne błędy -> snackbar
     LaunchedEffect(localUi.error) {
@@ -78,14 +82,15 @@ fun MyPlansScreen(
     // chmura/sync błędy -> snackbar
     LaunchedEffect(cloudUi.error) {
         val msg = cloudUi.error ?: return@LaunchedEffect
-        snack.showSnackbar("Chmura: $msg")
+        // Łączymy prefiks z wiadomością
+        snack.showSnackbar("$cloudErrorPrefix $msg")
         plansVm.clearCloudError()
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Moje plany") },
+                title = { Text(stringResource(R.string.my_plans_title)) },
                 actions = {
                     TextButton(
                         onClick = {
@@ -93,14 +98,14 @@ fun MyPlansScreen(
                             authVm.signOut()
                             onLoggedOut()
                         }
-                    ) { Text("Wyloguj") }
+                    ) { Text(stringResource(R.string.btn_logout)) }
                 }
             )
         },
         snackbarHost = { SnackbarHost(hostState = snack) },
         floatingActionButton = {
             ExtendedFloatingActionButton(onClick = onNewPlan) {
-                Text("Nowy plan")
+                Text(stringResource(R.string.btn_new_plan))
             }
         }
     ) { padding ->
@@ -113,12 +118,15 @@ fun MyPlansScreen(
         ) {
             when {
                 uid == null -> {
-                    Text("Brak zalogowanego użytkownika.", color = MaterialTheme.colorScheme.error)
+                    Text(
+                        text = stringResource(R.string.error_no_user),
+                        color = MaterialTheme.colorScheme.error
+                    )
                     return@Centered
                 }
 
                 localUi.loading -> {
-                    Text("Ładowanie planów…")
+                    Text(stringResource(R.string.state_loading_plans))
                     return@Centered
                 }
             }
@@ -128,8 +136,11 @@ fun MyPlansScreen(
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Nie masz jeszcze zapisanych planów.", style = MaterialTheme.typography.bodyLarge)
-                    Text("Kliknij „Nowy plan”, aby wygenerować pierwszy.")
+                    Text(
+                        text = stringResource(R.string.empty_plans_title),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text(stringResource(R.string.empty_plans_body))
                 }
                 return@Centered
             }
@@ -162,8 +173,12 @@ fun MyPlansScreen(
                             Column(Modifier.weight(1f)) {
                                 Text(row.title, fontWeight = FontWeight.Bold)
                                 Spacer(Modifier.height(2.dp))
+
+                                // Formatowanie daty przy użyciu zasobu
+                                val s = row.startDateMillis?.let { formatDate(it) } ?: "—"
+                                val e = row.endDateMillis?.let { formatDate(it) } ?: "—"
                                 Text(
-                                    text = formatRange(row.startDateMillis, row.endDateMillis),
+                                    text = stringResource(R.string.plan_date_range, s, e),
                                     style = MaterialTheme.typography.bodySmall
                                 )
                             }
@@ -173,7 +188,7 @@ fun MyPlansScreen(
                                     val safeUid = uid ?: return@TextButton
                                     plansVm.deletePlan(safeUid, row.id)
                                 }
-                            ) { Text("Usuń") }
+                            ) { Text(stringResource(R.string.btn_delete)) }
                         }
                     }
                 }
@@ -198,12 +213,7 @@ private fun Centered(
     }
 }
 
-private fun formatRange(start: Long?, end: Long?): String {
-    val s = start?.let { formatDate(it) } ?: "—"
-    val e = end?.let { formatDate(it) } ?: "—"
-    return "$s → $e"
-}
-
+// Usunąłem formatRange, bo teraz robimy to w UI przez stringResource
 private fun formatDate(millis: Long): String {
     val cal = Calendar.getInstance()
     cal.timeInMillis = millis

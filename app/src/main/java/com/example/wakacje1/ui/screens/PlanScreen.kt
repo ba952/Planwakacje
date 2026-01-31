@@ -45,11 +45,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource // <--- WAŻNY IMPORT
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.wakacje1.R // <--- WAŻNY IMPORT (Twoje zasoby)
+import com.example.wakacje1.R
 import com.example.wakacje1.domain.model.DayPlan
 import com.example.wakacje1.domain.model.DaySlot
 import com.example.wakacje1.domain.usecase.WebViewPdfExporter
@@ -80,11 +80,22 @@ fun PlanScreen(
 
     val snack = remember { SnackbarHostState() }
 
+
+    val errorNoActivity = stringResource(R.string.error_no_activity)
+
     LaunchedEffect(Unit) {
         viewModel.events.collect { ev ->
             when (ev) {
-                is UiEvent.Message -> snack.showSnackbar(ev.msg)
-                is UiEvent.Error -> snack.showSnackbar(ev.error.userMessage)
+                // Message ma uiText bezpośrednio
+                is UiEvent.Message -> {
+                    snack.showSnackbar(ev.uiText.asString(context))
+                }
+                // POPRAWKA TUTAJ:
+                // Error ma w sobie obiekt 'error' (typu AppError),
+                // a dopiero on ma 'uiText'.
+                is UiEvent.Error -> {
+                    snack.showSnackbar(ev.error.uiText.asString(context))
+                }
                 is UiEvent.ExportPdf -> {
                     if (activity != null) {
                         val msg = WebViewPdfExporter.export(
@@ -95,8 +106,7 @@ fun PlanScreen(
                         )
                         snack.showSnackbar(msg)
                     } else {
-                        // Tutaj hardcoded string "Błąd...", można też wynieść
-                        snack.showSnackbar("Błąd: Brak dostępu do Activity.")
+                        snack.showSnackbar(errorNoActivity)
                     }
                 }
             }
@@ -188,13 +198,8 @@ fun PlanScreen(
 
                                 Button(
                                     onClick = {
-                                        val a = activity
-                                        if (a == null) {
-                                            scope.launch {
-                                                // Używamy stringResource z kontekstu composable, ale tu jesteśmy w scope.
-                                                // Lepiej pobrać string przed launch.
-                                            }
-                                            // Małe uproszczenie, zostawmy na chwilę ten tekst
+                                        if (activity == null) {
+                                            scope.launch { snack.showSnackbar(errorNoActivity) }
                                             return@Button
                                         }
                                         viewModel.exportCurrentPlanToPdf()

@@ -18,7 +18,8 @@ object ErrorMapper {
                 FirebaseFirestoreException.Code.NOT_FOUND -> AppError.NotFound(tech)
                 FirebaseFirestoreException.Code.UNAVAILABLE -> AppError.Network(tech)
                 FirebaseFirestoreException.Code.DEADLINE_EXCEEDED -> AppError.Timeout(tech)
-                else -> AppError.Unknown(fallback, tech)
+                // Teraz to zadziała, bo Unknown przyjmuje UiText
+                else -> AppError.Unknown(UiText.DynamicString(fallback), tech)
             }
 
             is FirebaseAuthException -> AppError.Auth(tech)
@@ -32,10 +33,12 @@ object ErrorMapper {
 
             is IOException -> AppError.Storage(tech)
 
-            else -> AppError.Unknown(fallback, tech)
+            // Tutaj też zadziała
+            else -> AppError.Unknown(UiText.DynamicString(fallback), tech)
         }
     }
 
-    fun userMessage(t: Throwable, fallback: String = "Coś poszło nie tak."): String =
-        map(t, fallback).userMessage
+    // Funkcja pomocnicza zwracająca UiText
+    fun mapToUiText(t: Throwable, fallback: String = "Coś poszło nie tak."): UiText =
+        map(t, fallback).uiText
 }

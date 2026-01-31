@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -38,8 +39,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
+import com.example.wakacje1.R
 import com.example.wakacje1.domain.model.Preferences
 import com.example.wakacje1.presentation.viewmodel.VacationViewModel
 import java.util.Calendar
@@ -53,16 +57,27 @@ fun PreferencesScreen(
     onNext: () -> Unit,
     onGoMyPlans: () -> Unit
 ) {
-    // --- opcje ---
+    val context = LocalContext.current
+
+    // --- Opcje (pobierane z zasobów) ---
     val regionOptions = listOf(
-        "Europa - miasto",
-        "Morze Śródziemne",
-        "Góry",
-        "Azja",
-        "Ameryka"
+        stringResource(R.string.region_europe_city),
+        stringResource(R.string.region_mediterranean),
+        stringResource(R.string.region_mountains),
+        stringResource(R.string.region_asia),
+        stringResource(R.string.region_america)
     )
-    val climateOptions = listOf("Ciepły", "Umiarkowany", "Chłodny")
-    val styleOptions = listOf("Relaks", "Zwiedzanie", "Aktywny", "Mix")
+    val climateOptions = listOf(
+        stringResource(R.string.climate_warm),
+        stringResource(R.string.climate_moderate),
+        stringResource(R.string.climate_cool)
+    )
+    val styleOptions = listOf(
+        stringResource(R.string.style_relax),
+        stringResource(R.string.style_sightseeing),
+        stringResource(R.string.style_active),
+        stringResource(R.string.style_mix)
+    )
 
     // --- stan ---
     val budgetText = rememberSaveable { mutableStateOf("") }
@@ -77,7 +92,7 @@ fun PreferencesScreen(
     val showStartPicker = remember { mutableStateOf(false) }
     val showEndPicker = remember { mutableStateOf(false) }
 
-    // Snackbar errors (zamiast tekstu pod przyciskiem)
+    // Snackbar errors
     val snack = remember { SnackbarHostState() }
     val localError = remember { mutableStateOf<String?>(null) }
 
@@ -92,9 +107,9 @@ fun PreferencesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Preferencje podróży") },
+                title = { Text(stringResource(R.string.prefs_screen_title)) },
                 actions = {
-                    TextButton(onClick = onGoMyPlans) { Text("Moje plany") }
+                    TextButton(onClick = onGoMyPlans) { Text(stringResource(R.string.btn_my_plans)) }
                 }
             )
         },
@@ -106,7 +121,7 @@ fun PreferencesScreen(
                 .fillMaxSize()
                 .padding(padding),
             verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+            contentPadding = PaddingValues(
                 horizontal = 16.dp,
                 vertical = 12.dp
             )
@@ -120,7 +135,7 @@ fun PreferencesScreen(
                     ) {
                         Column(Modifier.padding(14.dp)) {
                             Text(
-                                text = "Ustaw parametry, a aplikacja zaproponuje 3 miejsca i wygeneruje plan dzień po dniu.",
+                                text = stringResource(R.string.prefs_intro_text),
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
@@ -130,16 +145,16 @@ fun PreferencesScreen(
 
             item {
                 Centered {
-                    SectionCard(title = "Budżet") {
+                    SectionCard(title = stringResource(R.string.section_budget)) {
                         OutlinedTextField(
                             value = budgetText.value,
                             onValueChange = { budgetText.value = it.filter(Char::isDigit) },
-                            label = { Text("Budżet całkowity (PLN)") },
+                            label = { Text(stringResource(R.string.label_total_budget)) },
                             modifier = Modifier.fillMaxWidth()
                         )
                         Spacer(Modifier.height(6.dp))
                         Text(
-                            text = "Wpisuj tylko cyfry. Aplikacja przelicza budżet na dzień.",
+                            text = stringResource(R.string.hint_budget_digits),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -148,23 +163,23 @@ fun PreferencesScreen(
 
             item {
                 Centered {
-                    SectionCard(title = "Preferencje") {
+                    SectionCard(title = stringResource(R.string.section_preferences)) {
                         SimpleDropdownField(
-                            label = "Region",
+                            label = stringResource(R.string.label_region),
                             value = regionOptions[regionIndex.intValue],
                             options = regionOptions,
                             onSelect = { regionIndex.intValue = it }
                         )
                         Spacer(Modifier.height(10.dp))
                         SimpleDropdownField(
-                            label = "Klimat",
+                            label = stringResource(R.string.label_climate),
                             value = climateOptions[climateIndex.intValue],
                             options = climateOptions,
                             onSelect = { climateIndex.intValue = it }
                         )
                         Spacer(Modifier.height(10.dp))
                         SimpleDropdownField(
-                            label = "Typ podróży",
+                            label = stringResource(R.string.label_travel_style),
                             value = styleOptions[styleIndex.intValue],
                             options = styleOptions,
                             onSelect = { styleIndex.intValue = it }
@@ -175,28 +190,35 @@ fun PreferencesScreen(
 
             item {
                 Centered {
-                    SectionCard(title = "Daty wyjazdu") {
+                    SectionCard(title = stringResource(R.string.section_dates)) {
                         OutlinedButton(
                             onClick = { showStartPicker.value = true },
                             modifier = Modifier.fillMaxWidth()
-                        ) { Text("Wybierz datę startu") }
+                        ) { Text(stringResource(R.string.btn_pick_start_date)) }
 
                         Spacer(Modifier.height(8.dp))
 
                         OutlinedButton(
                             onClick = { showEndPicker.value = true },
                             modifier = Modifier.fillMaxWidth()
-                        ) { Text("Wybierz datę końca") }
+                        ) { Text(stringResource(R.string.btn_pick_end_date)) }
 
                         Spacer(Modifier.height(10.dp))
                         Divider()
                         Spacer(Modifier.height(10.dp))
 
-                        Text("Start: ${startDateMillis.value?.let { formatDate(it) } ?: "—"}")
-                        Text("Koniec: ${endDateMillis.value?.let { formatDate(it) } ?: "—"}")
+                        // Używamy placeholderów w stringach: "Start: %s"
+                        val startStr = startDateMillis.value?.let { formatDate(it) } ?: "—"
+                        Text(stringResource(R.string.label_start_date_colon, startStr))
+
+                        val endStr = endDateMillis.value?.let { formatDate(it) } ?: "—"
+                        Text(stringResource(R.string.label_end_date_colon, endStr))
+
                         Spacer(Modifier.height(6.dp))
+
+                        val daysStr = computedDays?.toString() ?: "—"
                         Text(
-                            text = "Liczba dni: ${computedDays ?: "—"}",
+                            text = stringResource(R.string.label_days_count_colon, daysStr),
                             style = MaterialTheme.typography.titleSmall
                         )
                     }
@@ -207,6 +229,12 @@ fun PreferencesScreen(
             item {
                 Centered {
                     Column {
+                        // Pobieramy stringi błędów do zmiennych, żeby użyć ich w bloku onClick
+                        val errBudget = stringResource(R.string.error_invalid_budget)
+                        val errDates = stringResource(R.string.error_dates_missing)
+                        val errRange = stringResource(R.string.error_invalid_date_range)
+                        val errTooLong = stringResource(R.string.error_too_long_trip)
+
                         Button(
                             onClick = {
                                 val budget = budgetText.value.toIntOrNull()
@@ -216,19 +244,19 @@ fun PreferencesScreen(
 
                                 when {
                                     budget == null || budget <= 0 -> {
-                                        localError.value = "Podaj poprawny budżet (liczba > 0)."
+                                        localError.value = errBudget
                                         return@Button
                                     }
                                     start == null || end == null -> {
-                                        localError.value = "Wybierz datę startu i końca."
+                                        localError.value = errDates
                                         return@Button
                                     }
                                     days == null || days < 1 -> {
-                                        localError.value = "Niepoprawny zakres dat."
+                                        localError.value = errRange
                                         return@Button
                                     }
                                     days > 21 -> {
-                                        localError.value = "Za długi wyjazd jak na demo (max 21 dni)."
+                                        localError.value = errTooLong
                                         return@Button
                                     }
                                 }
@@ -250,7 +278,7 @@ fun PreferencesScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(48.dp)
-                        ) { Text("Dalej") }
+                        ) { Text(stringResource(R.string.btn_next)) }
 
                         Spacer(Modifier.height(8.dp))
                     }
@@ -261,7 +289,7 @@ fun PreferencesScreen(
 
     if (showStartPicker.value) {
         SingleDateDialog(
-            title = "Wybierz datę startu",
+            title = stringResource(R.string.btn_pick_start_date),
             onDismiss = { showStartPicker.value = false },
             onPick = { picked ->
                 startDateMillis.value = picked
@@ -273,13 +301,16 @@ fun PreferencesScreen(
     }
 
     if (showEndPicker.value) {
+        // Pobieramy error do zmiennej, bo jesteśmy w Composable
+        val errEndBeforeStart = stringResource(R.string.error_end_date_before_start)
+
         SingleDateDialog(
-            title = "Wybierz datę końca",
+            title = stringResource(R.string.btn_pick_end_date),
             onDismiss = { showEndPicker.value = false },
             onPick = { picked ->
                 val s = startDateMillis.value
                 if (s != null && picked < s) {
-                    localError.value = "Data końca nie może być wcześniejsza niż start."
+                    localError.value = errEndBeforeStart
                 } else {
                     endDateMillis.value = picked
                 }
@@ -377,10 +408,10 @@ private fun SingleDateDialog(
                     val v = state.selectedDateMillis
                     if (v != null) onPick(v) else onDismiss()
                 }
-            ) { Text("OK") }
+            ) { Text(stringResource(R.string.btn_ok)) }
         },
         dismissButton = {
-            OutlinedButton(onClick = onDismiss) { Text("Anuluj") }
+            OutlinedButton(onClick = onDismiss) { Text(stringResource(R.string.btn_cancel)) }
         }
     ) {
         Column(Modifier.padding(12.dp)) {
@@ -391,6 +422,7 @@ private fun SingleDateDialog(
     }
 }
 
+// Funkcje pomocnicze bez zmian
 private fun computeDays(start: Long?, end: Long?): Int? {
     if (start == null || end == null) return null
     val s = normalizeToLocalMidnight(start)
