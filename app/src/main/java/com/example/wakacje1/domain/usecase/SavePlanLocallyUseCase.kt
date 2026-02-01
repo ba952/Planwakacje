@@ -5,7 +5,6 @@ import com.example.wakacje1.data.remote.PlansCloudRepository
 import com.example.wakacje1.domain.model.Destination
 import com.example.wakacje1.domain.model.InternalDayPlan
 import com.example.wakacje1.domain.model.Preferences
-import com.example.wakacje1.domain.engine.PlanGenerator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -15,6 +14,11 @@ data class SaveResult(
     val cloudError: Throwable? = null
 )
 
+/**
+ * UseCase realizujący strategię "Local-First" (Offline-First).
+ * Gwarantuje natychmiastowy zapis lokalny, traktując synchronizację z chmurą
+ * jako operację drugorzędną (Best-Effort), która nie może zablokować UI w razie braku sieci.
+ */
 class SavePlanLocallyUseCase(
     private val localRepository: PlansLocalRepository,
     private val cloudRepository: PlansCloudRepository
@@ -28,10 +32,11 @@ class SavePlanLocallyUseCase(
         currentCreatedAtMillis: Long?
     ): SaveResult = withContext(Dispatchers.IO) {
 
-        // ZMIANA: Generujemy czas aktualizacji tutaj, raz dla obu źródeł
+        // Timestamp generowany raz dla spójności obu źródeł danych (Atomic-like logic)
         val now = System.currentTimeMillis()
 
-        // 1. Zapisz lokalnie
+        // 1. Zapis Lokalny (Source of Truth)
+        // To jest operacja krytyczna - jeśli się nie uda, rzucamy wyjątek wyżej.
         val stored = localRepository.upsertPlan(
             uid = uid,
             planId = currentPlanId,
@@ -39,14 +44,15 @@ class SavePlanLocallyUseCase(
             prefs = prefs,
             dest = dest,
             internalDays = internalDays,
-            updatedAtMillis = now // Przekazujemy 'now'
+            updatedAtMillis = now
         )
 
         var cloudErr: Throwable? = null
 
-        // 2. Wyślij do chmury
+        // 2. Synchronizacja z Chmurą (Fire-and-forget / Best-Effort)
+        // Błąd sieci (np. offline) jest łapany i zwracany jako ostrzeżenie,
+        // ale nie powoduje uznania całej operacji zapisu za nieudaną.
         try {
-            // Używamy zmiennej 'now' zamiast stored.updatedAtMillis
             cloudRepository.upsertPlan(uid, stored, now)
         } catch (e: Exception) {
             cloudErr = e

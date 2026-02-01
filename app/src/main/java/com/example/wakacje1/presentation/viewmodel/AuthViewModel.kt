@@ -13,33 +13,45 @@ import com.example.wakacje1.presentation.common.UiText
 import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.launch
 
+/**
+ * ViewModel odpowiedzialny za procesy uwierzytelniania (logowanie, rejestracja, reset hasła).
+ * Wykorzystuje [AuthRepository] do komunikacji z Firebase oraz [ValidatePasswordUseCase] do walidacji danych.
+ */
 class AuthViewModel(
     private val authRepository: AuthRepository,
     private val validatePasswordUseCase: ValidatePasswordUseCase // <--- Wstrzykujemy walidator
 ) : ViewModel() {
 
+    // Aktualnie zalogowany użytkownik pobrany z repozytorium
     var user: FirebaseUser? by mutableStateOf(authRepository.currentUser)
         private set
 
+    // Stan ładowania używany do wyświetlania progress barów w UI
     var loading by mutableStateOf(false)
         private set
 
-    // Zmiana: Teraz error to UiText, a nie String
+    // Komunikat błędu sformatowany jako UiText dla obsługi zasobów stringów
     var error: UiText? by mutableStateOf(null)
         private set
 
+    // Komunikat informacyjny (np. o wysłaniu maila resetującego)
     var info: UiText? by mutableStateOf(null)
         private set
 
+    // Czyści komunikaty błędów i informacji przed nową akcją
     fun clearMessages() {
         error = null
         info = null
     }
 
+    /**
+     * Logowanie użytkownika za pomocą emaila i hasła.
+     */
     fun signIn(email: String, pass: String, onSuccess: () -> Unit) {
         clearMessages()
+
+        // Walidacja pustych pól przed próbą połączenia z serwerem
         if (email.isBlank() || pass.isBlank()) {
-            // Używamy zasobu stringa
             error = UiText.StringResource(R.string.auth_error_empty_credentials)
             return
         }
@@ -52,7 +64,7 @@ class AuthViewModel(
                 user = authRepository.currentUser
                 onSuccess()
             } else {
-                // Błąd z Firebase jest dynamiczny, błąd ogólny z zasobów
+                // Obsługa błędu: dynamiczny komunikat z Firebase lub ogólny z zasobów
                 val msg = result.exceptionOrNull()?.message
                 error = if (msg != null) UiText.DynamicString(msg)
                 else UiText.StringResource(R.string.auth_error_login_generic)
@@ -60,17 +72,20 @@ class AuthViewModel(
         }
     }
 
+    /**
+     * Rejestracja nowego konta z wstępną walidacją siły hasła.
+     */
     fun register(email: String, pass: String, onSuccess: () -> Unit) {
         clearMessages()
 
-        // 1. Używamy Twojego UseCase do walidacji hasła
+        // 1. Walidacja hasła za pomocą UseCase przed wywołaniem API
         val validation = validatePasswordUseCase.execute(pass)
         if (validation is PasswordValidationResult.Error) {
             error = UiText.DynamicString(validation.message)
             return
         }
 
-        // 2. Jeśli hasło OK, próbujemy rejestracji
+        // 2. Próba rejestracji w Firebase
         loading = true
         viewModelScope.launch {
             val result = authRepository.register(email, pass)
@@ -86,6 +101,9 @@ class AuthViewModel(
         }
     }
 
+    /**
+     * Wysyła link do resetowania hasła na podany adres email.
+     */
     fun sendPasswordReset(email: String) {
         clearMessages()
         if (email.isBlank()) {
@@ -107,6 +125,9 @@ class AuthViewModel(
         }
     }
 
+    /**
+     * Wylogowanie użytkownika i wyczyszczenie lokalnego stanu.
+     */
     fun signOut() {
         authRepository.signOut()
         user = null

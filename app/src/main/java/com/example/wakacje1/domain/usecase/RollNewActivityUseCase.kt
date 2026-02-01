@@ -9,6 +9,10 @@ import com.example.wakacje1.domain.model.Preferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+/**
+ * UseCase realizujący wymianę pojedynczej aktywności (np. "Zmień tylko poranek").
+ * Pozwala na granularną edycję planu bez naruszania pozostałych slotów w danym dniu.
+ */
 class RollNewActivityUseCase(
     private val activitiesRepository: ActivitiesRepository,
     private val planGenerator: PlanGenerator
@@ -19,13 +23,14 @@ class RollNewActivityUseCase(
         prefs: Preferences,
         dest: Destination,
         internal: MutableList<InternalDayPlan>,
-        // NAPRAWA BŁĘDU: Jawnie określamy typ funkcji, żeby Kotlin wiedział co to jest
         isBadWeatherForDayIndex: (Int) -> Boolean
     ) {
+        // 1. Pobranie bazy aktywności (I/O intensive)
         val allActivities = withContext(Dispatchers.IO) {
             activitiesRepository.getAllActivities()
         }
 
+        // 2. Wybór nowej atrakcji w silniku (CPU intensive)
         withContext(Dispatchers.Default) {
             planGenerator.rollNewSlot(
                 dayIndex = dayIndex,

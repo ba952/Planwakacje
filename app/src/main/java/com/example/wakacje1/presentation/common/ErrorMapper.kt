@@ -9,13 +9,18 @@ import java.io.IOException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 
+/**
+ * Narzędzie mapujące surowe wyjątki systemowe (Throwable) na stany błędów UI (AppError).
+ * Centralizuje logikę obsługi błędów, zapobiegając powielaniu bloków try-catch w ViewModelach.
+ */
 object ErrorMapper {
 
     fun map(t: Throwable, fallback: String = "Coś poszło nie tak."): AppError {
         val tech = t.message
 
         return when (t) {
-            // --- NOWA OBSŁUGA POGODY (Z zasobów strings.xml) ---
+            // --- WYJĄTKI DOMENOWE (Weather) ---
+            // Precyzyjne mapowanie błędów logicznych z warstwy Data na konkretne komunikaty UI.
             is WeatherException.NetworkError -> AppError.Recoverable(
                 UiText.StringResource(R.string.error_weather_network)
             )
@@ -33,7 +38,8 @@ object ErrorMapper {
                 tech = t.cause?.message
             )
 
-            // --- DOTYCHCZASOWA OBSŁUGA FIREBASE / SYSTEM ---
+            // --- WYJĄTKI INFRASTRUKTURY (Firebase) ---
+            // Mapowanie kodów błędów SDK Firebase na ogólne typy błędów aplikacji.
             is FirebaseFirestoreException -> when (t.code) {
                 FirebaseFirestoreException.Code.PERMISSION_DENIED -> AppError.Permission(tech)
                 FirebaseFirestoreException.Code.NOT_FOUND -> AppError.NotFound(tech)
@@ -44,6 +50,7 @@ object ErrorMapper {
 
             is FirebaseAuthException -> AppError.Auth(tech)
 
+            // --- STANDARDOWE WYJĄTKI SYSTEMOWE (Java/Kotlin) ---
             is TimeoutCancellationException,
             is SocketTimeoutException -> AppError.Timeout(tech)
 
@@ -53,10 +60,12 @@ object ErrorMapper {
 
             is IOException -> AppError.Storage(tech)
 
+            // Fallback: Każdy inny, nieprzewidziany błąd (np. NullPointerException)
             else -> AppError.Unknown(UiText.DynamicString(fallback), tech)
         }
     }
 
+    // Helper skracający wywołanie w ViewModelu, gdy potrzebujemy tylko tekstu
     fun mapToUiText(t: Throwable, fallback: String = "Coś poszło nie tak."): UiText =
         map(t, fallback).uiText
 }

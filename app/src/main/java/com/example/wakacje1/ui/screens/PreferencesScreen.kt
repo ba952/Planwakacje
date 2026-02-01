@@ -50,6 +50,10 @@ import java.util.Calendar
 
 private val MaxContentWidth = 520.dp
 
+/**
+ * Pierwszy krok kreatora wakacji.
+ * Umożliwia użytkownikowi zdefiniowanie budżetu, regionu, klimatu oraz ram czasowych wyjazdu.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PreferencesScreen(
@@ -59,7 +63,7 @@ fun PreferencesScreen(
 ) {
     val context = LocalContext.current
 
-    // --- Opcje (pobierane z zasobów) ---
+    // --- Listy opcji pobierane dynamicznie z zasobów stringów ---
     val regionOptions = listOf(
         stringResource(R.string.region_europe_city),
         stringResource(R.string.region_mediterranean),
@@ -79,9 +83,8 @@ fun PreferencesScreen(
         stringResource(R.string.style_mix)
     )
 
-    // --- stan ---
+    // --- Stan formularza (rememberSaveable chroni dane przed obrotem ekranu) ---
     val budgetText = rememberSaveable { mutableStateOf("") }
-
     val regionIndex = rememberSaveable { mutableIntStateOf(0) }
     val climateIndex = rememberSaveable { mutableIntStateOf(1) }
     val styleIndex = rememberSaveable { mutableIntStateOf(0) }
@@ -92,7 +95,7 @@ fun PreferencesScreen(
     val showStartPicker = remember { mutableStateOf(false) }
     val showEndPicker = remember { mutableStateOf(false) }
 
-    // Snackbar errors
+    // Zarządzanie komunikatami błędów za pomocą SnackbarHost
     val snack = remember { SnackbarHostState() }
     val localError = remember { mutableStateOf<String?>(null) }
 
@@ -102,6 +105,7 @@ fun PreferencesScreen(
         localError.value = null
     }
 
+    // Dynamiczne obliczanie liczby dni na podstawie wybranych dat
     val computedDays = computeDays(startDateMillis.value, endDateMillis.value)
 
     Scaffold(
@@ -121,12 +125,10 @@ fun PreferencesScreen(
                 .fillMaxSize()
                 .padding(padding),
             verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(
-                horizontal = 16.dp,
-                vertical = 12.dp
-            )
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
         ) {
 
+            // Sekcja wprowadzająca (Intro)
             item {
                 Centered {
                     Card(
@@ -143,6 +145,7 @@ fun PreferencesScreen(
                 }
             }
 
+            // Sekcja Budżetu (tylko cyfry)
             item {
                 Centered {
                     SectionCard(title = stringResource(R.string.section_budget)) {
@@ -161,6 +164,7 @@ fun PreferencesScreen(
                 }
             }
 
+            // Sekcja Wyboru preferencji (Region, Klimat, Styl)
             item {
                 Centered {
                     SectionCard(title = stringResource(R.string.section_preferences)) {
@@ -188,6 +192,7 @@ fun PreferencesScreen(
                 }
             }
 
+            // Sekcja Wyboru dat przy użyciu natywnych Pickerów
             item {
                 Centered {
                     SectionCard(title = stringResource(R.string.section_dates)) {
@@ -207,7 +212,6 @@ fun PreferencesScreen(
                         Divider()
                         Spacer(Modifier.height(10.dp))
 
-                        // Używamy placeholderów w stringach: "Start: %s"
                         val startStr = startDateMillis.value?.let { formatDate(it) } ?: "—"
                         Text(stringResource(R.string.label_start_date_colon, startStr))
 
@@ -225,11 +229,10 @@ fun PreferencesScreen(
                 }
             }
 
-            // --- CTA na końcu ---
+            // --- CTA: Przycisk walidacji i przejścia dalej ---
             item {
                 Centered {
                     Column {
-                        // Pobieramy stringi błędów do zmiennych, żeby użyć ich w bloku onClick
                         val errBudget = stringResource(R.string.error_invalid_budget)
                         val errDates = stringResource(R.string.error_dates_missing)
                         val errRange = stringResource(R.string.error_invalid_date_range)
@@ -242,6 +245,7 @@ fun PreferencesScreen(
                                 val end = endDateMillis.value
                                 val days = computeDays(start, end)
 
+                                // Kompleksowa walidacja wejścia
                                 when {
                                     budget == null || budget <= 0 -> {
                                         localError.value = errBudget
@@ -261,6 +265,7 @@ fun PreferencesScreen(
                                     }
                                 }
 
+                                // Przekazanie danych do ViewModelu i przejście do kroku 2
                                 viewModel.updatePreferences(
                                     Preferences(
                                         budget = budget,
@@ -272,7 +277,6 @@ fun PreferencesScreen(
                                         endDateMillis = normalizeToLocalMidnight(end!!)
                                     )
                                 )
-
                                 onNext()
                             },
                             modifier = Modifier
@@ -287,12 +291,14 @@ fun PreferencesScreen(
         }
     }
 
+    // --- Dialogi Pickerów ---
     if (showStartPicker.value) {
         SingleDateDialog(
             title = stringResource(R.string.btn_pick_start_date),
             onDismiss = { showStartPicker.value = false },
             onPick = { picked ->
                 startDateMillis.value = picked
+                // Resetowanie daty końcowej, jeśli nowa data startowa jest późniejsza
                 val e = endDateMillis.value
                 if (e != null && picked > e) endDateMillis.value = null
                 showStartPicker.value = false
@@ -319,22 +325,24 @@ fun PreferencesScreen(
     }
 }
 
+/**
+ * Centruje treść w pionowym kontenerze Box.
+ */
 @Composable
 private fun Centered(content: @Composable () -> Unit) {
     Box(
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = Alignment.TopCenter
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .widthIn(max = MaxContentWidth)
-        ) {
+        Box(modifier = Modifier.fillMaxWidth().widthIn(max = MaxContentWidth)) {
             content()
         }
     }
 }
 
+/**
+ * Karta reprezentująca sekcję formularza.
+ */
 @Composable
 private fun SectionCard(
     title: String,
@@ -352,7 +360,10 @@ private fun SectionCard(
     }
 }
 
-// === NAPRAWIONY KOMPONENT LISTY ROZWIJANEJ ===
+/**
+ * Niestandardowy komponent listy rozwijanej zbudowany na bazie readOnly TextField.
+ * Zapobiega pojawianiu się klawiatury podczas wyboru opcji.
+ */
 @Composable
 private fun SimpleDropdownField(
     label: String,
@@ -362,32 +373,27 @@ private fun SimpleDropdownField(
 ) {
     val expanded = remember { mutableStateOf(false) }
 
-    // BOX służy jako kontener (anchor) dla DropdownMenu i warstw nakładających
     Box {
-        // 1. Pole tekstowe (wizualizacja)
         OutlinedTextField(
             value = value,
             onValueChange = {},
-            readOnly = true, // Klawiatura się nie pojawia
+            readOnly = true,
             label = { Text(label) },
             modifier = Modifier.fillMaxWidth(),
-            // Dzięki readOnly=true pole wygląda normalnie (nie jest wyszarzone jak przy enabled=false),
-            // ale nie da się w nim pisać.
         )
 
-        // 2. Niewidzialna warstwa, która łapie kliknięcia na CAŁEJ powierzchni
+        // Przezroczysta warstwa łapiąca kliknięcia na całym polu tekstowym
         Box(
             modifier = Modifier
-                .matchParentSize() // Rozciąga się na całego OutlinedTextField
+                .matchParentSize()
                 .clickable { expanded.value = true }
         )
 
-        // 3. Menu rozwijane
         DropdownMenu(
             expanded = expanded.value,
             onDismissRequest = { expanded.value = false },
             properties = PopupProperties(focusable = true),
-            modifier = Modifier.fillMaxWidth(0.9f) // Opcjonalnie: szerokość menu
+            modifier = Modifier.fillMaxWidth(0.9f)
         ) {
             options.forEachIndexed { idx, opt ->
                 DropdownMenuItem(
@@ -402,6 +408,9 @@ private fun SimpleDropdownField(
     }
 }
 
+/**
+ * Standardowy dialog Material3 do wyboru pojedynczej daty.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SingleDateDialog(
@@ -433,7 +442,9 @@ private fun SingleDateDialog(
     }
 }
 
-// Funkcje pomocnicze
+/**
+ * Oblicza różnicę dni między dwiema datami (włącznie).
+ */
 private fun computeDays(start: Long?, end: Long?): Int? {
     if (start == null || end == null) return null
     val s = normalizeToLocalMidnight(start)
@@ -444,6 +455,10 @@ private fun computeDays(start: Long?, end: Long?): Int? {
     return (diff / oneDay).toInt() + 1
 }
 
+/**
+ * Normalizuje czas do północy (00:00:00.000) w lokalnej strefie czasowej.
+ * Zapobiega błędom przesunięcia czasu przy obliczaniu różnicy dni.
+ */
 private fun normalizeToLocalMidnight(millis: Long): Long {
     val cal = Calendar.getInstance()
     cal.timeInMillis = millis
@@ -454,6 +469,9 @@ private fun normalizeToLocalMidnight(millis: Long): Long {
     return cal.timeInMillis
 }
 
+/**
+ * Formatuje timestamp na czytelny ciąg znaków YYYY-MM-DD.
+ */
 private fun formatDate(millis: Long): String {
     val cal = Calendar.getInstance()
     cal.timeInMillis = millis

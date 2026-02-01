@@ -12,10 +12,23 @@ import com.example.wakacje1.domain.model.SlotPlan
 import com.example.wakacje1.domain.util.StringProvider
 import kotlin.collections.plusAssign
 
+/**
+ * Silnik (Engine) generujący harmonogram wycieczki.
+ * Odpowiada za dobór atrakcji do poszczególnych dni i pór dnia (Slotów),
+ * uwzględniając preferencje użytkownika, budżet oraz prognozę pogody.
+ */
 class PlanGenerator(
     private val stringProvider: StringProvider
 ) {
 
+    /**
+     * Generuje nowy, pełny plan wyjazdu.
+     *
+     * @param prefs Preferencje użytkownika (budżet, styl, długość pobytu).
+     * @param dest Wybrana destynacja.
+     * @param allActivities Pełna lista dostępnych aktywności (z repozytorium).
+     * @param isBadWeatherForDayIndex Funkcja określająca, czy w dany dzień (index) przewidywana jest zła pogoda.
+     */
     fun generateInternalPlan(
         prefs: Preferences,
         dest: Destination,
@@ -25,16 +38,17 @@ class PlanGenerator(
         val days = prefs.days.coerceAtLeast(1)
         val result = mutableListOf<InternalDayPlan>()
 
-        // Zbiór użytych ID, żeby nie powtarzać atrakcji w całym wyjeździe
+        // Zbiór użytych ID - zapobiega duplikatom atrakcji w całym planie
         val usedIds = mutableSetOf<String>()
 
-        // Limit unikalnych atrakcji na dzień (żeby nie przeładować planu)
+        // Limit unikalnych (specjalnych) atrakcji na dzień, aby nie "przładować" planu zwiedzaniem
         val maxUniquePerDay = if (days < 7) 2 else 1
 
         for (i in 0 until days) {
             val badWeather = isBadWeatherForDayIndex(i)
             var uniqueToday = 0
 
+            // Generowanie slotów: Rano -> Południe -> Wieczór
             val morning = pickForSlot(
                 slot = DaySlot.MORNING,
                 prefs = prefs,
@@ -81,9 +95,13 @@ class PlanGenerator(
         return result
     }
 
-    // --- Metody do regeneracji i edycji (Logic) ---
+    // --- Metody edycji planu (Regeneracja) ---
 
-    // NAPRAWA: Scalono regenerateWholeDay i regenerateDay w jedną funkcję.
+    /**
+     * Regeneruje (przelosowuje) cały dzień planu.
+     * Przydatne, gdy użytkownikowi nie podoba się propozycja na dany dzień.
+     * Dba o to, by nie wylosować atrakcji użytych w innych dniach.
+     */
     fun regenerateDay(
         dayIndex: Int,
         prefs: Preferences,
@@ -97,7 +115,8 @@ class PlanGenerator(
 
         val days = prefs.days.coerceAtLeast(1)
         val maxUniquePerDay = if (days < 7) 3 else 2
-        // Ważne: zbieramy ID użyte w INNYCH dniach, żeby nie wylosować tego samego
+
+        // Zbieramy ID użyte w INNYCH dniach (excludeDayIndex), aby zachować globalną unikalność
         val usedIds = collectUsedIds(internal, excludeDayIndex = dayIndex)
 
         var uniqueToday = 0
@@ -117,6 +136,9 @@ class PlanGenerator(
         )
     }
 
+    /**
+     * Losuje pojedynczą atrakcję dla konkretnego slotu (np. "Wymień tylko to, co robię rano").
+     */
     fun rollNewSlot(
         dayIndex: Int,
         slot: DaySlot,
@@ -133,6 +155,7 @@ class PlanGenerator(
         val days = prefs.days.coerceAtLeast(1)
         val maxUniquePerDay = if (days < 7) 3 else 2
 
+        // Wykluczamy obecną atrakcję, żeby nie wylosować tego samego
         val excludeId = when (slot) {
             DaySlot.MORNING -> current.morning.baseActivityId
             DaySlot.MIDDAY -> current.midday.baseActivityId
@@ -161,6 +184,9 @@ class PlanGenerator(
         }
     }
 
+    /**
+     * Ustawia slot ręcznie (Custom Activity) - wpisane przez użytkownika.
+     */
     fun setCustomSlot(
         dayIndex: Int,
         slot: DaySlot,
@@ -185,6 +211,10 @@ class PlanGenerator(
         }
     }
 
+    /**
+     * Konwertuje wewnętrzny model planu (InternalDayPlan) na model widoku (DayPlan).
+     * Dodaje sformatowane nagłówki i opisy z zasobów.
+     */
     fun rebuildDayPlans(
         internalDays: List<InternalDayPlan>,
         destinationName: String
@@ -201,7 +231,6 @@ class PlanGenerator(
                 if (d.evening.description.isNotBlank()) append("\n- ${d.evening.description}")
             }
 
-            // NAPRAWA: Użycie zasobu string zamiast hardcodowania "Dzień X — Y"
             val title = stringProvider.getString(
                 R.string.plan_day_title,
                 d.day,
@@ -220,6 +249,15 @@ class PlanGenerator(
     // CORE LOGIC - ALGORYTM WYBORU Z BUDŻETEM
     // ------------------------------------------------------------------------
 
+    /**
+     * Główna funkcja algorytmiczna. Wybiera najlepszą aktywność dla danego slotu.
+     * Etapy:
+     * 1. Filtrowanie po regionie/stylu.
+     * 2. Filtrowanie po typie (np. Wieczór -> Impreza/Kolacja).
+     * 3. Filtrowanie po pogodzie (Indoor/Outdoor).
+     * 4. Filtracja BUDŻETOWA (Heurystyka kosztów).
+     * 5. Unikalność (Globalna i dzienna).
+     */
     private fun pickForSlot(
         slot: DaySlot,
         prefs: Preferences,
@@ -241,11 +279,11 @@ class PlanGenerator(
         val preferredTypes = preferredTypesFor(slot)
         val typed = base.filter { it.type in preferredTypes }.ifEmpty { base }
 
-        // 3. Pogoda (Indoor)
+        // 3. Pogoda (Indoor) - jeśli pada, szukamy atrakcji wewnątrz
         val indoorFiltered = if (preferIndoor) typed.filter { it.indoor } else emptyList()
         val pool0 = if (preferIndoor && indoorFiltered.isNotEmpty()) indoorFiltered else typed
 
-        // 4. Wykluczenie aktualnie edytowanej (żeby "Losuj" dało coś nowego)
+        // 4. Wykluczenie (np. przy regeneracji konkretnego slotu)
         val pool1 = if (!excludeActivityId.isNullOrBlank()) {
             pool0.filter { it.id != excludeActivityId }.ifEmpty { pool0 }
         } else pool0
@@ -253,35 +291,32 @@ class PlanGenerator(
         if (pool1.isEmpty()) return fallbackSlot(slot, preferIndoor)
 
         // ====================================================================
-        // IMPLEMENTACJA BUDŻETU (Bez zmian w JSON)
+        // IMPLEMENTACJA BUDŻETU
         // ====================================================================
 
-        // A. Obliczamy ile użytkownik ma "kieszonkowego" na jeden slot.
-        // Zakładamy, że około 40% całkowitego budżetu to wydatki na atrakcje/jedzenie
-        // (reszta to nocleg i transport). Dzielimy przez liczbę dni i 3 sloty.
+        // A. Szacujemy "kieszonkowe" na slot.
+        // Zakładamy, że 40% budżetu to wydatki na atrakcje/jedzenie (reszta to hotel/transport).
         val daysCount = prefs.days.coerceAtLeast(1)
         val spendingMoney = prefs.budget.toDouble() * 0.4
         val budgetPerSlot = spendingMoney / (daysCount * 3)
 
-        // B. Filtrujemy atrakcje, których "szacowany koszt" jest za wysoki
+        // B. Odrzucamy atrakcje, które są za drogie wg naszej heurystyki
         val poolBudgetAware = pool1.filter { activity ->
             val cost = estimateCost(activity.type)
             cost <= budgetPerSlot
         }
 
-        // C. Fallback: Jeśli użytkownik jest bardzo biedny i filtr wyciął wszystko,
-        // bierzemy 3 najtańsze opcje z pierwotnej puli (żeby nie zwracać pustego planu).
-        // W przeciwnym razie bierzemy przefiltrowaną listę.
+        // C. Fallback: Jeśli budżet jest bardzo mały i wyciął wszystko,
+        // bierzemy 5 najtańszych opcji, aby nie zwracać pustego planu (UX).
         val poolAfterBudget = if (poolBudgetAware.isNotEmpty()) {
             poolBudgetAware
         } else {
-            // Sortujemy po szacowanej cenie rosnąco i bierzemy 5 najtańszych
             pool1.sortedBy { estimateCost(it.type) }.take(5)
         }
 
         // ====================================================================
 
-        // 5. Unikalność w dniu (nie za dużo unikatów w jeden dzień)
+        // 5. Unikalność w dniu (np. max 2 muzea dziennie)
         val pool2 = if (uniqueUsedToday >= maxUniquePerDay) {
             poolAfterBudget.filter { it.destinationId == null }.ifEmpty { poolAfterBudget }
         } else {
@@ -291,7 +326,7 @@ class PlanGenerator(
         // 6. Globalna unikalność (nie powtarzaj tego co wczoraj)
         val poolNoRepeat = usedIds?.let { used -> pool2.filter { it.id !in used } }.orEmpty()
 
-        // Finalne losowanie
+        // Finalne losowanie z puli kandydatów
         val chosen = if (poolNoRepeat.isNotEmpty()) poolNoRepeat.random() else pool2.random()
 
         usedIds?.add(chosen.id)
@@ -300,8 +335,9 @@ class PlanGenerator(
 
     /**
      * HEURYSTYKA CENOWA:
-     * Ponieważ baza JSON nie zawiera cen, szacujemy koszt na podstawie TYPU aktywności.
-     * To pozwala uwzględnić budżet użytkownika bez zmian w strukturze danych.
+     * Ponieważ baza JSON (ActivityTemplate) nie zawiera dokładnych cen biletów,
+     * system szacuje koszt na podstawie TYPU aktywności.
+     * Pozwala to uwzględnić budżet użytkownika bez konieczności przebudowy całej bazy danych.
      */
     private fun estimateCost(type: ActivityType): Int {
         return when (type) {
@@ -321,12 +357,14 @@ class PlanGenerator(
         }
     }
 
+    // Mapowanie pory dnia na preferowane typy aktywności
     private fun preferredTypesFor(slot: DaySlot): Set<ActivityType> = when (slot) {
         DaySlot.MORNING -> setOf(ActivityType.HISTORY, ActivityType.CULTURE, ActivityType.NATURE, ActivityType.ACTIVE)
         DaySlot.MIDDAY -> setOf(ActivityType.FOOD, ActivityType.CULTURE, ActivityType.HISTORY, ActivityType.ACTIVE)
         DaySlot.EVENING -> setOf(ActivityType.RELAX, ActivityType.NIGHT, ActivityType.FOOD, ActivityType.CULTURE)
     }
 
+    // Sprawdza dopasowanie aktywności do preferencji (Region/Styl/Destynacja)
     private fun matchesPrefs(a: ActivityTemplate, prefs: Preferences, dest: Destination): Boolean {
         val destinationOk = a.destinationId == null || a.destinationId.equals(dest.id, ignoreCase = true)
         val regionOk =
@@ -350,6 +388,7 @@ class PlanGenerator(
         )
     }
 
+    // Zwraca domyślny slot "zapchajdziurę" w przypadku braku pasujących aktywności
     private fun fallbackSlot(slot: DaySlot, preferIndoor: Boolean): SlotPlan {
         val titleRes = when (slot) {
             DaySlot.MORNING -> R.string.fallback_morning_title
@@ -370,6 +409,7 @@ class PlanGenerator(
         )
     }
 
+    // Zbiera ID wszystkich aktywności użytych w planie (z opcją wykluczenia dnia/slotu)
     private fun collectUsedIds(
         internal: List<InternalDayPlan>,
         excludeDayIndex: Int? = null,

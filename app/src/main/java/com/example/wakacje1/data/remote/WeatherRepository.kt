@@ -17,7 +17,11 @@ import java.util.Calendar
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
-// --- KROK 1: Definicja wyjątków domenowych (mogą być w osobny pliku, tu dla czytelności) ---
+/**
+ * Domenowe wyjątki pogodowe.
+ * Pozwalają warstwie UI reagować na konkretne błędy (np. złe miasto)
+ * bez wiedzy o bibliotece Retrofit/OkHttp.
+ */
 sealed class WeatherException(cause: Throwable? = null) : IOException(cause) {
     class NetworkError(cause: Throwable) : WeatherException(cause)
     class CityNotFound : WeatherException()
@@ -26,10 +30,14 @@ sealed class WeatherException(cause: Throwable? = null) : IOException(cause) {
     class Unknown(cause: Throwable) : WeatherException(cause)
 }
 
-// --- KROK 2: Wyczyszczone Repozytorium ---
+/**
+ * Repozytorium danych pogodowych.
+ * Odpowiada za pobieranie danych z OpenWeatherMap, ich mapowanie na modele domenowe
+ * oraz obsługę cache'owania w pamięci (RAM).
+ */
 class WeatherRepository {
 
-    // ------------------ MODELE ------------------
+    // ------------------ MODELE DOMENOWE ------------------
 
     data class WeatherResult(
         val city: String,
@@ -47,12 +55,14 @@ class WeatherRepository {
         val isBadWeather: Boolean
     )
 
-    // ------------------ CACHE ------------------
+    // ------------------ CACHE (In-Memory) ------------------
+    // Krótki TTL dla bieżącej pogody (10 min), dłuższy dla prognozy (30 min)
     private val TTL_CURRENT_MS = 10L * 60 * 1000
     private val TTL_FORECAST_MS = 30L * 60 * 1000
 
     private data class CacheEntry<T>(val timestampMs: Long, val value: T)
 
+    // ConcurrentHashMap zapewnia bezpieczeństwo wątkowe przy dostępie z wielu korutyn
     private val currentCache = ConcurrentHashMap<String, CacheEntry<WeatherResult>>()
     private val forecastCache = ConcurrentHashMap<String, CacheEntry<List<WeatherForecastDay>>>()
 
@@ -61,13 +71,11 @@ class WeatherRepository {
         forecastCache.clear()
     }
 
-    // ------------------ RETROFIT ------------------
+    // ------------------ KONFIGURACJA SIECIOWA ------------------
 
     private fun apiKey(): String {
         val k = BuildConfig.OPEN_WEATHER_API_KEY
-        // To jest błąd konfiguracyjny (dla programisty), więc illegalStateException/require jest tu OK,
-        // ale komunikat warto dać po angielsku lub przenieść do zasobów, jeśli aplikacja ma być open-source.
-        // Zostawiam po angielsku jako błąd techniczny.
+        // Walidacja konfiguracji builda (fail-fast)
         require(k.isNotBlank()) {
             "Missing OPEN_WEATHER_API_KEY. Add it to local.properties."
         }
@@ -97,9 +105,15 @@ class WeatherRepository {
 
     // ------------------ PUBLIC API ------------------
 
+    /**
+     * Pobiera aktualną pogodę.
+     * Logika: Cache -> API -> Mapowanie -> Obsługa Błędów.
+     */
     suspend fun getWeatherForCity(cityQuery: String, forceRefresh: Boolean = false): WeatherResult =
         withContext(Dispatchers.IO) {
             val key = cityQuery.trim().lowercase()
+
+            // 1. Sprawdzenie Cache
             if (!forceRefresh) {
                 val cached = currentCache[key]
                 if (cached != null && (System.currentTimeMillis() - cached.timestampMs) < TTL_CURRENT_MS) {
@@ -107,26 +121,28 @@ class WeatherRepository {
                 }
             }
 
+            // 2. Pobranie z API i obsługa błędów
             try {
                 val res = api.getCurrentWeather(city = cityQuery, apiKey = apiKey())
                 val parsed = mapCurrent(res)
                 currentCache[key] = CacheEntry(System.currentTimeMillis(), parsed)
                 parsed
             } catch (e: HttpException) {
-                // Mapowanie kodów HTTP na wyjątki domenowe
                 throw mapHttpException(e)
             } catch (e: IOException) {
-                // Błędy sieciowe (timeout, brak neta)
                 throw WeatherException.NetworkError(e)
             } catch (e: Exception) {
-                // Inne nieprzewidziane błędy
                 throw WeatherException.Unknown(e)
             }
         }
 
+    /**
+     * Pobiera prognozę długoterminową.
+     */
     suspend fun getForecastForCity(cityQuery: String, forceRefresh: Boolean = false): List<WeatherForecastDay> =
         withContext(Dispatchers.IO) {
             val key = cityQuery.trim().lowercase()
+
             if (!forceRefresh) {
                 val cached = forecastCache[key]
                 if (cached != null && (System.currentTimeMillis() - cached.timestampMs) < TTL_FORECAST_MS) {
@@ -148,7 +164,7 @@ class WeatherRepository {
             }
         }
 
-    // Helper do mapowania HTTP -> WeatherException
+    // Tłumaczenie kodów błędów HTTP na wyjątki domenowe
     private fun mapHttpException(e: HttpException): WeatherException {
         return when (e.code()) {
             401 -> WeatherException.InvalidApiKey()
@@ -160,8 +176,6 @@ class WeatherRepository {
     // ------------------ MAPOWANIE DANYCH ------------------
 
     private fun mapCurrent(res: CurrentWeatherResponse): WeatherResult {
-        // Zmiana: Jeśli nazwa pusta, zwracamy null lub pusty string.
-        // Formatting "—" powinien być w UI, ale tutaj zostawmy pusty string bezpiecznie.
         val city = res.name?.takeIf { it.isNotBlank() } ?: ""
         val temp = res.main?.temp ?: 0.0
         val w0 = res.weather?.firstOrNull()
@@ -176,6 +190,7 @@ class WeatherRepository {
         )
     }
 
+    // Struktura pomocnicza do agregacji (API zwraca dane co 3h)
     private data class Agg(
         var min: Double,
         var max: Double,
@@ -185,6 +200,10 @@ class WeatherRepository {
         var totalCount: Int
     )
 
+    /**
+     * Agreguje listę prognoz 3-godzinnych (API) do listy dni (UI).
+     * Wyznacza min/max temperaturę dnia oraz decyduje, czy pogoda jest "zła".
+     */
     private fun mapForecastToDays(res: ForecastResponse): List<WeatherForecastDay> {
         val items = res.list.orEmpty()
         val acc = mutableMapOf<Long, Agg>()
@@ -202,6 +221,7 @@ class WeatherRepository {
 
             val isBad = isBadWeather(conditionId, desc)
 
+            // Logika agregacji (aktualizacja min/max)
             val a = acc[dayKey]
             if (a == null) {
                 acc[dayKey] = Agg(
@@ -221,6 +241,7 @@ class WeatherRepository {
         }
 
         return acc.map { (dayMillis, agg) ->
+            // Jeśli > 35% odczytów w ciągu dnia to zła pogoda, oznaczamy cały dzień jako zły.
             val badRatio = if (agg.totalCount == 0) 0.0 else (agg.badCount.toDouble() / agg.totalCount)
             WeatherForecastDay(
                 dateMillis = dayMillis,
@@ -243,11 +264,11 @@ class WeatherRepository {
         return cal.timeInMillis
     }
 
+    /**
+     * Logika biznesowa oceny warunków atmosferycznych.
+     * Sprawdza grupy kodów pogodowych (2xx - burze, 3xx/5xx - deszcz, 6xx - śnieg).
+     */
     private fun isBadWeather(conditionId: Int, desc: String): Boolean {
-        // Ten string "deszcz" jest w logice biznesowej wykrywania pogody,
-        // a nie wyświetlania, więc technicznie może zostać (API zwraca opisy),
-        // ale lepiej bazować na conditionId.
-        // Tutaj zostawiam bez zmian, bo to logika analizy danych, a nie UI.
         val group = conditionId / 100
         if (group in setOf(2, 3, 5, 6, 7)) return true
         val d = desc.lowercase()

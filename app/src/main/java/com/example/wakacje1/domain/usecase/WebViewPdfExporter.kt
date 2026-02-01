@@ -10,13 +10,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * Klasa pomocnicza (Helper) służąca WYŁĄCZNIE do uruchomienia systemowego okna drukowania.
- * Nie zawiera logiki generowania HTML.
+ * Klasa narzędziowa (Utility) integrująca systemowy PrintManager z silnikiem renderowania WebView.
+ * Służy do fizycznego przekształcenia kodu HTML w dokument PDF (poprzez funkcję "Zapisz jako PDF" systemu Android).
  */
 object WebViewPdfExporter {
 
     /**
-     * Otwiera systemowe okno "Drukuj / Zapisz jako PDF" dla podanego kodu HTML.
+     * Inicjuje proces drukowania.
+     * Wymaga Dispatchers.Main, ponieważ konstruktor WebView rzuca wyjątek na wątkach tła.
      */
     suspend fun openPrintDialog(
         activity: Activity,
@@ -24,16 +25,18 @@ object WebViewPdfExporter {
         jobName: String
     ) {
         withContext(Dispatchers.Main) {
-            // Tworzymy WebView dynamicznie. Ważne: WebView trzyma Context (Activity).
+            // Tworzymy "niewidzialne" WebView tylko na potrzeby renderowania wydruku.
+            // Ważne: WebView jest ciężkim obiektem i trzyma referencję do Activity (ryzyko wycieku pamięci).
             val webView = WebView(activity)
 
             webView.settings.apply {
-                javaScriptEnabled = false
+                javaScriptEnabled = false // Bezpieczeństwo + szybkość (mamy statyczny HTML)
                 domStorageEnabled = false
                 loadWithOverviewMode = true
                 useWideViewPort = true
             }
 
+            // Czekamy na wyrenderowanie HTML zanim przekażemy go do PrintManagera
             webView.webViewClient = object : WebViewClient() {
                 override fun onPageFinished(view: WebView, url: String?) {
                     createPrintJob(activity, view, jobName)
@@ -47,11 +50,11 @@ object WebViewPdfExporter {
     private fun createPrintJob(activity: Activity, view: WebView, jobName: String) {
         val printManager = activity.getSystemService(Context.PRINT_SERVICE) as? PrintManager
         if (printManager == null) {
-            // Jeśli brak serwisu drukowania, czyścimy od razu, by nie leakować pamięci
-            view.destroy()
+            view.destroy() // Sprzątamy od razu, jeśli brak usługi
             return
         }
 
+        // Adapter konwertujący zawartość WebView na format druku
         val adapter = view.createPrintDocumentAdapter(jobName)
 
         val attributes = PrintAttributes.Builder()
@@ -61,30 +64,32 @@ object WebViewPdfExporter {
 
         printManager.print(jobName, adapter, attributes)
 
-        // UWAGA INŻYNIERSKA:
-        // Android PrintManager nie udostępnia callbacka o zakończeniu/anulowaniu drukowania.
-        // Jeśli zniszczymy WebView (view.destroy()) natychmiast, proces generowania PDF zawiedzie (pusta strona).
-        // Rozwiązaniem (workaround) jest opóźnione zwolnienie zasobów.
-        // Czas 10-12s jest wystarczający, by systemowy spooler przetworzył dokument.
+        // --- PROBLEM TECHNICZNY (RACE CONDITION) ---
+        // Android PrintManager nie zwraca callbacka (Success/Error) po zakończeniu generowania PDF.
+        // Jeśli zniszczymy WebView (view.destroy()) natychmiast po wywołaniu .print(),
+        // systemowy spooler otrzyma pusty widok i wygeneruje białą stronę.
+        //
+        // WORKAROUND: Opóźniamy zniszczenie WebView o 12 sekund.
+        // To czas wystarczający na przetworzenie dokumentu przez system, a jednocześnie
+        // pozwala zwolnić pamięć RAM, gdy użytkownik już dawno zamknie ekran drukowania.
         view.postDelayed({
             cleanUpWebViewSafely(activity, view)
         }, 12_000)
     }
 
     private fun cleanUpWebViewSafely(activity: Activity, view: WebView) {
-        // Zabezpieczenie przed wyciekiem/crashem:
-        // Nie operujemy na WebView, jeśli Activity, która je stworzyła, już nie żyje.
+        // Defensive Programming:
+        // Sprawdzamy stan Activity, aby uniknąć crasha przy próbie operacji na martwym kontekście.
         if (activity.isFinishing || activity.isDestroyed) {
-            // System i tak zwolni zasoby Activity, więc możemy tylko spróbować "delikatnie" wyczyścić,
-            // ale najważniejsze, że nie wywołujemy logiki na martwym obiekcie.
+            // Activity i tak czyści swoje zasoby, więc wymuszamy tylko destroy() dla pewności
             try { view.destroy() } catch (_: Throwable) {}
         } else {
-            // Activity żyje, więc bezpiecznie niszczymy WebView, by zwolnić pamięć RAM.
+            // Activity żyje - musimy ręcznie posprzątać WebView, żeby nie zapchać pamięci (Memory Leak)
             try {
                 view.parent?.let { (it as? android.view.ViewGroup)?.removeView(view) }
                 view.destroy()
             } catch (_: Throwable) {
-                // Ignorujemy błędy wewnętrzne WebView przy niszczeniu
+                // Ignorujemy wewnętrzne błędy WebView przy niszczeniu
             }
         }
     }

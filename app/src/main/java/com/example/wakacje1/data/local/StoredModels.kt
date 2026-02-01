@@ -7,6 +7,14 @@ import com.example.wakacje1.domain.model.SlotPlan
 import org.json.JSONArray
 import org.json.JSONObject
 
+/**
+ * Model persystencji (DTO) reprezentujący pełny plan wycieczki.
+ * Służy do zapisu złożonej struktury planu w bazie danych jako pojedynczy obiekt (BLOB/JSON),
+ * co upraszcza schemat bazy (brak konieczności tworzenia wielu tabel relacyjnych dla dni/slotów).
+ *
+ * Klasa implementuje własną logikę serializacji do JSON, aby uniezależnić się od zewnętrznych bibliotek (np. Gson)
+ * w warstwie danych krytycznych.
+ */
 data class StoredPlan(
     val id: String,
     val createdAtMillis: Long,
@@ -14,6 +22,10 @@ data class StoredPlan(
     val preferences: StoredPreferences?,
     val internalDays: List<StoredInternalDayPlan>
 ) {
+    /**
+     * Serializuje obiekt do ciągu znaków JSON.
+     * Wykorzystywane przez Room TypeConverter przed zapisem do kolumny TEXT.
+     */
     fun toJsonString(): String = toJson().toString()
 
     fun toJson(): JSONObject {
@@ -31,6 +43,10 @@ data class StoredPlan(
     }
 
     companion object {
+        /**
+         * Deserializuje ciąg znaków JSON z powrotem do obiektu [StoredPlan].
+         * Wykorzystywane przy odczycie z bazy danych.
+         */
         fun fromJsonString(json: String): StoredPlan = fromJson(JSONObject(json))
 
         fun fromJson(obj: JSONObject): StoredPlan {
@@ -58,6 +74,10 @@ data class StoredPlan(
     }
 }
 
+/**
+ * Model persystencji dla destynacji.
+ * Oddziela warstwę bazy danych od warstwy domeny [Destination].
+ */
 data class StoredDestination(
     val id: String,
     val displayName: String,
@@ -69,6 +89,7 @@ data class StoredDestination(
     val tags: List<String>,
     val apiQuery: String
 ) {
+    // Mapowanie Persystencja -> Domena
     fun toDestination(): Destination = Destination(
         id = id,
         displayName = displayName,
@@ -100,6 +121,7 @@ data class StoredDestination(
     }
 
     companion object {
+        // Mapowanie Domena -> Persystencja
         fun from(d: Destination): StoredDestination = StoredDestination(
             id = d.id,
             displayName = d.displayName,
@@ -132,6 +154,9 @@ data class StoredDestination(
     }
 }
 
+/**
+ * Model persystencji dla preferencji użytkownika.
+ */
 data class StoredPreferences(
     val budget: Int,
     val days: Int,
@@ -180,12 +205,17 @@ data class StoredPreferences(
             climate = obj.optString("climate", ""),
             region = obj.optString("region", ""),
             style = obj.optString("style", ""),
+            // Obsługa NULL dla typów prostych w JSON
             startDateMillis = if (obj.isNull("startDateMillis")) null else obj.optLong("startDateMillis"),
             endDateMillis = if (obj.isNull("endDateMillis")) null else obj.optLong("endDateMillis")
         )
     }
 }
 
+/**
+ * Model persystencji dla planu dnia.
+ * Zawiera sloty czasowe (Rano, Południe, Wieczór).
+ */
 data class StoredInternalDayPlan(
     val day: Int,
     val morning: StoredSlotPlan,
@@ -227,6 +257,10 @@ data class StoredInternalDayPlan(
     }
 }
 
+/**
+ * Model persystencji dla pojedynczego slotu (np. aktywność poranna).
+ * Przechowuje ID bazowej aktywności oraz edytowalne przez użytkownika pola (tytuł, opis).
+ */
 data class StoredSlotPlan(
     val baseActivityId: String? = null,
     val title: String = "",

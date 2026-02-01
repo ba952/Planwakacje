@@ -26,7 +26,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             Wakacje1Theme {
-                // [NOWOŚĆ] Nasłuchiwanie na zdarzenie drukowania PDF (wymaga Activity)
+                // Nasłuchiwanie na zdarzenie drukowania PDF (wymaga Activity)
                 LaunchedEffect(Unit) {
                     viewModel.events.collect { event ->
                         if (event is UiEvent.PrintPdf) {
@@ -39,7 +39,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                // Przekazujemy wstrzyknięty ViewModel do grafu nawigacji
+                // Przekazanie ViewModel do grafu nawigacji
                 NavGraph(
                     vacationViewModel = viewModel,
                     startUid = uid

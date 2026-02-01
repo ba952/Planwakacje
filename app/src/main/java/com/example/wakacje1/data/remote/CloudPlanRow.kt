@@ -1,5 +1,10 @@
 package com.example.wakacje1.data.remote
 
+/**
+ * Model DTO (Data Transfer Object) reprezentujący skrócony widok planu w chmurze (Firestore).
+ * Używany do wyświetlania listy planów bez pobierania pełnego, ciężkiego payloadu JSON.
+ * Wymaga pustego konstruktora (wartości domyślne) dla deserializatora Firebase.
+ */
 data class CloudPlanRow(
     val id: String = "",
     val title: String = "",

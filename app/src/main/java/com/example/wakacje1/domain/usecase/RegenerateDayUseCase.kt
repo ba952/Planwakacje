@@ -8,6 +8,10 @@ import com.example.wakacje1.domain.model.Preferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+/**
+ * UseCase odpowiedzialny za przelosowanie planu dla jednego, konkretnego dnia.
+ * Zachowuje spójność wątkową (IO dla odczytu danych, Default dla logiki algorytmu).
+ */
 class RegenerateDayUseCase(
     private val activitiesRepository: ActivitiesRepository,
     private val planGenerator: PlanGenerator
@@ -19,14 +23,13 @@ class RegenerateDayUseCase(
         internal: MutableList<InternalDayPlan>,
         isBadWeatherForDayIndex: (Int) -> Boolean
     ) {
-        // 1. Pobieramy dane (IO)
+        // 1. Pobieranie surowych danych z assets (Context: IO)
         val allActivities = withContext(Dispatchers.IO) {
             activitiesRepository.getAllActivities()
         }
 
-        // 2. Uruchamiamy logikę generatora (Default/CPU)
+        // 2. Przeliczanie nowych slotów w silniku (Context: Default)
         withContext(Dispatchers.Default) {
-            // POPRAWKA: Zmiana nazwy metody z regenerateWholeDay na regenerateDay
             planGenerator.regenerateDay(
                 dayIndex = dayIndex,
                 prefs = prefs,

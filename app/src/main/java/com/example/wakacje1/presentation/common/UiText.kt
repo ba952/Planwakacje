@@ -5,17 +5,19 @@ import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 
+/**
+ * Wrapper uniezależniający ViewModel od Contextu przy obsłudze tekstów.
+ * Pozwala przekazywać zarówno surowe Stringi (z API), jak i ID zasobów (R.string).
+ */
 sealed class UiText {
-    // Wariant 1: Tekst dynamiczny (np. z API)
     data class DynamicString(val value: String) : UiText()
 
-    // Wariant 2: Tekst z zasobów (R.string.xxx)
     class StringResource(
         @StringRes val resId: Int,
         vararg val args: Any
     ) : UiText()
 
-    // Funkcja do wyciągania Stringa w zwykłym kodzie (np. Activity, Toast)
+    // Pobranie tekstu w klasycznym systemie View / Context (np. Toast)
     fun asString(context: Context): String {
         return when (this) {
             is DynamicString -> value
@@ -23,7 +25,7 @@ sealed class UiText {
         }
     }
 
-    // Funkcja do wyciągania Stringa w Composable (UI)
+    // Pobranie tekstu w Jetpack Compose
     @Composable
     fun asString(): String {
         return when (this) {

@@ -40,8 +40,13 @@ import com.example.wakacje1.presentation.viewmodel.MyPlansViewModel
 import com.example.wakacje1.presentation.viewmodel.VacationViewModel
 import java.util.Calendar
 
+// Ograniczenie szerokości dla czytelności na dużych ekranach
 private val MaxContentWidth = 520.dp
 
+/**
+ * Ekran wyświetlający listę zapisanych planów wakacyjnych użytkownika.
+ * Obsługuje synchronizację z chmurą, wczytywanie lokalne oraz usuwanie planów.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyPlansScreen(
@@ -52,37 +57,39 @@ fun MyPlansScreen(
     onOpenPlan: () -> Unit,
     onLoggedOut: () -> Unit
 ) {
+    // Pobranie ID użytkownika z ViewModelu autoryzacji
     val uid = authVm.user?.uid
 
+    // Uruchomienie nasłuchiwania repozytoriów przy zmianie użytkownika
     LaunchedEffect(uid) {
         plansVm.stop()
         if (uid != null) plansVm.start(uid)
     }
 
+    // Zatrzymanie listenerów w momencie niszczenia ekranu (cleanup)
     DisposableEffect(Unit) {
         onDispose { plansVm.stop() }
     }
 
+    // Destrukturyzacja stanów z ViewModelu planów
     val localUi = plansVm.localUi
     val cloudUi = plansVm.cloudUi
     val rows = plansVm.localPlans
 
+    // Stan Snackbara do wyświetlania błędów synchronizacji i bazy danych
     val snack = remember { SnackbarHostState() }
-
-    // Pobieramy string "Chmura: " tutaj, aby użyć go w LaunchedEffect
     val cloudErrorPrefix = stringResource(R.string.error_cloud_prefix)
 
-    // lokalne błędy -> snackbar
+    // Obsługa błędów bazy lokalnej - wyświetlenie Snackbar i wyczyszczenie błędu w VM
     LaunchedEffect(localUi.error) {
         val msg = localUi.error ?: return@LaunchedEffect
         snack.showSnackbar(msg)
         plansVm.clearLocalError()
     }
 
-    // chmura/sync błędy -> snackbar
+    // Obsługa błędów synchronizacji z chmurą (np. brak sieci)
     LaunchedEffect(cloudUi.error) {
         val msg = cloudUi.error ?: return@LaunchedEffect
-        // Łączymy prefiks z wiadomością
         snack.showSnackbar("$cloudErrorPrefix $msg")
         plansVm.clearCloudError()
     }
@@ -92,6 +99,7 @@ fun MyPlansScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.my_plans_title)) },
                 actions = {
+                    // Wylogowanie: zatrzymanie procesów i powrót do ekranu logowania
                     TextButton(
                         onClick = {
                             plansVm.stop()
@@ -104,6 +112,7 @@ fun MyPlansScreen(
         },
         snackbarHost = { SnackbarHost(hostState = snack) },
         floatingActionButton = {
+            // Przycisk FAB uruchamiający kreator nowego planu
             ExtendedFloatingActionButton(onClick = onNewPlan) {
                 Text(stringResource(R.string.btn_new_plan))
             }
@@ -116,6 +125,7 @@ fun MyPlansScreen(
                 .padding(padding)
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
+            // Zarządzanie stanami pustymi i ładowania
             when {
                 uid == null -> {
                     Text(
@@ -131,6 +141,7 @@ fun MyPlansScreen(
                 }
             }
 
+            // Wyświetlenie zachęty, gdy użytkownik nie ma jeszcze żadnych planów
             if (rows.isEmpty()) {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -145,16 +156,18 @@ fun MyPlansScreen(
                 return@Centered
             }
 
+            // Reaktywna lista zapisanych planów
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
-                contentPadding = PaddingValues(bottom = 92.dp) // zapas pod FAB
+                contentPadding = PaddingValues(bottom = 92.dp) // Odstęp, aby FAB nie zasłaniał ostatniego elementu
             ) {
                 itemsIndexed(rows, key = { _, row -> row.id }) { _, row ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
+                                // Wczytanie pełnych danych planu i aplikacja do ViewModelu Vacation
                                 val safeUid = uid ?: return@clickable
                                 plansVm.loadLocal(safeUid, row.id) { stored ->
                                     vacationVm.applyStoredPlan(stored)
@@ -174,7 +187,7 @@ fun MyPlansScreen(
                                 Text(row.title, fontWeight = FontWeight.Bold)
                                 Spacer(Modifier.height(2.dp))
 
-                                // Formatowanie daty przy użyciu zasobu
+                                // Formatowanie zakresu dat wyjazdu
                                 val s = row.startDateMillis?.let { formatDate(it) } ?: "—"
                                 val e = row.endDateMillis?.let { formatDate(it) } ?: "—"
                                 Text(
@@ -183,6 +196,7 @@ fun MyPlansScreen(
                                 )
                             }
 
+                            // Przycisk usuwania planu z bazy lokalnej i chmury
                             TextButton(
                                 onClick = {
                                     val safeUid = uid ?: return@TextButton
@@ -197,6 +211,9 @@ fun MyPlansScreen(
     }
 }
 
+/**
+ * Komponent pomocniczy centrujący treść w poziomie (do MaxContentWidth).
+ */
 @Composable
 private fun Centered(
     modifier: Modifier = Modifier,
@@ -213,7 +230,9 @@ private fun Centered(
     }
 }
 
-// Usunąłem formatRange, bo teraz robimy to w UI przez stringResource
+/**
+ * Formatuje timestamp w formacie YYYY-MM-DD.
+ */
 private fun formatDate(millis: Long): String {
     val cal = Calendar.getInstance()
     cal.timeInMillis = millis

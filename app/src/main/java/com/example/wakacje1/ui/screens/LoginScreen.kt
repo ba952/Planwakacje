@@ -34,24 +34,29 @@ import androidx.compose.ui.unit.dp
 import com.example.wakacje1.R
 import com.example.wakacje1.presentation.viewmodel.AuthViewModel
 
+/**
+ * Główny ekran logowania użytkownika.
+ * Wykorzystuje [AuthViewModel] do obsługi logiki uwierzytelniania i zarządzania stanem sesji.
+ */
 @Composable
 fun LoginScreen(
     authVm: AuthViewModel,
-    onDone: () -> Unit,
-    onGoRegister: () -> Unit
+    onDone: () -> Unit,      // Callback wywoływany po pomyślnym zalogowaniu
+    onGoRegister: () -> Unit // Callback do nawigacji do ekranu rejestracji
 ) {
+    // Stan lokalny dla pól tekstowych (Transient State)
     var email by remember { mutableStateOf("") }
     var pass by remember { mutableStateOf("") }
     val showReset = remember { mutableStateOf(false) }
 
-    // POPRAWKA: Używamy Scaffold, który automatycznie ustawia kolor tła
-    // zgodny z motywem (MaterialTheme.colorScheme.background)
+    // Scaffold zapewnia podstawową strukturę wizualną Material Design,
+    // w tym automatyczne zarządzanie tłem i odstępami (padding).
     Scaffold { paddingValues ->
 
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues), // Uwzględniamy padding ze Scaffolda
+                .padding(paddingValues), // Respektowanie bezpiecznych odstępów Scaffolda
             contentAlignment = Alignment.Center
         ) {
             Column(
@@ -60,10 +65,11 @@ fun LoginScreen(
                     .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // String Resource
+                // Nagłówek ekranu pobierany z zasobów stringów
                 Text(stringResource(R.string.login_title), style = MaterialTheme.typography.headlineMedium)
                 Spacer(Modifier.height(16.dp))
 
+                // Pole wprowadzania adresu e-mail
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
@@ -73,6 +79,8 @@ fun LoginScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(Modifier.height(10.dp))
+
+                // Pole wprowadzania hasła z maskowaniem znaków
                 OutlinedTextField(
                     value = pass,
                     onValueChange = { pass = it },
@@ -85,15 +93,18 @@ fun LoginScreen(
 
                 Spacer(Modifier.height(8.dp))
 
-                // --- OBSŁUGA BŁĘDÓW (UiText) ---
+                // --- OBSŁUGA BŁĘDÓW I INFORMACJI (UiText) ---
+                // Reaktywne wyświetlanie błędów przekazywanych z ViewModelu jako UiText
                 authVm.error?.let { uiText ->
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        text = uiText.asString(),
+                        text = uiText.asString(), // Konwersja obiektu UiText na String w kontekście Composable
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
+
+                // Wyświetlanie komunikatów informacyjnych (np. o wysłaniu linku resetującego)
                 authVm.info?.let { uiText ->
                     Spacer(Modifier.height(6.dp))
                     Text(
@@ -105,6 +116,7 @@ fun LoginScreen(
 
                 Spacer(Modifier.height(14.dp))
 
+                // Przycisk logowania - blokowany, gdy trwa proces komunikacji z API
                 Button(
                     onClick = { authVm.signIn(email, pass, onSuccess = onDone) },
                     enabled = !authVm.loading,
@@ -115,7 +127,7 @@ fun LoginScreen(
 
                 Spacer(Modifier.height(10.dp))
 
-                // Link reset
+                // Interaktywny tekst wyzwalający okno dialogowe resetowania hasła
                 Text(
                     text = stringResource(R.string.btn_forgot_password),
                     style = MaterialTheme.typography.bodyMedium,
@@ -123,14 +135,14 @@ fun LoginScreen(
                     modifier = Modifier
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
-                            indication = null
+                            indication = null // Wyłączenie efektu ripple dla czystego wyglądu linku
                         ) { showReset.value = true }
                         .padding(6.dp)
                 )
 
                 Spacer(Modifier.height(18.dp))
 
-                // Rejestracja niżej
+                // Przycisk nawigacji do ekranu tworzenia nowego konta
                 OutlinedButton(
                     onClick = onGoRegister,
                     enabled = !authVm.loading,
@@ -140,12 +152,14 @@ fun LoginScreen(
                 }
             }
 
+            // Wyświetlanie wskaźnika postępu podczas operacji asynchronicznych
             if (authVm.loading) {
                 CircularProgressIndicator()
             }
         }
     }
 
+    // Wyświetlanie modalnego okna resetu hasła (warunkowo)
     if (showReset.value) {
         ResetPasswordDialog(
             initialEmail = email,
@@ -158,6 +172,9 @@ fun LoginScreen(
     }
 }
 
+/**
+ * Komponent pomocniczy wyświetlający okno dialogowe do resetowania hasła.
+ */
 @Composable
 private fun ResetPasswordDialog(
     initialEmail: String,

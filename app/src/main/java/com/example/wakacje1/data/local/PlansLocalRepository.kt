@@ -8,8 +8,16 @@ import com.example.wakacje1.domain.model.SlotPlan
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 
+/**
+ * Repozytorium pośredniczące w dostępie do lokalnej bazy danych.
+ * Pełni rolę warstwy abstrakcji nad niskopoziomowym [PlanStorage],
+ * realizując mapowanie modeli domenowych na modele persystencji (DTO).
+ */
 class PlansLocalRepository(private val context: Context) {
 
+    /**
+     * Udostępnia reaktywny strumień nagłówków planów dla danego użytkownika.
+     */
     fun observePlans(uid: String): Flow<List<LocalPlanRow>> {
         return PlanStorage.observePlans(context, uid)
     }
@@ -26,6 +34,13 @@ class PlansLocalRepository(private val context: Context) {
         PlanStorage.deletePlan(context, uid, planId)
     }
 
+    /**
+     * Logika biznesowa zapisu planu (Create/Update).
+     * Odpowiada za:
+     * 1. Generowanie unikalnego ID (jeśli to nowy plan).
+     * 2. Mapowanie obiektów domenowych na struktury bazy danych.
+     * 3. Wyliczenie metadanych (tytuł, data zakończenia) na potrzeby indeksowania.
+     */
     suspend fun upsertPlan(
         uid: String,
         planId: String?,
@@ -33,13 +48,13 @@ class PlansLocalRepository(private val context: Context) {
         prefs: Preferences,
         dest: Destination,
         internalDays: List<InternalDayPlan>,
-        updatedAtMillis: Long // ZMIANA: Przyjmujemy czas z zewnątrz
+        updatedAtMillis: Long
     ): StoredPlan {
-        // 1. Generujemy ID i daty
+        // 1. Inicjalizacja metadanych
         val finalId = planId ?: UUID.randomUUID().toString()
         val finalCreated = createdAtMillis ?: System.currentTimeMillis()
 
-        // 2. Konwersja Domain -> Stored
+        // 2. Mapowanie Domain -> Stored (DTO)
         val storedPlan = StoredPlan(
             id = finalId,
             createdAtMillis = finalCreated,
@@ -48,14 +63,14 @@ class PlansLocalRepository(private val context: Context) {
             internalDays = internalDays.map { it.toStored() }
         )
 
-        // 3. Obliczenia pomocnicze
+        // 3. Obliczenia pomocnicze dla kolumn indeksowanych
         val title = dest.displayName
         val startDate = prefs.startDateMillis
         val endDate = startDate?.let { start ->
             start + (prefs.days.toLong() * 24L * 60L * 60L * 1000L)
         }
 
-        // 4. Zapis fizyczny
+        // 4. Delegacja zapisu do warstwy Storage
         PlanStorage.upsertPlan(
             context = context,
             uid = uid,
@@ -63,13 +78,13 @@ class PlansLocalRepository(private val context: Context) {
             title = title,
             startDateMillis = startDate,
             endDateMillis = endDate,
-            updatedAtMillis = updatedAtMillis // Używamy przekazanego czasu
+            updatedAtMillis = updatedAtMillis
         )
 
         return storedPlan
     }
 
-    // --- Extensions (bez zmian) ---
+    // --- Mappers (Domain -> Persistence) ---
 
     private fun Preferences.toStored() = StoredPreferences(
         budget = this.budget,

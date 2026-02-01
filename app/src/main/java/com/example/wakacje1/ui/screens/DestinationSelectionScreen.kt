@@ -42,8 +42,13 @@ import com.example.wakacje1.domain.model.Destination
 import com.example.wakacje1.presentation.viewmodel.VacationViewModel
 import kotlin.math.roundToInt
 
+// Maksymalna szerokość treści dla zachowania czytelności na tabletach/szerokich ekranach
 private val MaxContentWidth = 520.dp
 
+/**
+ * Ekran wyboru destynacji.
+ * Pozwala użytkownikowi przejrzeć sugerowane miejsca, sprawdzić ich budżet oraz aktualną pogodę.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DestinationSelectionScreen(
@@ -51,6 +56,7 @@ fun DestinationSelectionScreen(
     onDestinationChosen: () -> Unit,
     onBack: () -> Unit
 ) {
+    // Reaktywne pobieranie stanu z ViewModelu z uwzględnieniem cyklu życia
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
@@ -59,6 +65,7 @@ fun DestinationSelectionScreen(
     val chosen = uiState.chosenDestination
     val weather = uiState.weather
 
+    // Wyzwalanie generowania sugestii przy zmianie dowolnego parametru preferencji
     LaunchedEffect(
         prefs?.budget,
         prefs?.days,
@@ -69,6 +76,7 @@ fun DestinationSelectionScreen(
         if (prefs != null) viewModel.prepareDestinationSuggestions()
     }
 
+    // Stan lokalny dla wybranego indeksu (zachowywany przy obrocie ekranu) i błędów walidacji
     val selectedIndex = rememberSaveable { mutableIntStateOf(-1) }
     val localError = remember { mutableStateOf<String?>(null) }
 
@@ -76,8 +84,11 @@ fun DestinationSelectionScreen(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.title_destination_selection)) },
-                navigationIcon = { TextButton(onClick = onBack) { Text(stringResource(R.string.btn_return)) } },
+                navigationIcon = {
+                    TextButton(onClick = onBack) { Text(stringResource(R.string.btn_return)) }
+                },
                 actions = {
+                    // Odświeżanie danych pogodowych dla wybranej lokalizacji
                     TextButton(
                         onClick = {
                             val d = uiState.chosenDestination
@@ -101,6 +112,7 @@ fun DestinationSelectionScreen(
                     style = MaterialTheme.typography.bodyMedium
                 )
 
+                // Sekcja pogody wyświetlająca dane dla aktualnie zaznaczonej karty
                 WeatherCard(
                     cityLabel = chosen?.displayName,
                     weatherCity = weather.city,
@@ -112,6 +124,7 @@ fun DestinationSelectionScreen(
 
                 Divider()
 
+                // Obsługa stanów pustych (brak preferencji lub brak pasujących wyników)
                 if (prefs == null) {
                     Text(stringResource(R.string.msg_no_preferences), color = MaterialTheme.colorScheme.error)
                     OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.btn_return)) }
@@ -127,16 +140,13 @@ fun DestinationSelectionScreen(
                     return@Centered
                 }
 
-                // USUNIĘTO: Pobieranie etykiety transportu (T_MAX itp.)
-                // val transportLabel = viewModel.getTransportScenarioLabel().asString()
-
-                // ZMIANA: Nagłówek bez etykiety wariantu
                 Text(
-                    text = stringResource(R.string.msg_suggestions_header, 3, ""), // Pusty string lub zmień zasób msg_suggestions_header
+                    text = stringResource(R.string.msg_suggestions_header, 3, ""),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
 
+                // Lista sugerowanych kierunków
                 LazyColumn(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -149,7 +159,6 @@ fun DestinationSelectionScreen(
                             selected = selectedIndex.intValue == idx,
                             prefsBudget = prefs.budget,
                             prefsDays = prefs.days,
-                            // USUNIĘTO: przekazywanie transportLabelString
                             onSelect = {
                                 selectedIndex.intValue = idx
                                 localError.value = null
@@ -159,6 +168,7 @@ fun DestinationSelectionScreen(
                     }
                 }
 
+                // Komunikat błędu (np. gdy budżet jest zbyt niski dla wybranego miejsca)
                 localError.value?.let { Text(text = it, color = MaterialTheme.colorScheme.error) }
 
                 Row(
@@ -176,11 +186,10 @@ fun DestinationSelectionScreen(
                                 return@ElevatedButton
                             }
 
+                            // Walidacja budżetu: sprawdzenie czy po opłaceniu transportu zostaje kwota na przeżycie
                             val days = prefs.days.coerceAtLeast(1)
                             val transportUsed = viewModel.getTransportCostUsedForSuggestions(d)
                             val remaining = prefs.budget - transportUsed
-
-                            // Do błędów możemy wziąć po prostu "szacowany koszt" zamiast etykiety T_MAX
                             val tLabel = "szacowany koszt"
 
                             if (remaining <= 0) {
@@ -208,6 +217,7 @@ fun DestinationSelectionScreen(
                                 return@ElevatedButton
                             }
 
+                            // Przejście do generowania planu po pozytywnej walidacji
                             viewModel.generatePlan()
                             onDestinationChosen()
                         },
@@ -221,6 +231,9 @@ fun DestinationSelectionScreen(
     }
 }
 
+/**
+ * Kontener centrujący treść na ekranie.
+ */
 @Composable
 private fun Centered(
     modifier: Modifier = Modifier,
@@ -231,6 +244,9 @@ private fun Centered(
     }
 }
 
+/**
+ * Karta pojedynczej destynacji wyświetlająca kluczowe informacje ekonomiczne i geograficzne.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DestinationCard(
@@ -239,16 +255,17 @@ private fun DestinationCard(
     selected: Boolean,
     prefsBudget: Int,
     prefsDays: Int,
-    // USUNIĘTO parametr transportLabelString
     onSelect: () -> Unit
 ) {
     val days = prefsDays.coerceAtLeast(1)
 
+    // Kalkulacja budżetu pozostałego na dni pobytu po odjęciu kosztów podróży
     val transportUsed = viewModel.getTransportCostUsedForSuggestions(destination)
     val remaining = prefsBudget - transportUsed
     val budgetPerDay = if (remaining > 0) (remaining.toDouble() / days).roundToInt() else 0
     val okBudget = remaining > 0 && budgetPerDay >= destination.minBudgetPerDay
 
+    // Zmiana kolorystyki karty w zależności od zaznaczenia
     val container = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
     val content = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
 
@@ -273,6 +290,7 @@ private fun DestinationCard(
                     Text(destination.country, style = MaterialTheme.typography.bodyMedium)
                 }
 
+                // Wizualny wskaźnik czy budżet użytkownika jest wystarczający
                 Text(
                     text = if (okBudget) stringResource(R.string.status_ok) else stringResource(R.string.status_budget_low),
                     color = if (okBudget) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
@@ -289,7 +307,7 @@ private fun DestinationCard(
             )
             Spacer(Modifier.height(6.dp))
 
-            // ZMIANA: Wyświetlamy prosty zakres cenowy z nowego zasobu string
+            // Informacja o szacowanym zakresie cenowym transportu
             Text(
                 text = stringResource(
                     R.string.msg_transport_simple_range,
@@ -300,6 +318,7 @@ private fun DestinationCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
+            // Porównanie dostępnego budżetu dziennego z wymaganiami destynacji
             Text(
                 text = stringResource(R.string.msg_budget_info, budgetPerDay, destination.minBudgetPerDay),
                 style = MaterialTheme.typography.bodySmall
@@ -316,6 +335,9 @@ private fun DestinationCard(
     }
 }
 
+/**
+ * Komponent wyświetlający bieżącą pogodę w wybranej lokalizacji.
+ */
 @Composable
 private fun WeatherCard(
     cityLabel: String?,

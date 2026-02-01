@@ -26,12 +26,20 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
+/**
+ * Główny moduł Dependency Injection (DI) oparty na bibliotece Koin.
+ * Definiuje sposób tworzenia i dostarczania zależności w całej aplikacji.
+ * Podział na sekcje ułatwia zarządzanie grafem zależności.
+ */
 val appModule = module {
 
-    // --- 1. ZEWNĘTRZNE (Firebase) ---
+    // --- 1. ZALEŻNOŚCI ZEWNĘTRZNE (Third-party) ---
+    // Instancje klas z bibliotek zewnętrznych (np. Firebase), których nie modyfikujemy.
     single { FirebaseAuth.getInstance() }
 
-    // --- 2. REPOZYTORIA (Singletons) ---
+    // --- 2. REPOZYTORIA (Data Layer) ---
+    // Definiowane jako 'single' (Singleton), ponieważ przechowują stan (cache)
+    // lub są kosztowne w tworzeniu (połączenia sieciowe/baza danych).
     single { DestinationRepository(androidContext()) }
     single { ActivitiesRepository(androidContext()) }
     single { AuthRepository(firebaseAuth = get()) }
@@ -39,12 +47,13 @@ val appModule = module {
     single { PlansCloudRepository() }
     single { WeatherRepository() }
 
-    // --- 3. UTILS / HELPERS ---
+    // --- 3. HELPERY / UTILS ---
+    // Implementacja interfejsu StringProvider, który pozwala warstwie domeny (czystej Kotlin)
+    // na dostęp do zasobów Androida (R.string) bez bezpośredniej zależności od Contextu.
     single<StringProvider> {
         object : StringProvider {
             private val context = androidContext()
 
-            // POPRAWKA: Obsługa vararg args
             override fun getString(resId: Int, vararg args: Any): String {
                 return if (args.isNotEmpty()) {
                     context.getString(resId, *args)
@@ -55,24 +64,35 @@ val appModule = module {
         }
     }
 
-    // --- 4. DOMENA / USE CASES (Factories) ---
+    // --- 4. DOMENA / USE CASES (Business Logic) ---
+    // Definiowane jako 'factory', co oznacza, że przy każdym wstrzyknięciu tworzona jest nowa instancja.
+    // Jest to bezpieczne, ponieważ UseCase'y są zazwyczaj bezstanowe (stateless).
+
+    // Silnik generowania planu (Core Engine)
     factory { PlanGenerator(stringProvider = get()) }
 
+    // Eksporter PDF
     factory { ExportPlanPdfUseCase() }
 
+    // Przypadki użycia związane z planowaniem
     factory { GeneratePlanUseCase(activitiesRepository = get(), planGenerator = get()) }
     factory { RegenerateDayUseCase(activitiesRepository = get(), planGenerator = get()) }
     factory { RollNewActivityUseCase(activitiesRepository = get(), planGenerator = get()) }
 
+    // Przypadki użycia związane z pogodą
     factory { LoadWeatherUseCase(weatherRepository = get()) }
     factory { LoadForecastForTripUseCase(weatherRepository = get()) }
 
+    // Pozostałe przypadki użycia (Sugestie, Zapis, Walidacja)
     factory { SuggestDestinationsUseCase(destinationRepository = get()) }
     factory { SavePlanLocallyUseCase(localRepository = get(), cloudRepository = get()) }
     factory { LoadLatestLocalPlanUseCase(localRepository = get()) }
     factory { ValidatePasswordUseCase() }
 
-    // --- 5. VIEW MODELS ---
+    // --- 5. VIEW MODELS (Presentation Layer) ---
+    // Koin 'viewModel' dba o integrację z Android Architecture Components (ViewModelProvider),
+    // dzięki czemu ViewModele przetrwają zmiany konfiguracji (obrót ekranu).
+
     viewModel {
         AuthViewModel(
             authRepository = get(),
@@ -82,6 +102,7 @@ val appModule = module {
 
     viewModel { MyPlansViewModel(localRepository = get(), cloudRepository = get()) }
 
+    // Główny ViewModel aplikacji - agreguje większość logiki biznesowej
     viewModel {
         VacationViewModel(
             destinationRepository = get(),

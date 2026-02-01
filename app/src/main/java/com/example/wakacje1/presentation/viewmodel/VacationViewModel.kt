@@ -12,7 +12,7 @@ import com.example.wakacje1.domain.model.Destination
 import com.example.wakacje1.domain.model.InternalDayPlan
 import com.example.wakacje1.domain.model.Preferences
 import com.example.wakacje1.domain.model.SlotPlan
-import com.example.wakacje1.domain.usecase.ExportPlanPdfUseCase // <--- NOWY IMPORT
+import com.example.wakacje1.domain.usecase.ExportPlanPdfUseCase
 import com.example.wakacje1.domain.usecase.GeneratePlanUseCase
 import com.example.wakacje1.domain.usecase.LoadForecastForTripUseCase
 import com.example.wakacje1.domain.usecase.LoadLatestLocalPlanUseCase
@@ -38,33 +38,34 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/**
+ * Główny ViewModel sterujący procesem planowania wakacji.
+ * Koordynuje działania UseCase'ów, zarządza stanem UI oraz obsługuje asynchroniczne operacje
+ * związane z pogodą, generowaniem planu i zapisem danych.
+ */
 class VacationViewModel(
     private val destinationRepository: DestinationRepository,
     private val savePlanLocallyUseCase: SavePlanLocallyUseCase,
     private val loadLatestLocalPlanUseCase: LoadLatestLocalPlanUseCase,
     private val suggestDestinationsUseCase: SuggestDestinationsUseCase,
-    // UseCases Logiki Planu
     private val generatePlanUseCase: GeneratePlanUseCase,
     private val regenerateDayUseCase: RegenerateDayUseCase,
     private val rollNewActivityUseCase: RollNewActivityUseCase,
-    // [NOWOŚĆ] UseCase do PDF
     private val exportPlanPdfUseCase: ExportPlanPdfUseCase,
-    // Engine
     private val planGenerator: PlanGenerator,
-    // UseCases Pogodowe
     private val loadWeatherUseCase: LoadWeatherUseCase,
     private val loadForecastForTripUseCase: LoadForecastForTripUseCase
 ) : ViewModel() {
 
-    // --- STATE FLOW ---
+    // Strumień stanu UI (Single Source of Truth)
     private val _uiState = MutableStateFlow(VacationUiState())
     val uiState: StateFlow<VacationUiState> = _uiState.asStateFlow()
 
-    // --- Events ---
+    // Strumień zdarzeń jednorazowych (np. SnackBar, nawigacja)
     private val _events = MutableSharedFlow<UiEvent>(extraBufferCapacity = 8)
     val events = _events.asSharedFlow()
 
-    // --- Stan wewnętrzny ---
+    // Wewnętrzny stan danych planu przed transformacją do formatu widokowego
     private var internalPlanDays: MutableList<InternalDayPlan> = mutableListOf()
     private var currentPlanId: String? = null
     private var currentCreatedAtMillis: Long? = null
@@ -92,6 +93,9 @@ class VacationViewModel(
 
     // --- Główne Metody ---
 
+    /**
+     * Aktualizacja preferencji użytkownika (resetuje obecny stan kreatora).
+     */
     fun updatePreferences(prefs: Preferences) {
         internalPlanDays.clear()
         currentPlanId = null
@@ -105,6 +109,9 @@ class VacationViewModel(
         }
     }
 
+    /**
+     * Generuje sugestie miejsc na podstawie preferencji (budżet, styl wyjazdu itp.).
+     */
     fun prepareDestinationSuggestions() {
         val prefs = _uiState.value.preferences ?: run {
             _uiState.update { it.copy(destinationSuggestions = emptyList()) }
@@ -121,6 +128,9 @@ class VacationViewModel(
         }
     }
 
+    /**
+     * Inicjalizacja wybranej destynacji i pobranie warunków pogodowych.
+     */
     fun chooseDestination(destination: Destination) {
         internalPlanDays.clear()
         currentPlanId = null
@@ -142,6 +152,9 @@ class VacationViewModel(
         }
     }
 
+    /**
+     * Tworzy nowy harmonogram zwiedzania, biorąc pod uwagę warunki pogodowe (indoor/outdoor).
+     */
     fun generatePlan() {
         val currentState = _uiState.value
         val prefs = currentState.preferences ?: return
@@ -172,6 +185,9 @@ class VacationViewModel(
         }
     }
 
+    /**
+     * Losuje wszystkie aktywności dla konkretnego dnia wycieczki.
+     */
     fun regenerateDay(dayIndex: Int) {
         if (!_uiState.value.canEditPlan) return
         val currentState = _uiState.value
@@ -197,6 +213,9 @@ class VacationViewModel(
         }
     }
 
+    /**
+     * Podmienia aktywność w pojedynczym slocie czasowym wybranego dnia.
+     */
     fun rollNewActivity(dayIndex: Int, slot: DaySlot) {
         if (!_uiState.value.canEditPlan) return
         val currentState = _uiState.value
@@ -223,6 +242,9 @@ class VacationViewModel(
         }
     }
 
+    /**
+     * Ręczne ustawienie tytułu i opisu przez użytkownika dla danego slotu.
+     */
     fun setCustomActivity(dayIndex: Int, slot: DaySlot, title: String, description: String) {
         if (!_uiState.value.canEditPlan) return
         planGenerator.setCustomSlot(dayIndex, slot, title, description, internalPlanDays)
@@ -256,6 +278,9 @@ class VacationViewModel(
         }
     }
 
+    /**
+     * Helper sprawdzający flagę "BadWeather" dla konkretnego dnia na podstawie daty startu i indeksu.
+     */
     private fun isBadWeatherForDayIndex(dayIndex: Int): Boolean {
         val prefs = _uiState.value.preferences ?: return false
         val startMillis = prefs.startDateMillis ?: return false
@@ -268,6 +293,9 @@ class VacationViewModel(
 
     // --- Storage & Utils ---
 
+    /**
+     * Persystencja danych: Zapisuje obecny plan w lokalnej bazie danych.
+     */
     fun savePlanLocally(uid: String? = null) {
         val realUid = uid ?: FirebaseAuth.getInstance().currentUser?.uid
         if (realUid.isNullOrBlank()) {
@@ -295,6 +323,9 @@ class VacationViewModel(
         }
     }
 
+    /**
+     * Pobiera najnowszy plan przypisany do użytkownika.
+     */
     fun loadPlanLocally(uid: String? = null) {
         val realUid = uid ?: FirebaseAuth.getInstance().currentUser?.uid ?: return
         viewModelScope.launch {
@@ -315,6 +346,9 @@ class VacationViewModel(
         }
     }
 
+    /**
+     * Przywraca stan ViewModelu na podstawie danych wczytanych z bazy.
+     */
     fun applyStoredPlan(stored: StoredPlan) {
         internalPlanDays = stored.internalDays.map { it.toInternalDayPlan() }.toMutableList()
         currentPlanId = stored.id
@@ -334,7 +368,9 @@ class VacationViewModel(
         }
     }
 
-    // [ZMIANA] Nowa logika eksportu PDF
+    /**
+     * Przygotowuje kod HTML planu i wysyła event do UI w celu wygenerowania pliku PDF.
+     */
     fun exportCurrentPlanToPdf() {
         val currentState = _uiState.value
         val destName = currentState.chosenDestination?.displayName
@@ -398,6 +434,9 @@ class VacationViewModel(
         }
     }
 
+    /**
+     * Zmienia kolejność dni w harmonogramie (przesunięcie w górę).
+     */
     fun moveDayUp(index: Int) {
         if (!_uiState.value.canEditPlan || index <= 0 || index >= internalPlanDays.size) return
         val tmp = internalPlanDays[index - 1]
@@ -408,6 +447,9 @@ class VacationViewModel(
         _uiState.update { it.copy(plan = uiPlan) }
     }
 
+    /**
+     * Zmienia kolejność dni w harmonogramie (przesunięcie w dół).
+     */
     fun moveDayDown(index: Int) {
         if (!_uiState.value.canEditPlan || index < 0 || index >= internalPlanDays.size - 1) return
         val tmp = internalPlanDays[index + 1]

@@ -3,20 +3,39 @@ package com.example.wakacje1.data.local
 import org.json.JSONArray
 import org.json.JSONObject
 
+/**
+ * Obiekt pomocniczy (Serializer) odpowiedzialny za konwersję modelu [StoredPlan]
+ * na format tekstowy JSON i odwrotnie.
+ *
+ * Wykorzystuje natywną klasę `org.json`, co eliminuje konieczność używania
+ * ciężkich bibliotek refleksyjnych (jak Gson) do prostych operacji na blob'ach w bazie Room.
+ * Zapewnia pełną kontrolę nad strukturą zapisywanych danych.
+ */
 object StoredPlanJson {
 
+    /**
+     * Serializuje obiekt planu do ciągu znaków JSON.
+     * Używane przed zapisem do kolumny TEXT w bazie danych.
+     */
     fun toJson(plan: StoredPlan): String = toJsonObject(plan).toString()
 
+    /**
+     * Deserializuje ciąg znaków JSON do obiektu planu.
+     * Używane po odczycie z bazy danych.
+     */
     fun fromJson(json: String): StoredPlan {
         val obj = JSONObject(json)
         return fromJsonObject(obj)
     }
+
+    // --- Metody wewnętrzne mapujące poszczególne poziomy zagnieżdżenia ---
 
     private fun toJsonObject(p: StoredPlan): JSONObject {
         val o = JSONObject()
         o.put("id", p.id)
         o.put("createdAtMillis", p.createdAtMillis)
         o.put("destination", destinationToJson(p.destination))
+        // Obsługa pola opcjonalnego (nullable)
         o.put("preferences", p.preferences?.let { prefsToJson(it) } ?: JSONObject.NULL)
 
         val daysArr = JSONArray()
@@ -48,6 +67,8 @@ object StoredPlanJson {
             internalDays = internalDays
         )
     }
+
+    // --- Mapowanie Destynacji ---
 
     private fun destinationToJson(d: StoredDestination): JSONObject = JSONObject().apply {
         put("id", d.id)
@@ -82,12 +103,15 @@ object StoredPlanJson {
         )
     }
 
+    // --- Mapowanie Preferencji ---
+
     private fun prefsToJson(p: StoredPreferences): JSONObject = JSONObject().apply {
         put("region", p.region)
         put("climate", p.climate)
         put("style", p.style)
         put("budget", p.budget)
         put("days", p.days)
+        // Obsługa pól nullable dla dat (Long?)
         put("startDateMillis", p.startDateMillis?.let { it } ?: JSONObject.NULL)
         put("endDateMillis", p.endDateMillis?.let { it } ?: JSONObject.NULL)
     }
@@ -106,6 +130,8 @@ object StoredPlanJson {
             endDateMillis = end
         )
     }
+
+    // --- Mapowanie Dni i Slotów ---
 
     private fun internalDayToJson(d: StoredInternalDayPlan): JSONObject = JSONObject().apply {
         put("day", d.day)

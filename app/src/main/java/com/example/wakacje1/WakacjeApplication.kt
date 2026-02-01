@@ -15,7 +15,7 @@ class WakacjeApplication : Application() {
             androidLogger()
             // Przekazanie kontekstu aplikacji (potrzebne np. dla Room/SharedPrefs)
             androidContext(this@WakacjeApplication)
-            // Załadowanie Twojego modułu z zależnościami
+            // Załadowanie  modułu z zależnościami
             modules(appModule)
         }
     }

@@ -5,21 +5,25 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * UseCase generujący kod HTML planu wycieczki.
+ * Zwraca surowy String, który warstwa prezentacji przekaże do PrintManager/WebView.
+ * Zachowuje czystość architektury (brak zależności od android.content.Context/Activity).
+ */
 class ExportPlanPdfUseCase {
 
-    // USUNIĘTO: parametr activity: Activity
-    // ZMIANA: Metoda zwraca String (gotowy kod HTML), a nie robi side-effect (drukowanie)
     suspend fun execute(
         destinationName: String?,
         tripStartDateMillis: Long?,
         plan: List<DayPlan>
     ): String {
         if (plan.isEmpty()) return ""
-
-        // UseCase zajmuje się TYLKO logiką budowania dokumentu
         return buildHtml(destinationName, tripStartDateMillis, plan)
     }
 
+    /**
+     * Składa strukturę HTML ze stylami CSS (format A4).
+     */
     private fun buildHtml(
         destinationName: String?,
         tripStartDateMillis: Long?,
@@ -45,6 +49,7 @@ class ExportPlanPdfUseCase {
             }
         }
 
+        // Style CSS wymuszające podział stron (break-inside: avoid)
         return """
             <!doctype html>
             <html lang="pl">
@@ -62,7 +67,6 @@ class ExportPlanPdfUseCase {
                   border-radius: 10px;
                   padding: 10px 12px;
                   margin: 0 0 10px 0;
-
                   break-inside: avoid;
                   page-break-inside: avoid;
                 }
@@ -86,6 +90,10 @@ class ExportPlanPdfUseCase {
         """.trimIndent()
     }
 
+    /**
+     * Parsuje tekstowy opis dnia na strukturalny HTML.
+     * Wykrywa nagłówki sekcji ("Poranek:") i listy punktowane ("- opis").
+     */
     private fun formatDetailsAsHtml(details: String): String {
         val lines = details.split("\n")
         val out = StringBuilder()
@@ -105,12 +113,14 @@ class ExportPlanPdfUseCase {
                 continue
             }
 
+            // Wykrywanie nagłówków
             if (line.startsWith("Poranek:") || line.startsWith("Południe:") || line.startsWith("Wieczór:")) {
                 closeList()
                 out.append("<div class=\"blockTitle\">${escapeHtml(line)}</div>")
                 continue
             }
 
+            // Wykrywanie listy
             if (line.startsWith("-")) {
                 if (!inList) {
                     out.append("<ul class=\"bullet\">")
@@ -120,6 +130,7 @@ class ExportPlanPdfUseCase {
                 continue
             }
 
+            // Zwykły tekst
             closeList()
             out.append("<div>${escapeHtml(line)}</div>")
         }

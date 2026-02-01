@@ -28,12 +28,18 @@ import androidx.compose.ui.unit.dp
 import com.example.wakacje1.R
 import com.example.wakacje1.presentation.viewmodel.AuthViewModel
 
+/**
+ * Ekran rejestracji nowego użytkownika.
+ * Wykorzystuje [AuthViewModel] do procesowania danych i zarządzania stanem ładowania/błędów.
+ */
 @Composable
 fun RegisterScreen(
     authVm: AuthViewModel,
-    onDone: () -> Unit,
-    onGoLogin: () -> Unit
+    onDone: () -> Unit,    // Nawigacja po sukcesie
+    onGoLogin: () -> Unit  // Nawigacja powrotna
 ) {
+    // Lokalny stan pól tekstowych. Wykorzystanie 'remember' zapewnia zachowanie
+    // tekstu podczas rekompozycji (np. przy wyświetlaniu błędu).
     var email by remember { mutableStateOf("") }
     var pass by remember { mutableStateOf("") }
 
@@ -44,7 +50,7 @@ fun RegisterScreen(
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Tytuł ekranu
+            // Tytuł ekranu zintegrowany z systemem zasobów i typografią Material3
             Text(
                 text = stringResource(R.string.register_title),
                 style = MaterialTheme.typography.headlineMedium
@@ -52,7 +58,7 @@ fun RegisterScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // Pole Email
+            // Pole Email z wymuszeniem odpowiedniego układu klawiatury
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
@@ -64,7 +70,7 @@ fun RegisterScreen(
 
             Spacer(Modifier.height(10.dp))
 
-            // Pole Hasło
+            // Pole Hasło z PasswordVisualTransformation (maskowanie kropek)
             OutlinedTextField(
                 value = pass,
                 onValueChange = { pass = it },
@@ -75,7 +81,7 @@ fun RegisterScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // Podpowiedź dot. siły hasła (TERAZ Z ZASOBÓW)
+            // Podpowiedź dot. wymagań hasła (np. min. 6 znaków, duża litera)
             Text(
                 text = stringResource(R.string.password_requirements_hint),
                 style = MaterialTheme.typography.bodySmall,
@@ -86,6 +92,8 @@ fun RegisterScreen(
             Spacer(Modifier.height(8.dp))
 
             // --- OBSŁUGA BŁĘDÓW (UiText) ---
+            // Reaktywne wyświetlanie komunikatów o błędach pochodzących z ViewModelu.
+            // Wykorzystanie .asString() pozwala na automatyczne tłumaczenie błędów z Firebase lub walidatora.
             authVm.error?.let { uiText ->
                 Spacer(Modifier.height(6.dp))
                 Text(
@@ -97,7 +105,8 @@ fun RegisterScreen(
 
             Spacer(Modifier.height(14.dp))
 
-            // Przycisk Rejestracji
+            // Przycisk wyzwalający rejestrację. enabled = !authVm.loading zapobiega
+            // wielokrotnym kliknięciom podczas trwania zapytania do serwera.
             Button(
                 onClick = { authVm.register(email, pass, onSuccess = onDone) },
                 enabled = !authVm.loading,
@@ -108,7 +117,7 @@ fun RegisterScreen(
 
             Spacer(Modifier.height(18.dp))
 
-            // Przycisk powrotu do logowania (TERAZ Z ZASOBÓW)
+            // Powrót do ekranu logowania dla użytkowników posiadających już konto
             TextButton(
                 onClick = onGoLogin,
                 enabled = !authVm.loading,
@@ -118,6 +127,7 @@ fun RegisterScreen(
             }
         }
 
+        // Nakładka ładowania (Blocking UI)
         if (authVm.loading) {
             CircularProgressIndicator()
         }

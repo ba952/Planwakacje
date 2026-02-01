@@ -1,14 +1,19 @@
 package com.example.wakacje1.data.assets
 
 import android.content.Context
-import com.example.wakacje1.R // <--- WAŻNE: Import zasobów R
+import com.example.wakacje1.R
 import com.example.wakacje1.domain.model.Destination
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.Locale
 
+/**
+ * Repozytorium odczytujące dane o destynacjach z pliku JSON (assets).
+ * Wykorzystuje cache w pamięci.
+ */
 class DestinationRepository(private val context: Context) {
 
+    // Leniwe ładowanie (lazy) - dane są parsowane tylko raz przy pierwszym użyciu
     private val cachedDestinations: List<Destination> by lazy { loadDestinationsFromAssets() }
 
     fun getAllDestinations(): List<Destination> = cachedDestinations
@@ -27,8 +32,11 @@ class DestinationRepository(private val context: Context) {
         return result
     }
 
+    /**
+     * Bezpieczne parsowanie JSON - uzupełnia braki wartościami domyślnymi.
+     */
     private fun parseDestinationSafe(obj: JSONObject): Destination {
-        // POPRAWKA: Używamy zasobu string zamiast "Miejsce"
+        // Pobranie nazwy zastępczej z zasobów (gdy JSON jest uszkodzony)
         val fallbackName = context.getString(R.string.fallback_destination_name)
         val displayName = obj.optString("displayName", "").trim().ifBlank { fallbackName }
 
@@ -36,12 +44,14 @@ class DestinationRepository(private val context: Context) {
         val region = obj.optString("region", "").trim()
         val climate = obj.optString("climate", "").trim()
 
+        // Generowanie technicznego ID, jeśli brakuje go w pliku
         val idRaw = obj.optString("id", "").trim()
         val id = idRaw.ifBlank { slug("${displayName}_${country}_${region}_${climate}") }
 
         val minBudget = obj.optInt("minBudgetPerDay", 0)
         val typicalBudget = obj.optInt("typicalBudgetPerDay", minBudget)
 
+        // Parsowanie tagów
         val tags = mutableListOf<String>()
         if (obj.has("tags")) {
             val tagsArr = obj.optJSONArray("tags") ?: JSONArray()
@@ -53,7 +63,7 @@ class DestinationRepository(private val context: Context) {
 
         val apiQuery = obj.optString("apiQuery", displayName).trim().ifBlank { displayName }
 
-        // --- NEW: transport range ---
+        // Parsowanie kosztów transportu (obsługa formatu zakresu lub min/max)
         val rangeArr = obj.optJSONArray("transportCostRoundTripPlnRange")
         val tMinRaw = when {
             rangeArr != null && rangeArr.length() > 0 -> rangeArr.optInt(0, 0)
@@ -82,12 +92,14 @@ class DestinationRepository(private val context: Context) {
         )
     }
 
+    /**
+     * Helper tworzący bezpieczny identyfikator (slug) z nazwy.
+     */
     private fun slug(s: String): String {
         val lower = s.lowercase(Locale.ROOT)
         return lower
             .replace(Regex("[^a-z0-9]+"), "_")
             .trim('_')
-            // To jest ID techniczne, nie wyświetlane użytkownikowi, więc string literal jest tu OK.
             .ifBlank { "dest_${System.currentTimeMillis()}" }
     }
 }
