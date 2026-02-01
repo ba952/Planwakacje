@@ -6,6 +6,19 @@ sealed class AppError(
     val uiText: UiText, // To pole przechowuje tekst dla UI
     val technicalMessage: String? = null
 ) {
+
+    // --- DODANA KLASA ---
+    // Służy do przekazywania błędów, które zostały już zmapowane na konkretny UiText
+    // (np. w ErrorMapperze dla pogody).
+    class Recoverable(
+        text: UiText,
+        tech: String? = null
+    ) : AppError(
+        uiText = text,
+        technicalMessage = tech
+    )
+    // --------------------
+
     class Network(tech: String? = null) : AppError(
         uiText = UiText.StringResource(R.string.error_network),
         technicalMessage = tech
@@ -31,7 +44,6 @@ sealed class AppError(
         technicalMessage = tech
     )
 
-    // Validation przyjmuje String w konstruktorze, ale zamienia go na UiText.DynamicString
     class Validation(message: String, tech: String? = null) : AppError(
         uiText = UiText.DynamicString(message),
         technicalMessage = tech
@@ -42,7 +54,6 @@ sealed class AppError(
         technicalMessage = tech
     )
 
-    // POPRAWKA TUTAJ: Konstruktor przyjmuje UiText, a nie String!
     class Unknown(
         fallback: UiText = UiText.StringResource(R.string.error_unknown),
         tech: String? = null

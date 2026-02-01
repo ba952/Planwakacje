@@ -7,7 +7,7 @@ import com.example.wakacje1.data.remote.AuthRepository
 import com.example.wakacje1.data.remote.PlansCloudRepository
 import com.example.wakacje1.data.remote.WeatherRepository
 import com.example.wakacje1.domain.engine.PlanGenerator
-import com.example.wakacje1.domain.usecase.ExportPlanPdfUseCase // <--- NOWY IMPORT
+import com.example.wakacje1.domain.usecase.ExportPlanPdfUseCase
 import com.example.wakacje1.domain.usecase.GeneratePlanUseCase
 import com.example.wakacje1.domain.usecase.LoadForecastForTripUseCase
 import com.example.wakacje1.domain.usecase.LoadLatestLocalPlanUseCase
@@ -43,26 +43,30 @@ val appModule = module {
     single<StringProvider> {
         object : StringProvider {
             private val context = androidContext()
-            override fun getString(resId: Int): String = context.getString(resId)
+
+            // POPRAWKA: Obsługa vararg args
+            override fun getString(resId: Int, vararg args: Any): String {
+                return if (args.isNotEmpty()) {
+                    context.getString(resId, *args)
+                } else {
+                    context.getString(resId)
+                }
+            }
         }
     }
 
     // --- 4. DOMENA / USE CASES (Factories) ---
     factory { PlanGenerator(stringProvider = get()) }
 
-    // [NOWOŚĆ] UseCase do PDF
     factory { ExportPlanPdfUseCase() }
 
-    // Logika biznesowa planu
     factory { GeneratePlanUseCase(activitiesRepository = get(), planGenerator = get()) }
     factory { RegenerateDayUseCase(activitiesRepository = get(), planGenerator = get()) }
     factory { RollNewActivityUseCase(activitiesRepository = get(), planGenerator = get()) }
 
-    // Logika pogodowa
     factory { LoadWeatherUseCase(weatherRepository = get()) }
     factory { LoadForecastForTripUseCase(weatherRepository = get()) }
 
-    // Inne
     factory { SuggestDestinationsUseCase(destinationRepository = get()) }
     factory { SavePlanLocallyUseCase(localRepository = get(), cloudRepository = get()) }
     factory { LoadLatestLocalPlanUseCase(localRepository = get()) }
@@ -87,7 +91,7 @@ val appModule = module {
             generatePlanUseCase = get(),
             regenerateDayUseCase = get(),
             rollNewActivityUseCase = get(),
-            exportPlanPdfUseCase = get(), // <--- WSTRZYKNIĘCIE NOWEGO USECASE
+            exportPlanPdfUseCase = get(),
             planGenerator = get(),
             loadWeatherUseCase = get(),
             loadForecastForTripUseCase = get()

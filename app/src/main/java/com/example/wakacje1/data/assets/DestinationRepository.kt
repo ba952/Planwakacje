@@ -1,6 +1,7 @@
 package com.example.wakacje1.data.assets
 
 import android.content.Context
+import com.example.wakacje1.R // <--- WAŻNE: Import zasobów R
 import com.example.wakacje1.domain.model.Destination
 import org.json.JSONArray
 import org.json.JSONObject
@@ -27,7 +28,10 @@ class DestinationRepository(private val context: Context) {
     }
 
     private fun parseDestinationSafe(obj: JSONObject): Destination {
-        val displayName = obj.optString("displayName", "").trim().ifBlank { "Miejsce" }
+        // POPRAWKA: Używamy zasobu string zamiast "Miejsce"
+        val fallbackName = context.getString(R.string.fallback_destination_name)
+        val displayName = obj.optString("displayName", "").trim().ifBlank { fallbackName }
+
         val country = obj.optString("country", "").trim()
         val region = obj.optString("region", "").trim()
         val climate = obj.optString("climate", "").trim()
@@ -83,6 +87,7 @@ class DestinationRepository(private val context: Context) {
         return lower
             .replace(Regex("[^a-z0-9]+"), "_")
             .trim('_')
+            // To jest ID techniczne, nie wyświetlane użytkownikowi, więc string literal jest tu OK.
             .ifBlank { "dest_${System.currentTimeMillis()}" }
     }
 }

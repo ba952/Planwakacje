@@ -127,11 +127,12 @@ fun DestinationSelectionScreen(
                     return@Centered
                 }
 
-                // --- POPRAWKA 1: Wyciągamy string z UiText ---
-                val transportLabel = viewModel.getTransportScenarioLabel().asString()
+                // USUNIĘTO: Pobieranie etykiety transportu (T_MAX itp.)
+                // val transportLabel = viewModel.getTransportScenarioLabel().asString()
 
+                // ZMIANA: Nagłówek bez etykiety wariantu
                 Text(
-                    text = stringResource(R.string.msg_suggestions_header, 3, transportLabel), // Używamy transportLabel
+                    text = stringResource(R.string.msg_suggestions_header, 3, ""), // Pusty string lub zmień zasób msg_suggestions_header
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -148,8 +149,7 @@ fun DestinationSelectionScreen(
                             selected = selectedIndex.intValue == idx,
                             prefsBudget = prefs.budget,
                             prefsDays = prefs.days,
-                            // Przekazujemy już odpakowany String w dół
-                            transportLabelString = transportLabel,
+                            // USUNIĘTO: przekazywanie transportLabelString
                             onSelect = {
                                 selectedIndex.intValue = idx
                                 localError.value = null
@@ -180,13 +180,13 @@ fun DestinationSelectionScreen(
                             val transportUsed = viewModel.getTransportCostUsedForSuggestions(d)
                             val remaining = prefs.budget - transportUsed
 
-                            // Pobieramy etykietę transportu jako String do komunikatów błędów
-                            val tLabel = viewModel.getTransportScenarioLabel().asString(context)
+                            // Do błędów możemy wziąć po prostu "szacowany koszt" zamiast etykiety T_MAX
+                            val tLabel = "szacowany koszt"
 
                             if (remaining <= 0) {
                                 localError.value = context.getString(
                                     R.string.error_budget_too_low_transport,
-                                    tLabel, // Używamy Stringa
+                                    tLabel,
                                     transportUsed,
                                     d.transportCostRoundTripPlnMin,
                                     d.transportCostRoundTripPlnMax
@@ -198,7 +198,7 @@ fun DestinationSelectionScreen(
                             if (budgetPerDay < d.minBudgetPerDay) {
                                 localError.value = context.getString(
                                     R.string.error_budget_too_low_daily,
-                                    tLabel, // Używamy Stringa
+                                    tLabel,
                                     budgetPerDay,
                                     transportUsed,
                                     d.transportCostRoundTripPlnMin,
@@ -239,7 +239,7 @@ private fun DestinationCard(
     selected: Boolean,
     prefsBudget: Int,
     prefsDays: Int,
-    transportLabelString: String, // <--- NOWY PARAMETR
+    // USUNIĘTO parametr transportLabelString
     onSelect: () -> Unit
 ) {
     val days = prefsDays.coerceAtLeast(1)
@@ -289,17 +289,17 @@ private fun DestinationCard(
             )
             Spacer(Modifier.height(6.dp))
 
-            // --- POPRAWKA 2: Używamy przekazanego Stringa ---
+            // ZMIANA: Wyświetlamy prosty zakres cenowy z nowego zasobu string
             Text(
                 text = stringResource(
-                    R.string.msg_transport_info,
+                    R.string.msg_transport_simple_range,
                     destination.transportCostRoundTripPlnMin,
-                    destination.transportCostRoundTripPlnMax,
-                    transportUsed,
-                    transportLabelString // <-- Tutaj wstawiamy tekst, nie obiekt UiText
+                    destination.transportCostRoundTripPlnMax
                 ),
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
             Text(
                 text = stringResource(R.string.msg_budget_info, budgetPerDay, destination.minBudgetPerDay),
                 style = MaterialTheme.typography.bodySmall

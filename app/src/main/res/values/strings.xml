@@ -188,11 +188,15 @@
         <string name="label_midday">Południe:</string>
         <string name="label_evening">Wieczór:</string>
 
+    <string name="error_weather_network">Brak połączenia z internetem podczas pobierania pogody.</string>
+    <string name="error_weather_city_not_found">Nie znaleziono podanego miasta. Sprawdź pisownię.</string>
+    <string name="error_weather_api_key">Błąd konfiguracji API (Klucz).</string>
+    <string name="error_weather_general">Błąd serwera pogody (kod: %d).</string>
+    <string name="fallback_destination_name">Nieznane Miejsce</string>
 
 
-
-
-
+    <string name="plan_day_title">Dzień %1$d — %2$s</string>
+    <string name="msg_transport_simple_range">Transport: %1$d – %2$d PLN</string>
 
 
 </resources>

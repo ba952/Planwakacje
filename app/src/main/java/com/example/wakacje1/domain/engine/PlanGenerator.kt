@@ -83,18 +83,8 @@ class PlanGenerator(
 
     // --- Metody do regeneracji i edycji (Logic) ---
 
+    // NAPRAWA: Scalono regenerateWholeDay i regenerateDay w jedną funkcję.
     fun regenerateDay(
-        dayIndex: Int,
-        prefs: Preferences,
-        dest: Destination,
-        allActivities: List<ActivityTemplate>,
-        internal: MutableList<InternalDayPlan>,
-        isBadWeatherForDayIndex: (Int) -> Boolean
-    ) {
-        regenerateWholeDay(dayIndex, prefs, dest, allActivities, internal, isBadWeatherForDayIndex)
-    }
-
-    fun regenerateWholeDay(
         dayIndex: Int,
         prefs: Preferences,
         dest: Destination,
@@ -107,6 +97,7 @@ class PlanGenerator(
 
         val days = prefs.days.coerceAtLeast(1)
         val maxUniquePerDay = if (days < 7) 3 else 2
+        // Ważne: zbieramy ID użyte w INNYCH dniach, żeby nie wylosować tego samego
         val usedIds = collectUsedIds(internal, excludeDayIndex = dayIndex)
 
         var uniqueToday = 0
@@ -210,9 +201,16 @@ class PlanGenerator(
                 if (d.evening.description.isNotBlank()) append("\n- ${d.evening.description}")
             }
 
+            // NAPRAWA: Użycie zasobu string zamiast hardcodowania "Dzień X — Y"
+            val title = stringProvider.getString(
+                R.string.plan_day_title,
+                d.day,
+                destinationName
+            )
+
             DayPlan(
                 day = d.day,
-                title = "Dzień ${d.day} — $destinationName",
+                title = title,
                 details = details
             )
         }

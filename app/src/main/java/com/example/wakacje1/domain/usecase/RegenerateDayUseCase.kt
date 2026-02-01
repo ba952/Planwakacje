@@ -17,7 +17,6 @@ class RegenerateDayUseCase(
         prefs: Preferences,
         dest: Destination,
         internal: MutableList<InternalDayPlan>,
-        // Jawne określenie typu funkcji jest kluczowe:
         isBadWeatherForDayIndex: (Int) -> Boolean
     ) {
         // 1. Pobieramy dane (IO)
@@ -27,13 +26,13 @@ class RegenerateDayUseCase(
 
         // 2. Uruchamiamy logikę generatora (Default/CPU)
         withContext(Dispatchers.Default) {
-            planGenerator.regenerateWholeDay(
+            // POPRAWKA: Zmiana nazwy metody z regenerateWholeDay na regenerateDay
+            planGenerator.regenerateDay(
                 dayIndex = dayIndex,
                 prefs = prefs,
                 dest = dest,
                 allActivities = allActivities,
                 internal = internal,
-                // Przekazujemy funkcję dalej (bez nawiasów klamrowych, bo to już jest funkcja)
                 isBadWeatherForDayIndex = isBadWeatherForDayIndex
             )
         }

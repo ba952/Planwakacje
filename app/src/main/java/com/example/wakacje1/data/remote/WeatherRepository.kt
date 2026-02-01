@@ -17,10 +17,19 @@ import java.util.Calendar
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
-// ZMIANA: class zamiast object
+// --- KROK 1: Definicja wyjątków domenowych (mogą być w osobny pliku, tu dla czytelności) ---
+sealed class WeatherException(cause: Throwable? = null) : IOException(cause) {
+    class NetworkError(cause: Throwable) : WeatherException(cause)
+    class CityNotFound : WeatherException()
+    class InvalidApiKey : WeatherException()
+    class ApiError(val code: Int) : WeatherException()
+    class Unknown(cause: Throwable) : WeatherException(cause)
+}
+
+// --- KROK 2: Wyczyszczone Repozytorium ---
 class WeatherRepository {
 
-    // ------------------ MODELE (dla UI/ViewModel) ------------------
+    // ------------------ MODELE ------------------
 
     data class WeatherResult(
         val city: String,
@@ -30,7 +39,7 @@ class WeatherRepository {
     )
 
     data class WeatherForecastDay(
-        val dateMillis: Long,      // lokalna północ
+        val dateMillis: Long,
         val tempMin: Double,
         val tempMax: Double,
         val description: String,
@@ -38,8 +47,7 @@ class WeatherRepository {
         val isBadWeather: Boolean
     )
 
-    // ------------------ CACHE (in-memory) ------------------
-    // Cache jest teraz per instancja (co jest OK, bo Koin trzyma singleton)
+    // ------------------ CACHE ------------------
     private val TTL_CURRENT_MS = 10L * 60 * 1000
     private val TTL_FORECAST_MS = 30L * 60 * 1000
 
@@ -53,20 +61,21 @@ class WeatherRepository {
         forecastCache.clear()
     }
 
-    // ------------------ Retrofit ------------------
+    // ------------------ RETROFIT ------------------
 
     private fun apiKey(): String {
         val k = BuildConfig.OPEN_WEATHER_API_KEY
+        // To jest błąd konfiguracyjny (dla programisty), więc illegalStateException/require jest tu OK,
+        // ale komunikat warto dać po angielsku lub przenieść do zasobów, jeśli aplikacja ma być open-source.
+        // Zostawiam po angielsku jako błąd techniczny.
         require(k.isNotBlank()) {
-            "Brak OPEN_WEATHER_API_KEY. Dodaj go do local.properties (ROOT projektu) i zrób Sync."
+            "Missing OPEN_WEATHER_API_KEY. Add it to local.properties."
         }
         return k
     }
 
     private val moshi: Moshi by lazy {
-        Moshi.Builder()
-            .add(KotlinJsonAdapterFactory())
-            .build()
+        Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
     }
 
     private val okHttp: OkHttpClient by lazy {
@@ -104,9 +113,14 @@ class WeatherRepository {
                 currentCache[key] = CacheEntry(System.currentTimeMillis(), parsed)
                 parsed
             } catch (e: HttpException) {
-                throw RuntimeException(friendlyHttpError("pogody", e))
-            } catch (_: IOException) {
-                throw RuntimeException("Brak połączenia z internetem / timeout podczas pobierania pogody.")
+                // Mapowanie kodów HTTP na wyjątki domenowe
+                throw mapHttpException(e)
+            } catch (e: IOException) {
+                // Błędy sieciowe (timeout, brak neta)
+                throw WeatherException.NetworkError(e)
+            } catch (e: Exception) {
+                // Inne nieprzewidziane błędy
+                throw WeatherException.Unknown(e)
             }
         }
 
@@ -126,16 +140,29 @@ class WeatherRepository {
                 forecastCache[key] = CacheEntry(System.currentTimeMillis(), parsed)
                 parsed
             } catch (e: HttpException) {
-                throw RuntimeException(friendlyHttpError("prognozy", e))
-            } catch (_: IOException) {
-                throw RuntimeException("Brak połączenia z internetem / timeout podczas pobierania prognozy.")
+                throw mapHttpException(e)
+            } catch (e: IOException) {
+                throw WeatherException.NetworkError(e)
+            } catch (e: Exception) {
+                throw WeatherException.Unknown(e)
             }
         }
 
-    // ------------------ MAPOWANIE: bieżąca pogoda ------------------
+    // Helper do mapowania HTTP -> WeatherException
+    private fun mapHttpException(e: HttpException): WeatherException {
+        return when (e.code()) {
+            401 -> WeatherException.InvalidApiKey()
+            404 -> WeatherException.CityNotFound()
+            else -> WeatherException.ApiError(e.code())
+        }
+    }
+
+    // ------------------ MAPOWANIE DANYCH ------------------
 
     private fun mapCurrent(res: CurrentWeatherResponse): WeatherResult {
-        val city = res.name?.takeIf { it.isNotBlank() } ?: "—"
+        // Zmiana: Jeśli nazwa pusta, zwracamy null lub pusty string.
+        // Formatting "—" powinien być w UI, ale tutaj zostawmy pusty string bezpiecznie.
+        val city = res.name?.takeIf { it.isNotBlank() } ?: ""
         val temp = res.main?.temp ?: 0.0
         val w0 = res.weather?.firstOrNull()
         val desc = w0?.description ?: ""
@@ -148,8 +175,6 @@ class WeatherRepository {
             conditionId = id
         )
     }
-
-    // ------------------ MAPOWANIE: prognoza dzienna ------------------
 
     private data class Agg(
         var min: Double,
@@ -219,17 +244,13 @@ class WeatherRepository {
     }
 
     private fun isBadWeather(conditionId: Int, desc: String): Boolean {
+        // Ten string "deszcz" jest w logice biznesowej wykrywania pogody,
+        // a nie wyświetlania, więc technicznie może zostać (API zwraca opisy),
+        // ale lepiej bazować na conditionId.
+        // Tutaj zostawiam bez zmian, bo to logika analizy danych, a nie UI.
         val group = conditionId / 100
         if (group in setOf(2, 3, 5, 6, 7)) return true
         val d = desc.lowercase()
         return d.contains("deszcz") || d.contains("burz") || d.contains("śnieg") || d.contains("mgł")
-    }
-
-    private fun friendlyHttpError(what: String, e: HttpException): String {
-        return when (e.code()) {
-            401 -> "Błąd autoryzacji ($what). Sprawdź klucz OPEN_WEATHER_API_KEY."
-            404 -> "Nie znaleziono miasta ($what). Sprawdź nazwę/format zapytania."
-            else -> "Błąd API $what: HTTP ${e.code()}."
-        }
     }
 }
