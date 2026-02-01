@@ -52,7 +52,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.wakacje1.R
 import com.example.wakacje1.domain.model.DayPlan
 import com.example.wakacje1.domain.model.DaySlot
-import com.example.wakacje1.domain.usecase.WebViewPdfExporter
+// USUNIĘTO: import WebViewPdfExporter (już niepotrzebny tutaj)
 import com.example.wakacje1.presentation.common.UiEvent
 import com.example.wakacje1.presentation.viewmodel.VacationViewModel
 import kotlinx.coroutines.launch
@@ -79,36 +79,20 @@ fun PlanScreen(
     val canEdit = uiState.canEditPlan
 
     val snack = remember { SnackbarHostState() }
-
-
     val errorNoActivity = stringResource(R.string.error_no_activity)
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { ev ->
             when (ev) {
-                // Message ma uiText bezpośrednio
                 is UiEvent.Message -> {
                     snack.showSnackbar(ev.uiText.asString(context))
                 }
-                // POPRAWKA TUTAJ:
-                // Error ma w sobie obiekt 'error' (typu AppError),
-                // a dopiero on ma 'uiText'.
                 is UiEvent.Error -> {
                     snack.showSnackbar(ev.error.uiText.asString(context))
                 }
-                is UiEvent.ExportPdf -> {
-                    if (activity != null) {
-                        val msg = WebViewPdfExporter.export(
-                            activity = activity,
-                            destinationName = ev.destinationName,
-                            tripStartDateMillis = ev.tripStartDateMillis,
-                            plan = ev.plan
-                        )
-                        snack.showSnackbar(msg)
-                    } else {
-                        snack.showSnackbar(errorNoActivity)
-                    }
-                }
+                // USUNIĘTO: is UiEvent.ExportPdf -> ...
+                // Ten event już nie istnieje. Drukowanie (PrintPdf) obsługuje teraz MainActivity.
+                else -> Unit // Ignorujemy inne eventy (np. PrintPdf), bo zajmuje się nimi MainActivity
             }
         }
     }
@@ -294,6 +278,7 @@ fun PlanScreen(
     }
 }
 
+// ... reszta pliku (Centered, DayCard, SlotSection itp.) pozostaje bez zmian ...
 @Composable
 private fun Centered(
     modifier: Modifier = Modifier,

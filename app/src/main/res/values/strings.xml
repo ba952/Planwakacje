@@ -177,6 +177,22 @@
     <string name="transport_label_min">Tmin (optymistycznie)</string>
 
     <string name="error_no_activity">Błąd: Brak dostępu do Activity.</string>
+        <string name="fallback_morning_title">Zwiedzanie okolicy</string>
+        <string name="fallback_midday_title">Posiłek i przerwa</string>
+        <string name="fallback_evening_title">Wieczorny spacer / relaks</string>
+
+        <string name="fallback_desc_indoor">Zła pogoda — wybierz atrakcję pod dachem (muzeum, galeria, lokalna kawiarnia).</string>
+        <string name="fallback_desc_outdoor">Wybierz najciekawsze miejsce w pobliżu i dopasuj tempo do dnia.</string>
+
+        <string name="label_morning">Poranek:</string>
+        <string name="label_midday">Południe:</string>
+        <string name="label_evening">Wieczór:</string>
+
+
+
+
+
+
 
 
 </resources>

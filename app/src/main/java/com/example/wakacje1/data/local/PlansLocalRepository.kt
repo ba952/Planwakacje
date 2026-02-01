@@ -1,7 +1,6 @@
 package com.example.wakacje1.data.local
 
 import android.content.Context
-import com.example.wakacje1.domain.model.DayPlan
 import com.example.wakacje1.domain.model.Destination
 import com.example.wakacje1.domain.model.InternalDayPlan
 import com.example.wakacje1.domain.model.Preferences

@@ -17,6 +17,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold // <--- WAŻNY IMPORT
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -26,11 +27,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource // <--- WAŻNE
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import com.example.wakacje1.R // <--- Twój plik R
+import com.example.wakacje1.R
 import com.example.wakacje1.presentation.viewmodel.AuthViewModel
 
 @Composable
@@ -43,96 +44,105 @@ fun LoginScreen(
     var pass by remember { mutableStateOf("") }
     val showReset = remember { mutableStateOf(false) }
 
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+    // POPRAWKA: Używamy Scaffold, który automatycznie ustawia kolor tła
+    // zgodny z motywem (MaterialTheme.colorScheme.background)
+    Scaffold { paddingValues ->
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues), // Uwzględniamy padding ze Scaffolda
+            contentAlignment = Alignment.Center
         ) {
-            // String Resource
-            Text(stringResource(R.string.login_title), style = MaterialTheme.typography.headlineMedium)
-            Spacer(Modifier.height(16.dp))
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // String Resource
+                Text(stringResource(R.string.login_title), style = MaterialTheme.typography.headlineMedium)
+                Spacer(Modifier.height(16.dp))
 
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text(stringResource(R.string.label_email)) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(Modifier.height(10.dp))
-            OutlinedTextField(
-                value = pass,
-                onValueChange = { pass = it },
-                label = { Text(stringResource(R.string.label_password)) },
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(Modifier.height(8.dp))
-
-            // --- OBSŁUGA BŁĘDÓW (UiText) ---
-            // Teraz 'it' to UiText, więc musimy zawołać .asString()
-            authVm.error?.let { uiText ->
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = uiText.asString(), // <--- KLUCZOWA ZMIANA
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text(stringResource(R.string.label_email)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
                 )
-            }
-            authVm.info?.let { uiText ->
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(10.dp))
+                OutlinedTextField(
+                    value = pass,
+                    onValueChange = { pass = it },
+                    label = { Text(stringResource(R.string.label_password)) },
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                // --- OBSŁUGA BŁĘDÓW (UiText) ---
+                authVm.error?.let { uiText ->
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = uiText.asString(),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                authVm.info?.let { uiText ->
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = uiText.asString(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                Spacer(Modifier.height(14.dp))
+
+                Button(
+                    onClick = { authVm.signIn(email, pass, onSuccess = onDone) },
+                    enabled = !authVm.loading,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.btn_login))
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                // Link reset
                 Text(
-                    text = uiText.asString(), // <--- KLUCZOWA ZMIANA
+                    text = stringResource(R.string.btn_forgot_password),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { showReset.value = true }
+                        .padding(6.dp)
                 )
+
+                Spacer(Modifier.height(18.dp))
+
+                // Rejestracja niżej
+                OutlinedButton(
+                    onClick = onGoRegister,
+                    enabled = !authVm.loading,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.btn_go_to_register))
+                }
             }
 
-            Spacer(Modifier.height(14.dp))
-
-            Button(
-                onClick = { authVm.signIn(email, pass, onSuccess = onDone) },
-                enabled = !authVm.loading,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(stringResource(R.string.btn_login))
+            if (authVm.loading) {
+                CircularProgressIndicator()
             }
-
-            Spacer(Modifier.height(10.dp))
-
-            // Link reset
-            Text(
-                text = stringResource(R.string.btn_forgot_password),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) { showReset.value = true }
-                    .padding(6.dp)
-            )
-
-            Spacer(Modifier.height(18.dp))
-
-            // Rejestracja niżej
-            OutlinedButton(
-                onClick = onGoRegister,
-                enabled = !authVm.loading,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(stringResource(R.string.btn_go_to_register))
-            }
-        }
-
-        if (authVm.loading) {
-            CircularProgressIndicator()
         }
     }
 

@@ -7,6 +7,7 @@ import com.example.wakacje1.data.remote.AuthRepository
 import com.example.wakacje1.data.remote.PlansCloudRepository
 import com.example.wakacje1.data.remote.WeatherRepository
 import com.example.wakacje1.domain.engine.PlanGenerator
+import com.example.wakacje1.domain.usecase.ExportPlanPdfUseCase // <--- NOWY IMPORT
 import com.example.wakacje1.domain.usecase.GeneratePlanUseCase
 import com.example.wakacje1.domain.usecase.LoadForecastForTripUseCase
 import com.example.wakacje1.domain.usecase.LoadLatestLocalPlanUseCase
@@ -15,7 +16,8 @@ import com.example.wakacje1.domain.usecase.RegenerateDayUseCase
 import com.example.wakacje1.domain.usecase.RollNewActivityUseCase
 import com.example.wakacje1.domain.usecase.SavePlanLocallyUseCase
 import com.example.wakacje1.domain.usecase.SuggestDestinationsUseCase
-import com.example.wakacje1.domain.usecase.ValidatePasswordUseCase // <--- NOWY IMPORT
+import com.example.wakacje1.domain.usecase.ValidatePasswordUseCase
+import com.example.wakacje1.domain.util.StringProvider
 import com.example.wakacje1.presentation.viewmodel.AuthViewModel
 import com.example.wakacje1.presentation.viewmodel.MyPlansViewModel
 import com.example.wakacje1.presentation.viewmodel.VacationViewModel
@@ -37,8 +39,19 @@ val appModule = module {
     single { PlansCloudRepository() }
     single { WeatherRepository() }
 
-    // --- 3. DOMENA / USE CASES (Factories) ---
-    factory { PlanGenerator() }
+    // --- 3. UTILS / HELPERS ---
+    single<StringProvider> {
+        object : StringProvider {
+            private val context = androidContext()
+            override fun getString(resId: Int): String = context.getString(resId)
+        }
+    }
+
+    // --- 4. DOMENA / USE CASES (Factories) ---
+    factory { PlanGenerator(stringProvider = get()) }
+
+    // [NOWOŚĆ] UseCase do PDF
+    factory { ExportPlanPdfUseCase() }
 
     // Logika biznesowa planu
     factory { GeneratePlanUseCase(activitiesRepository = get(), planGenerator = get()) }
@@ -53,13 +66,9 @@ val appModule = module {
     factory { SuggestDestinationsUseCase(destinationRepository = get()) }
     factory { SavePlanLocallyUseCase(localRepository = get(), cloudRepository = get()) }
     factory { LoadLatestLocalPlanUseCase(localRepository = get()) }
-
-    // NOWOŚĆ: Walidacja hasła
     factory { ValidatePasswordUseCase() }
 
-    // --- 4. VIEW MODELS ---
-
-    // AuthViewModel z wstrzykniętym repozytorium ORAZ walidatorem hasła
+    // --- 5. VIEW MODELS ---
     viewModel {
         AuthViewModel(
             authRepository = get(),
@@ -78,6 +87,7 @@ val appModule = module {
             generatePlanUseCase = get(),
             regenerateDayUseCase = get(),
             rollNewActivityUseCase = get(),
+            exportPlanPdfUseCase = get(), // <--- WSTRZYKNIĘCIE NOWEGO USECASE
             planGenerator = get(),
             loadWeatherUseCase = get(),
             loadForecastForTripUseCase = get()

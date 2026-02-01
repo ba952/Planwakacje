@@ -1,36 +1,23 @@
-// ExportPlanPdfUseCase.kt
 package com.example.wakacje1.domain.usecase
 
-import android.app.Activity
 import com.example.wakacje1.domain.model.DayPlan
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 class ExportPlanPdfUseCase {
 
+    // USUNIĘTO: parametr activity: Activity
+    // ZMIANA: Metoda zwraca String (gotowy kod HTML), a nie robi side-effect (drukowanie)
     suspend fun execute(
-        activity: Activity,
         destinationName: String?,
         tripStartDateMillis: Long?,
         plan: List<DayPlan>
     ): String {
-        if (plan.isEmpty()) return "Brak planu do eksportu."
+        if (plan.isEmpty()) return ""
 
-        val html = buildHtml(destinationName, tripStartDateMillis, plan)
-
-        // dialog drukowania musi iść na MAIN (tu i tak trzymamy porządek)
-        withContext(Dispatchers.Main) {
-            WebViewPdfExporter.openPrintDialog(
-                activity = activity,
-                html = html,
-                jobName = "Plan wyjazdu"
-            )
-        }
-
-        return "Otworzono okno drukowania — wybierz „Zapisz jako PDF”."
+        // UseCase zajmuje się TYLKO logiką budowania dokumentu
+        return buildHtml(destinationName, tripStartDateMillis, plan)
     }
 
     private fun buildHtml(
@@ -58,7 +45,6 @@ class ExportPlanPdfUseCase {
             }
         }
 
-        // Bez budżetu, bez "opcjonalnie", i dzień nie dzieli się na 2 strony:
         return """
             <!doctype html>
             <html lang="pl">

@@ -301,7 +301,6 @@ fun PreferencesScreen(
     }
 
     if (showEndPicker.value) {
-        // Pobieramy error do zmiennej, bo jesteśmy w Composable
         val errEndBeforeStart = stringResource(R.string.error_end_date_before_start)
 
         SingleDateDialog(
@@ -353,6 +352,7 @@ private fun SectionCard(
     }
 }
 
+// === NAPRAWIONY KOMPONENT LISTY ROZWIJANEJ ===
 @Composable
 private fun SimpleDropdownField(
     label: String,
@@ -362,21 +362,32 @@ private fun SimpleDropdownField(
 ) {
     val expanded = remember { mutableStateOf(false) }
 
-    Column {
+    // BOX służy jako kontener (anchor) dla DropdownMenu i warstw nakładających
+    Box {
+        // 1. Pole tekstowe (wizualizacja)
         OutlinedTextField(
             value = value,
             onValueChange = {},
-            readOnly = true,
+            readOnly = true, // Klawiatura się nie pojawia
             label = { Text(label) },
+            modifier = Modifier.fillMaxWidth(),
+            // Dzięki readOnly=true pole wygląda normalnie (nie jest wyszarzone jak przy enabled=false),
+            // ale nie da się w nim pisać.
+        )
+
+        // 2. Niewidzialna warstwa, która łapie kliknięcia na CAŁEJ powierzchni
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
+                .matchParentSize() // Rozciąga się na całego OutlinedTextField
                 .clickable { expanded.value = true }
         )
 
+        // 3. Menu rozwijane
         DropdownMenu(
             expanded = expanded.value,
             onDismissRequest = { expanded.value = false },
-            properties = PopupProperties(focusable = true)
+            properties = PopupProperties(focusable = true),
+            modifier = Modifier.fillMaxWidth(0.9f) // Opcjonalnie: szerokość menu
         ) {
             options.forEachIndexed { idx, opt ->
                 DropdownMenuItem(
@@ -422,7 +433,7 @@ private fun SingleDateDialog(
     }
 }
 
-// Funkcje pomocnicze bez zmian
+// Funkcje pomocnicze
 private fun computeDays(start: Long?, end: Long?): Int? {
     if (start == null || end == null) return null
     val s = normalizeToLocalMidnight(start)

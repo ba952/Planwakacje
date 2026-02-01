@@ -10,7 +10,8 @@ enum class ActivityType {
     RELAX,
     FOOD,
     ACTIVE,
-    NIGHT
+    NIGHT,
+    HISTORY
 }
 
 data class ActivityTemplate(

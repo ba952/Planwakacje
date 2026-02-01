@@ -1,5 +1,6 @@
 package com.example.wakacje1.domain.engine
 
+import com.example.wakacje1.R
 import com.example.wakacje1.data.assets.ActivityTemplate
 import com.example.wakacje1.data.assets.ActivityType
 import com.example.wakacje1.domain.model.DayPlan
@@ -8,9 +9,12 @@ import com.example.wakacje1.domain.model.Destination
 import com.example.wakacje1.domain.model.InternalDayPlan
 import com.example.wakacje1.domain.model.Preferences
 import com.example.wakacje1.domain.model.SlotPlan
+import com.example.wakacje1.domain.util.StringProvider
 import kotlin.collections.plusAssign
 
-class PlanGenerator {
+class PlanGenerator(
+    private val stringProvider: StringProvider
+) {
 
     fun generateInternalPlan(
         prefs: Preferences,
@@ -21,10 +25,10 @@ class PlanGenerator {
         val days = prefs.days.coerceAtLeast(1)
         val result = mutableListOf<InternalDayPlan>()
 
-        // globalny zbiór użytych aktywności (miękka unikalność)
+        // Zbiór użytych ID, żeby nie powtarzać atrakcji w całym wyjeździe
         val usedIds = mutableSetOf<String>()
 
-        // NEW: limit unikalnych na dzień
+        // Limit unikalnych atrakcji na dzień (żeby nie przeładować planu)
         val maxUniquePerDay = if (days < 7) 2 else 1
 
         for (i in 0 until days) {
@@ -77,6 +81,19 @@ class PlanGenerator {
         return result
     }
 
+    // --- Metody do regeneracji i edycji (Logic) ---
+
+    fun regenerateDay(
+        dayIndex: Int,
+        prefs: Preferences,
+        dest: Destination,
+        allActivities: List<ActivityTemplate>,
+        internal: MutableList<InternalDayPlan>,
+        isBadWeatherForDayIndex: (Int) -> Boolean
+    ) {
+        regenerateWholeDay(dayIndex, prefs, dest, allActivities, internal, isBadWeatherForDayIndex)
+    }
+
     fun regenerateWholeDay(
         dayIndex: Int,
         prefs: Preferences,
@@ -90,8 +107,6 @@ class PlanGenerator {
 
         val days = prefs.days.coerceAtLeast(1)
         val maxUniquePerDay = if (days < 7) 3 else 2
-
-        // użyte ID względem reszty planu (bez tego dnia)
         val usedIds = collectUsedIds(internal, excludeDayIndex = dayIndex)
 
         var uniqueToday = 0
@@ -133,12 +148,9 @@ class PlanGenerator {
             DaySlot.EVENING -> current.evening.baseActivityId
         }
 
-        // usedIds: bez aktualnego slotu (żeby “Losuj” realnie zmieniał)
         val usedIds = collectUsedIds(internal, excludeDayIndex = dayIndex, excludeSlot = slot)
-
-        // NEW: ile unikalnych już jest w tym dniu, bez aktualnego slotu
         val uniqueAlreadyToday = countUniqueInDayExcludingSlot(current, slot)
-        // jeżeli już masz 2 unikalne (dla >=7 dni), to ten slot nie może stać się unikalny
+
         val newSlot = pickForSlot(
             slot = slot,
             prefs = prefs,
@@ -188,13 +200,13 @@ class PlanGenerator {
     ): List<DayPlan> {
         return internalDays.map { d ->
             val details = buildString {
-                append("Poranek: ${d.morning.title}")
+                append("${stringProvider.getString(R.string.label_morning)} ${d.morning.title}")
                 if (d.morning.description.isNotBlank()) append("\n- ${d.morning.description}")
 
-                append("\n\nPołudnie: ${d.midday.title}")
+                append("\n\n${stringProvider.getString(R.string.label_midday)} ${d.midday.title}")
                 if (d.midday.description.isNotBlank()) append("\n- ${d.midday.description}")
 
-                append("\n\nWieczór: ${d.evening.title}")
+                append("\n\n${stringProvider.getString(R.string.label_evening)} ${d.evening.title}")
                 if (d.evening.description.isNotBlank()) append("\n- ${d.evening.description}")
             }
 
@@ -207,7 +219,7 @@ class PlanGenerator {
     }
 
     // ------------------------------------------------------------------------
-    // Helpers
+    // CORE LOGIC - ALGORYTM WYBORU Z BUDŻETEM
     // ------------------------------------------------------------------------
 
     private fun pickForSlot(
@@ -223,52 +235,102 @@ class PlanGenerator {
     ): SlotPlan {
         if (all.isEmpty()) return fallbackSlot(slot, preferIndoor)
 
-        // 1) twarde dopasowanie pod miasto+region+styl
+        // 1. Filtracja twarda: Region i Styl
         val strict = all.filter { matchesPrefs(it, prefs, dest) }
-
-        // 2) jeśli strict puste, poluzuj (żeby nie wpadać w fallback)
         val base = if (strict.isNotEmpty()) strict else all
 
-        // 3) preferowane typy pod slot
+        // 2. Preferowane typy dla pory dnia (np. Rano = Kultura/Natura)
         val preferredTypes = preferredTypesFor(slot)
         val typed = base.filter { it.type in preferredTypes }.ifEmpty { base }
 
-        // 4) indoor przy złej pogodzie (ale nie “na siłę”)
+        // 3. Pogoda (Indoor)
         val indoorFiltered = if (preferIndoor) typed.filter { it.indoor } else emptyList()
         val pool0 = if (preferIndoor && indoorFiltered.isNotEmpty()) indoorFiltered else typed
 
-        // 5) wyklucz aktualne ID (przy “Losuj”)
+        // 4. Wykluczenie aktualnie edytowanej (żeby "Losuj" dało coś nowego)
         val pool1 = if (!excludeActivityId.isNullOrBlank()) {
             pool0.filter { it.id != excludeActivityId }.ifEmpty { pool0 }
         } else pool0
 
         if (pool1.isEmpty()) return fallbackSlot(slot, preferIndoor)
 
-        // 6) NEW: limit unikalnych na dzień
-        val pool2 = if (uniqueUsedToday >= maxUniquePerDay) {
-            pool1.filter { it.destinationId == null }.ifEmpty { pool1 } // jak brak generycznych, nie blokuj całkiem
-        } else {
-            pool1
+        // ====================================================================
+        // IMPLEMENTACJA BUDŻETU (Bez zmian w JSON)
+        // ====================================================================
+
+        // A. Obliczamy ile użytkownik ma "kieszonkowego" na jeden slot.
+        // Zakładamy, że około 40% całkowitego budżetu to wydatki na atrakcje/jedzenie
+        // (reszta to nocleg i transport). Dzielimy przez liczbę dni i 3 sloty.
+        val daysCount = prefs.days.coerceAtLeast(1)
+        val spendingMoney = prefs.budget.toDouble() * 0.4
+        val budgetPerSlot = spendingMoney / (daysCount * 3)
+
+        // B. Filtrujemy atrakcje, których "szacowany koszt" jest za wysoki
+        val poolBudgetAware = pool1.filter { activity ->
+            val cost = estimateCost(activity.type)
+            cost <= budgetPerSlot
         }
 
-        // 7) miękka unikalność globalna (bez powtórek, ale jak brak to pozwól)
+        // C. Fallback: Jeśli użytkownik jest bardzo biedny i filtr wyciął wszystko,
+        // bierzemy 3 najtańsze opcje z pierwotnej puli (żeby nie zwracać pustego planu).
+        // W przeciwnym razie bierzemy przefiltrowaną listę.
+        val poolAfterBudget = if (poolBudgetAware.isNotEmpty()) {
+            poolBudgetAware
+        } else {
+            // Sortujemy po szacowanej cenie rosnąco i bierzemy 5 najtańszych
+            pool1.sortedBy { estimateCost(it.type) }.take(5)
+        }
+
+        // ====================================================================
+
+        // 5. Unikalność w dniu (nie za dużo unikatów w jeden dzień)
+        val pool2 = if (uniqueUsedToday >= maxUniquePerDay) {
+            poolAfterBudget.filter { it.destinationId == null }.ifEmpty { poolAfterBudget }
+        } else {
+            poolAfterBudget
+        }
+
+        // 6. Globalna unikalność (nie powtarzaj tego co wczoraj)
         val poolNoRepeat = usedIds?.let { used -> pool2.filter { it.id !in used } }.orEmpty()
+
+        // Finalne losowanie
         val chosen = if (poolNoRepeat.isNotEmpty()) poolNoRepeat.random() else pool2.random()
 
         usedIds?.add(chosen.id)
         return toSlotPlan(chosen)
     }
 
+    /**
+     * HEURYSTYKA CENOWA:
+     * Ponieważ baza JSON nie zawiera cen, szacujemy koszt na podstawie TYPU aktywności.
+     * To pozwala uwzględnić budżet użytkownika bez zmian w strukturze danych.
+     */
+    private fun estimateCost(type: ActivityType): Int {
+        return when (type) {
+            // Drogie
+            ActivityType.NIGHT -> 120  // Kluby, imprezy
+            ActivityType.FOOD -> 100   // Restauracje
+
+            // Średnie
+            ActivityType.ACTIVE -> 60  // Sport, parki linowe
+            ActivityType.HISTORY -> 50 // Muzea, zamki
+            ActivityType.CULTURE -> 50 // Galerie
+
+            // Tanie / Darmowe
+            ActivityType.RELAX -> 0    // Plaża, park
+            ActivityType.NATURE -> 10  // Szlak, punkt widokowy
+            else -> 20                 // Inne (Mix)
+        }
+    }
+
     private fun preferredTypesFor(slot: DaySlot): Set<ActivityType> = when (slot) {
-        DaySlot.MORNING -> setOf(ActivityType.CULTURE, ActivityType.NATURE, ActivityType.ACTIVE)
-        DaySlot.MIDDAY -> setOf(ActivityType.FOOD, ActivityType.CULTURE, ActivityType.ACTIVE, ActivityType.NATURE)
+        DaySlot.MORNING -> setOf(ActivityType.HISTORY, ActivityType.CULTURE, ActivityType.NATURE, ActivityType.ACTIVE)
+        DaySlot.MIDDAY -> setOf(ActivityType.FOOD, ActivityType.CULTURE, ActivityType.HISTORY, ActivityType.ACTIVE)
         DaySlot.EVENING -> setOf(ActivityType.RELAX, ActivityType.NIGHT, ActivityType.FOOD, ActivityType.CULTURE)
     }
 
     private fun matchesPrefs(a: ActivityTemplate, prefs: Preferences, dest: Destination): Boolean {
-        // unikalne atrakcje tylko dla właściwego miasta
         val destinationOk = a.destinationId == null || a.destinationId.equals(dest.id, ignoreCase = true)
-
         val regionOk =
             a.suitableRegions.isEmpty() ||
                     a.suitableRegions.any { it.equals(prefs.region, ignoreCase = true) } ||
@@ -291,21 +353,21 @@ class PlanGenerator {
     }
 
     private fun fallbackSlot(slot: DaySlot, preferIndoor: Boolean): SlotPlan {
-        val title = when (slot) {
-            DaySlot.MORNING -> "Zwiedzanie okolicy"
-            DaySlot.MIDDAY -> "Posiłek i przerwa"
-            DaySlot.EVENING -> "Wieczorny spacer / relaks"
+        val titleRes = when (slot) {
+            DaySlot.MORNING -> R.string.fallback_morning_title
+            DaySlot.MIDDAY -> R.string.fallback_midday_title
+            DaySlot.EVENING -> R.string.fallback_evening_title
         }
 
-        val desc = when {
-            preferIndoor -> "Zła pogoda — wybierz atrakcję pod dachem (muzeum, galeria, lokalna kawiarnia)."
-            else -> "Wybierz najciekawsze miejsce w pobliżu i dopasuj tempo do dnia."
+        val descRes = when {
+            preferIndoor -> R.string.fallback_desc_indoor
+            else -> R.string.fallback_desc_outdoor
         }
 
         return SlotPlan(
             baseActivityId = null,
-            title = title,
-            description = desc,
+            title = stringProvider.getString(titleRes),
+            description = stringProvider.getString(descRes),
             indoor = preferIndoor
         )
     }
@@ -316,10 +378,7 @@ class PlanGenerator {
         excludeSlot: DaySlot? = null
     ): MutableSet<String> {
         val used = mutableSetOf<String>()
-
-        fun add(id: String?) {
-            if (!id.isNullOrBlank()) used.add(id)
-        }
+        fun add(id: String?) { if (!id.isNullOrBlank()) used.add(id) }
 
         internal.forEachIndexed { idx, day ->
             if (excludeDayIndex != null && idx == excludeDayIndex) {
@@ -335,20 +394,16 @@ class PlanGenerator {
                 add(day.evening.baseActivityId)
             }
         }
-
         return used
     }
 
     private fun isUnique(slot: SlotPlan): Boolean = slot.baseActivityId != null && slot.baseActivityId!!.startsWith("u_")
 
-
     private fun countUniqueInDayExcludingSlot(day: InternalDayPlan, exclude: DaySlot): Int {
         fun isUniqueId(id: String?): Boolean = !id.isNullOrBlank() && id.startsWith("u_")
-
         val m = if (exclude != DaySlot.MORNING) isUniqueId(day.morning.baseActivityId) else false
         val d = if (exclude != DaySlot.MIDDAY) isUniqueId(day.midday.baseActivityId) else false
         val e = if (exclude != DaySlot.EVENING) isUniqueId(day.evening.baseActivityId) else false
-
         return listOf(m, d, e).count { it }
     }
 }

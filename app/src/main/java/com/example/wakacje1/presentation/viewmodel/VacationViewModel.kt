@@ -12,6 +12,7 @@ import com.example.wakacje1.domain.model.Destination
 import com.example.wakacje1.domain.model.InternalDayPlan
 import com.example.wakacje1.domain.model.Preferences
 import com.example.wakacje1.domain.model.SlotPlan
+import com.example.wakacje1.domain.usecase.ExportPlanPdfUseCase // <--- NOWY IMPORT
 import com.example.wakacje1.domain.usecase.GeneratePlanUseCase
 import com.example.wakacje1.domain.usecase.LoadForecastForTripUseCase
 import com.example.wakacje1.domain.usecase.LoadLatestLocalPlanUseCase
@@ -46,6 +47,8 @@ class VacationViewModel(
     private val generatePlanUseCase: GeneratePlanUseCase,
     private val regenerateDayUseCase: RegenerateDayUseCase,
     private val rollNewActivityUseCase: RollNewActivityUseCase,
+    // [NOWOŚĆ] UseCase do PDF
+    private val exportPlanPdfUseCase: ExportPlanPdfUseCase,
     // Engine
     private val planGenerator: PlanGenerator,
     // UseCases Pogodowe
@@ -71,22 +74,13 @@ class VacationViewModel(
         viewModelScope.launch { _events.emit(UiEvent.Message(msg)) }
     }
 
-    // POPRAWIONA FUNKCJA postError
     private fun postError(t: Throwable, fallback: UiText) {
-        // 1. Używamy ErrorMapper, żeby rozpoznać typ błędu (np. brak sieci, timeout).
-        // Przekazujemy pusty string jako fallback do mappera, bo i tak go nadpiszemy poniżej.
         val mappedError = ErrorMapper.map(t, "")
-
-        // 2. Jeśli mapper zwrócił "Unknown" (nie rozpoznał typu),
-        // to wstawiamy nasz konkretny komunikat (fallback z argumentu) zamiast ogólnego tekstu.
         val finalError = if (mappedError is AppError.Unknown) {
             AppError.Unknown(fallback = fallback, tech = t.message)
         } else {
-            // Jeśli to konkretny błąd (np. Network), zostawiamy go jak jest
             mappedError
         }
-
-        // 3. Emitujemy event z obiektem AppError
         viewModelScope.launch {
             _events.emit(UiEvent.Error(finalError))
         }
@@ -340,17 +334,22 @@ class VacationViewModel(
         }
     }
 
+    // [ZMIANA] Nowa logika eksportu PDF
     fun exportCurrentPlanToPdf() {
         val currentState = _uiState.value
         val destName = currentState.chosenDestination?.displayName
         val tripStart = currentState.preferences?.startDateMillis
+        val uiPlan = currentState.plan // Bierzemy gotowy plan widokowy
 
-        if (destName.isNullOrBlank() || internalPlanDays.isEmpty()) {
+        if (destName.isNullOrBlank() || uiPlan.isEmpty()) {
             postMessage(UiText.StringResource(R.string.msg_no_plan_to_export))
             return
         }
         viewModelScope.launch {
-            _events.emit(UiEvent.ExportPdf(destName, tripStart, internalPlanDays.toList()))
+            // 1. Generujemy HTML (czysta logika)
+            val html = exportPlanPdfUseCase.execute(destName, tripStart, uiPlan)
+            // 2. Wysyłamy event do widoku: "Wydrukuj ten HTML"
+            _events.emit(UiEvent.PrintPdf(html))
         }
     }
 

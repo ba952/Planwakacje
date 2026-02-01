@@ -33,7 +33,7 @@ class DestinationRepository(private val context: Context) {
         val climate = obj.optString("climate", "").trim()
 
         val idRaw = obj.optString("id", "").trim()
-        val id = if (idRaw.isNotBlank()) idRaw else slug("${displayName}_${country}_${region}_${climate}")
+        val id = idRaw.ifBlank { slug("${displayName}_${country}_${region}_${climate}") }
 
         val minBudget = obj.optInt("minBudgetPerDay", 0)
         val typicalBudget = obj.optInt("typicalBudgetPerDay", minBudget)
