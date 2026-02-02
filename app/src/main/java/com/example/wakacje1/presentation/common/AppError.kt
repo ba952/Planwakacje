@@ -76,4 +76,9 @@ sealed class AppError(
         uiText = fallback,
         technicalMessage = tech
     )
+    class SavedLocallyNoInternet(tech: String? = null) : AppError(
+        uiText = UiText.StringResource(R.string.msg_offline_saved_local),
+        technicalMessage = tech
+    )
+
 }

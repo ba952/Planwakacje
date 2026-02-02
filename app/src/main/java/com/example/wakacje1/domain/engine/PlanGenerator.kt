@@ -5,10 +5,12 @@ import com.example.wakacje1.data.assets.ActivityTemplate
 import com.example.wakacje1.data.assets.ActivityType
 import com.example.wakacje1.domain.model.DayPlan
 import com.example.wakacje1.domain.model.DaySlot
+import com.example.wakacje1.domain.model.DaySlotsUi
 import com.example.wakacje1.domain.model.Destination
 import com.example.wakacje1.domain.model.InternalDayPlan
 import com.example.wakacje1.domain.model.Preferences
 import com.example.wakacje1.domain.model.SlotPlan
+import com.example.wakacje1.domain.model.SlotUi
 import com.example.wakacje1.domain.util.StringProvider
 import kotlin.collections.plusAssign
 
@@ -120,13 +122,40 @@ class PlanGenerator(
         val usedIds = collectUsedIds(internal, excludeDayIndex = dayIndex)
 
         var uniqueToday = 0
-        val morning = pickForSlot(DaySlot.MORNING, prefs, dest, allActivities, badWeather, usedIds = usedIds, uniqueUsedToday = uniqueToday, maxUniquePerDay = maxUniquePerDay)
+        val morning = pickForSlot(
+            DaySlot.MORNING,
+            prefs,
+            dest,
+            allActivities,
+            badWeather,
+            usedIds = usedIds,
+            uniqueUsedToday = uniqueToday,
+            maxUniquePerDay = maxUniquePerDay
+        )
         if (isUnique(morning)) uniqueToday++
 
-        val midday = pickForSlot(DaySlot.MIDDAY, prefs, dest, allActivities, badWeather, usedIds = usedIds, uniqueUsedToday = uniqueToday, maxUniquePerDay = maxUniquePerDay)
+        val midday = pickForSlot(
+            DaySlot.MIDDAY,
+            prefs,
+            dest,
+            allActivities,
+            badWeather,
+            usedIds = usedIds,
+            uniqueUsedToday = uniqueToday,
+            maxUniquePerDay = maxUniquePerDay
+        )
         if (isUnique(midday)) uniqueToday++
 
-        val evening = pickForSlot(DaySlot.EVENING, prefs, dest, allActivities, badWeather, usedIds = usedIds, uniqueUsedToday = uniqueToday, maxUniquePerDay = maxUniquePerDay)
+        val evening = pickForSlot(
+            DaySlot.EVENING,
+            prefs,
+            dest,
+            allActivities,
+            badWeather,
+            usedIds = usedIds,
+            uniqueUsedToday = uniqueToday,
+            maxUniquePerDay = maxUniquePerDay
+        )
 
         internal[dayIndex] = InternalDayPlan(
             day = dayIndex + 1,
@@ -214,6 +243,8 @@ class PlanGenerator(
     /**
      * Konwertuje wewnętrzny model planu (InternalDayPlan) na model widoku (DayPlan).
      * Dodaje sformatowane nagłówki i opisy z zasobów.
+     *
+     * ✅ ZMIANA: budujemy też `slots` (DaySlotsUi), żeby UI nie pytało ViewModelu o sloty.
      */
     fun rebuildDayPlans(
         internalDays: List<InternalDayPlan>,
@@ -240,9 +271,21 @@ class PlanGenerator(
             DayPlan(
                 day = d.day,
                 title = title,
-                details = details
+                details = details,
+                slots = DaySlotsUi(
+                    morning = toSlotUi(d.morning),
+                    midday = toSlotUi(d.midday),
+                    evening = toSlotUi(d.evening)
+                )
             )
         }
+    }
+
+    private fun toSlotUi(slot: SlotPlan): SlotUi {
+        return SlotUi(
+            title = slot.title,
+            description = slot.description
+        )
     }
 
     // ------------------------------------------------------------------------
@@ -435,7 +478,8 @@ class PlanGenerator(
         return used
     }
 
-    private fun isUnique(slot: SlotPlan): Boolean = slot.baseActivityId != null && slot.baseActivityId!!.startsWith("u_")
+    private fun isUnique(slot: SlotPlan): Boolean =
+        slot.baseActivityId != null && slot.baseActivityId!!.startsWith("u_")
 
     private fun countUniqueInDayExcludingSlot(day: InternalDayPlan, exclude: DaySlot): Int {
         fun isUniqueId(id: String?): Boolean = !id.isNullOrBlank() && id.startsWith("u_")

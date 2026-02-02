@@ -1,12 +1,11 @@
 package com.example.wakacje1.domain.usecase
 
+import com.example.wakacje1.R
+import com.example.wakacje1.data.remote.WeatherException
 import com.example.wakacje1.data.remote.WeatherRepository
+import com.example.wakacje1.presentation.common.UiText
 import com.example.wakacje1.presentation.viewmodel.WeatherUiState
 
-/**
- * UseCase pobierający bieżącą pogodę dla wskazanej lokalizacji.
- * Mapuje wynik domenowy bezpośrednio na obiekt stanu UI, obsługując błędy (try-catch).
- */
 class LoadWeatherUseCase(
     private val weatherRepository: WeatherRepository
 ) {
@@ -18,11 +17,34 @@ class LoadWeatherUseCase(
                 loading = false,
                 city = r.city,
                 temperature = r.temperature,
-                description = r.description
+                description = r.description,
+                error = null
             )
-        } catch (e: Exception) {
-            // Fail-safe: Zwracamy stan błędu zamiast rzucać wyjątek do ViewModelu
-            WeatherUiState(loading = false, error = e.message ?: "Nie udało się pobrać pogody.")
+        } catch (e: WeatherException) {
+            WeatherUiState(
+                loading = false,
+                error = mapWeatherError(e)
+            )
+        } catch (_: Exception) {
+            WeatherUiState(
+                loading = false,
+                error = UiText.StringResource(R.string.error_weather_generic)
+            )
+        }
+    }
+
+    private fun mapWeatherError(e: WeatherException): UiText {
+        return when (e) {
+            is WeatherException.InvalidApiKey ->
+                UiText.StringResource(R.string.error_weather_invalid_api_key)
+            is WeatherException.CityNotFound ->
+                UiText.StringResource(R.string.error_weather_city_not_found)
+            is WeatherException.NetworkError ->
+                UiText.StringResource(R.string.error_weather_network)
+            is WeatherException.ApiError ->
+                UiText.StringResource(R.string.error_weather_api, e.code)
+            is WeatherException.Unknown ->
+                UiText.StringResource(R.string.error_weather_unknown)
         }
     }
 }

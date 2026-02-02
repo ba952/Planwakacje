@@ -3,7 +3,6 @@ package com.example.wakacje1.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.wakacje1.R
-import com.example.wakacje1.data.assets.DestinationRepository
 import com.example.wakacje1.data.local.StoredPlan
 import com.example.wakacje1.domain.engine.PlanGenerator
 import com.example.wakacje1.domain.model.DayPlan
@@ -12,6 +11,7 @@ import com.example.wakacje1.domain.model.Destination
 import com.example.wakacje1.domain.model.InternalDayPlan
 import com.example.wakacje1.domain.model.Preferences
 import com.example.wakacje1.domain.model.SlotPlan
+import com.example.wakacje1.domain.session.SessionProvider
 import com.example.wakacje1.domain.usecase.ExportPlanPdfUseCase
 import com.example.wakacje1.domain.usecase.GeneratePlanUseCase
 import com.example.wakacje1.domain.usecase.LoadForecastForTripUseCase
@@ -27,7 +27,6 @@ import com.example.wakacje1.presentation.common.ErrorMapper
 import com.example.wakacje1.presentation.common.UiEvent
 import com.example.wakacje1.presentation.common.UiText
 import com.example.wakacje1.util.DateUtils
-import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,13 +37,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/**
- * Główny ViewModel sterujący procesem planowania wakacji.
- * Koordynuje działania UseCase'ów, zarządza stanem UI oraz obsługuje asynchroniczne operacje
- * związane z pogodą, generowaniem planu i zapisem danych.
- */
 class VacationViewModel(
-    private val destinationRepository: DestinationRepository,
+    private val sessionProvider: SessionProvider,
     private val savePlanLocallyUseCase: SavePlanLocallyUseCase,
     private val loadLatestLocalPlanUseCase: LoadLatestLocalPlanUseCase,
     private val suggestDestinationsUseCase: SuggestDestinationsUseCase,
@@ -57,45 +51,30 @@ class VacationViewModel(
     private val loadForecastForTripUseCase: LoadForecastForTripUseCase
 ) : ViewModel() {
 
-    // Strumień stanu UI (Single Source of Truth)
     private val _uiState = MutableStateFlow(VacationUiState())
     val uiState: StateFlow<VacationUiState> = _uiState.asStateFlow()
 
-    // Strumień zdarzeń jednorazowych (np. SnackBar, nawigacja)
     private val _events = MutableSharedFlow<UiEvent>(extraBufferCapacity = 8)
     val events = _events.asSharedFlow()
 
-    // Wewnętrzny stan danych planu przed transformacją do formatu widokowego
     private var internalPlanDays: MutableList<InternalDayPlan> = mutableListOf()
     private var currentPlanId: String? = null
     private var currentCreatedAtMillis: Long? = null
 
-    // --- Helpers ---
     private fun postMessage(msg: UiText) {
         viewModelScope.launch { _events.emit(UiEvent.Message(msg)) }
     }
 
     private fun postError(t: Throwable, fallback: UiText) {
-        val mappedError = ErrorMapper.map(t, "")
+        val mappedError = ErrorMapper.map(t)
         val finalError = if (mappedError is AppError.Unknown) {
             AppError.Unknown(fallback = fallback, tech = t.message)
         } else {
             mappedError
         }
-        viewModelScope.launch {
-            _events.emit(UiEvent.Error(finalError))
-        }
+        viewModelScope.launch { _events.emit(UiEvent.Error(finalError)) }
     }
 
-    fun clearUiMessage() {
-        _uiState.update { it.copy(uiMessage = null) }
-    }
-
-    // --- Główne Metody ---
-
-    /**
-     * Aktualizacja preferencji użytkownika (resetuje obecny stan kreatora).
-     */
     fun updatePreferences(prefs: Preferences) {
         internalPlanDays.clear()
         currentPlanId = null
@@ -109,9 +88,6 @@ class VacationViewModel(
         }
     }
 
-    /**
-     * Generuje sugestie miejsc na podstawie preferencji (budżet, styl wyjazdu itp.).
-     */
     fun prepareDestinationSuggestions() {
         val prefs = _uiState.value.preferences ?: run {
             _uiState.update { it.copy(destinationSuggestions = emptyList()) }
@@ -119,7 +95,6 @@ class VacationViewModel(
         }
 
         val result = suggestDestinationsUseCase.execute(prefs)
-
         _uiState.update {
             it.copy(
                 destinationSuggestions = result.suggestions,
@@ -128,9 +103,6 @@ class VacationViewModel(
         }
     }
 
-    /**
-     * Inicjalizacja wybranej destynacji i pobranie warunków pogodowych.
-     */
     fun chooseDestination(destination: Destination) {
         internalPlanDays.clear()
         currentPlanId = null
@@ -152,9 +124,6 @@ class VacationViewModel(
         }
     }
 
-    /**
-     * Tworzy nowy harmonogram zwiedzania, biorąc pod uwagę warunki pogodowe (indoor/outdoor).
-     */
     fun generatePlan() {
         val currentState = _uiState.value
         val prefs = currentState.preferences ?: return
@@ -169,15 +138,7 @@ class VacationViewModel(
                     isBadWeatherForDayIndex = { idx -> isBadWeatherForDayIndex(idx) }
                 )
                 internalPlanDays = newInternal
-
-                val uiPlan = rebuildUiPlan()
-                _uiState.update {
-                    it.copy(
-                        plan = uiPlan,
-                        canEditPlan = true,
-                        isLoading = false
-                    )
-                }
+                _uiState.update { it.copy(plan = rebuildUiPlan(), canEditPlan = true, isLoading = false) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false) }
                 postError(e, UiText.StringResource(R.string.error_generating_plan))
@@ -185,9 +146,6 @@ class VacationViewModel(
         }
     }
 
-    /**
-     * Losuje wszystkie aktywności dla konkretnego dnia wycieczki.
-     */
     fun regenerateDay(dayIndex: Int) {
         if (!_uiState.value.canEditPlan) return
         val currentState = _uiState.value
@@ -204,8 +162,7 @@ class VacationViewModel(
                     internal = internalPlanDays,
                     isBadWeatherForDayIndex = { idx -> isBadWeatherForDayIndex(idx) }
                 )
-                val uiPlan = rebuildUiPlan()
-                _uiState.update { it.copy(plan = uiPlan, isLoading = false) }
+                _uiState.update { it.copy(plan = rebuildUiPlan(), isLoading = false) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false) }
                 postError(e, UiText.StringResource(R.string.error_regenerating_day))
@@ -213,9 +170,6 @@ class VacationViewModel(
         }
     }
 
-    /**
-     * Podmienia aktywność w pojedynczym slocie czasowym wybranego dnia.
-     */
     fun rollNewActivity(dayIndex: Int, slot: DaySlot) {
         if (!_uiState.value.canEditPlan) return
         val currentState = _uiState.value
@@ -233,8 +187,7 @@ class VacationViewModel(
                     internal = internalPlanDays,
                     isBadWeatherForDayIndex = { idx -> isBadWeatherForDayIndex(idx) }
                 )
-                val uiPlan = rebuildUiPlan()
-                _uiState.update { it.copy(plan = uiPlan, isLoading = false) }
+                _uiState.update { it.copy(plan = rebuildUiPlan(), isLoading = false) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false) }
                 postError(e, UiText.StringResource(R.string.error_rolling_activity))
@@ -242,17 +195,11 @@ class VacationViewModel(
         }
     }
 
-    /**
-     * Ręczne ustawienie tytułu i opisu przez użytkownika dla danego slotu.
-     */
     fun setCustomActivity(dayIndex: Int, slot: DaySlot, title: String, description: String) {
         if (!_uiState.value.canEditPlan) return
         planGenerator.setCustomSlot(dayIndex, slot, title, description, internalPlanDays)
-        val uiPlan = rebuildUiPlan()
-        _uiState.update { it.copy(plan = uiPlan) }
+        _uiState.update { it.copy(plan = rebuildUiPlan()) }
     }
-
-    // --- Weather Logic ---
 
     fun loadWeatherForCity(cityQuery: String, force: Boolean = false) {
         viewModelScope.launch {
@@ -269,35 +216,25 @@ class VacationViewModel(
 
         viewModelScope.launch {
             val result = loadForecastForTripUseCase.execute(prefs, dest, force)
-            _uiState.update {
-                it.copy(
-                    dayWeatherByDate = result.byDate,
-                    forecastNotice = result.notice
-                )
-            }
+            _uiState.update { it.copy(dayWeatherByDate = result.byDate, forecastNotice = result.notice) }
         }
     }
 
-    /**
-     * Helper sprawdzający flagę "BadWeather" dla konkretnego dnia na podstawie daty startu i indeksu.
-     */
     private fun isBadWeatherForDayIndex(dayIndex: Int): Boolean {
         val prefs = _uiState.value.preferences ?: return false
         val startMillis = prefs.startDateMillis ?: return false
-
         val startNorm = DateUtils.normalizeToLocalMidnight(startMillis)
         val dayMillis = DateUtils.dayMillisForIndex(startNorm, dayIndex)
-
         return _uiState.value.dayWeatherByDate[dayMillis]?.isBadWeather ?: false
     }
 
-    // --- Storage & Utils ---
-
     /**
-     * Persystencja danych: Zapisuje obecny plan w lokalnej bazie danych.
+     * Zapis offline-first:
+     * - lokalnie zawsze (albo błąd IO)
+     * - chmura best-effort -> komunikat "brak internetu, zapisano na urządzeniu"
      */
     fun savePlanLocally(uid: String? = null) {
-        val realUid = uid ?: FirebaseAuth.getInstance().currentUser?.uid
+        val realUid = uid ?: sessionProvider.currentUid()
         if (realUid.isNullOrBlank()) {
             postMessage(UiText.StringResource(R.string.msg_no_user))
             return
@@ -311,10 +248,20 @@ class VacationViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                val res = savePlanLocallyUseCase.execute(realUid, prefs, dest, internalPlanDays, currentPlanId, currentCreatedAtMillis)
+                val res = savePlanLocallyUseCase.execute(
+                    realUid, prefs, dest, internalPlanDays, currentPlanId, currentCreatedAtMillis
+                )
                 currentPlanId = res.planId
                 currentCreatedAtMillis = res.createdAtMillis
-                postMessage(UiText.StringResource(R.string.msg_saved))
+
+                // kosmetyka: zapis lokalny OK, chmura padła -> pokaż specjalny błąd/komunikat
+                if (res.cloudError != null) {
+                    val err = ErrorMapper.mapCloudSaveFailedButLocalOk(res.cloudError)
+                    _events.emit(UiEvent.Error(err))
+                } else {
+                    postMessage(UiText.StringResource(R.string.msg_saved))
+                }
+
             } catch (e: Exception) {
                 postError(e, UiText.StringResource(R.string.error_saving))
             } finally {
@@ -323,11 +270,8 @@ class VacationViewModel(
         }
     }
 
-    /**
-     * Pobiera najnowszy plan przypisany do użytkownika.
-     */
     fun loadPlanLocally(uid: String? = null) {
-        val realUid = uid ?: FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val realUid = uid ?: sessionProvider.currentUid() ?: return
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
@@ -346,9 +290,6 @@ class VacationViewModel(
         }
     }
 
-    /**
-     * Przywraca stan ViewModelu na podstawie danych wczytanych z bazy.
-     */
     fun applyStoredPlan(stored: StoredPlan) {
         internalPlanDays = stored.internalDays.map { it.toInternalDayPlan() }.toMutableList()
         currentPlanId = stored.id
@@ -368,28 +309,21 @@ class VacationViewModel(
         }
     }
 
-    /**
-     * Przygotowuje kod HTML planu i wysyła event do UI w celu wygenerowania pliku PDF.
-     */
     fun exportCurrentPlanToPdf() {
         val currentState = _uiState.value
         val destName = currentState.chosenDestination?.displayName
         val tripStart = currentState.preferences?.startDateMillis
-        val uiPlan = currentState.plan // Bierzemy gotowy plan widokowy
+        val uiPlan = currentState.plan
 
         if (destName.isNullOrBlank() || uiPlan.isEmpty()) {
             postMessage(UiText.StringResource(R.string.msg_no_plan_to_export))
             return
         }
         viewModelScope.launch {
-            // 1. Generujemy HTML (czysta logika)
             val html = exportPlanPdfUseCase.execute(destName, tripStart, uiPlan)
-            // 2. Wysyłamy event do widoku: "Wydrukuj ten HTML"
             _events.emit(UiEvent.PrintPdf(html))
         }
     }
-
-    // --- Getters dla UI ---
 
     fun getInternalDayOrNull(dayIndex: Int) = internalPlanDays.getOrNull(dayIndex)
 
@@ -402,7 +336,7 @@ class VacationViewModel(
         }
     }
 
-    fun getDayWeatherForIndexGetter(dayIndex: Int): com.example.wakacje1.presentation.viewmodel.DayWeatherUi? {
+    fun getDayWeatherForIndexGetter(dayIndex: Int): DayWeatherUi? {
         val prefs = _uiState.value.preferences ?: return null
         val startMillis = prefs.startDateMillis ?: return null
         val startNorm = DateUtils.normalizeToLocalMidnight(startMillis)
@@ -434,30 +368,20 @@ class VacationViewModel(
         }
     }
 
-    /**
-     * Zmienia kolejność dni w harmonogramie (przesunięcie w górę).
-     */
     fun moveDayUp(index: Int) {
         if (!_uiState.value.canEditPlan || index <= 0 || index >= internalPlanDays.size) return
         val tmp = internalPlanDays[index - 1]
         internalPlanDays[index - 1] = internalPlanDays[index]
         internalPlanDays[index] = tmp
-
-        val uiPlan = rebuildUiPlan()
-        _uiState.update { it.copy(plan = uiPlan) }
+        _uiState.update { it.copy(plan = rebuildUiPlan()) }
     }
 
-    /**
-     * Zmienia kolejność dni w harmonogramie (przesunięcie w dół).
-     */
     fun moveDayDown(index: Int) {
         if (!_uiState.value.canEditPlan || index < 0 || index >= internalPlanDays.size - 1) return
         val tmp = internalPlanDays[index + 1]
         internalPlanDays[index + 1] = internalPlanDays[index]
         internalPlanDays[index] = tmp
-
-        val uiPlan = rebuildUiPlan()
-        _uiState.update { it.copy(plan = uiPlan) }
+        _uiState.update { it.copy(plan = rebuildUiPlan()) }
     }
 
     private fun rebuildUiPlan(): List<DayPlan> {

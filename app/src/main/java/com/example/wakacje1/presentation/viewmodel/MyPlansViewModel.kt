@@ -6,176 +6,240 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.wakacje1.data.local.LocalPlanRow
-import com.example.wakacje1.data.local.PlansLocalRepository // Nowa klasa
-import com.example.wakacje1.data.local.StoredPlan
+import com.example.wakacje1.data.local.PlansLocalRepository
 import com.example.wakacje1.data.remote.CloudPlanRow
-import com.example.wakacje1.data.remote.PlansCloudRepository // Nowa klasa (lub wrapper)
+import com.example.wakacje1.data.remote.PlansCloudRepository
+import com.example.wakacje1.presentation.common.AppError
+import com.example.wakacje1.presentation.common.ErrorMapper
+import com.example.wakacje1.presentation.common.UiEvent
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 
-/**
- * Stan UI dla operacji na listach planów (ładowanie, błędy).
- */
 data class PlansUiState(
-    val loading: Boolean = false,
-    val error: String? = null
+    val loading: Boolean = false
 )
 
 /**
  * ViewModel odpowiedzialny za zarządzanie listami planów (lokalną i chmurową).
- * Implementuje logikę "Offline-First" – najpierw wyświetla dane lokalne, a następnie synchronizuje je z chmurą.
+ *
+ * Offline-first:
+ * - UI czyta z lokalnej bazy (Room/Flow).
+ * - Chmura działa jako synchronizacja.
+ * - Konflikty: LWW (updatedAtMillis).
+ *
+ * Wersja A:
+ * - BRAK error w stanie.
+ * - Wszystkie błędy lecą jako UiEvent.Error(AppError).
  */
 class MyPlansViewModel(
     private val localRepository: PlansLocalRepository,
     private val cloudRepository: PlansCloudRepository
 ) : ViewModel() {
 
-    // --- Stan listy chmurowej (metadane i status synchronizacji) ---
     var cloudUi by mutableStateOf(PlansUiState())
         private set
     var cloudPlans by mutableStateOf<List<CloudPlanRow>>(emptyList())
         private set
 
-    // --- Stan listy lokalnej (główne źródło danych dla UI) ---
     var localUi by mutableStateOf(PlansUiState())
         private set
     var localPlans by mutableStateOf<List<LocalPlanRow>>(emptyList())
         private set
 
-    // Referencje do aktywnych zadań korutyn (jobów), umożliwiające ich anulowanie
     private var localJob: Job? = null
     private var syncUpJob: Job? = null
     private var syncDownJob: Job? = null
 
-    /**
-     * Rozpoczyna obserwowanie danych lokalnych i chmurowych dla danego użytkownika.
-     */
+    private var activeUid: String? = null
+
+    private var cloudReady = false
+    private var localReady = false
+
+    private val _events = MutableSharedFlow<UiEvent>(extraBufferCapacity = 4)
+    val events: SharedFlow<UiEvent> = _events.asSharedFlow()
+
     fun start(uid: String) {
+        if (activeUid == uid) return
+        stop()
+        activeUid = uid
+
+        cloudReady = false
+        localReady = false
+
         startLocal(uid)
         startCloud(uid)
     }
 
-    /**
-     * Zatrzymuje wszystkie procesy nasłuchiwania i synchronizacji.
-     */
     fun stop() {
-        // ZMIANA: Repozytorium powinno zarządzać czyszczeniem listenerów (np. Firebase)
+        activeUid = null
+
         cloudRepository.stopListening()
         localJob?.cancel()
         syncUpJob?.cancel()
         syncDownJob?.cancel()
+
+        localJob = null
+        syncUpJob = null
+        syncDownJob = null
+
+        cloudReady = false
+        localReady = false
+
+        // opcjonalnie: czyścimy loading, żeby UI nie pokazywało starych stanów
+        localUi = PlansUiState(loading = false)
+        cloudUi = PlansUiState(loading = false)
+        cloudPlans = emptyList()
+        localPlans = emptyList()
     }
 
-    /**
-     * Uruchamia reaktywne nasłuchiwanie bazy lokalnej (Room/Flow).
-     */
     private fun startLocal(uid: String) {
         localJob?.cancel()
         localUi = PlansUiState(loading = true)
 
         localJob = viewModelScope.launch {
-            // Obserwowanie zmian w bazie danych – każde odświeżenie danych lokalnych
-            // może wyzwolić próbę synchronizacji "w górę" (do chmury).
             localRepository.observePlans(uid)
                 .catch { e ->
-                    localUi = PlansUiState(loading = false, error = e.message)
+                    localUi = PlansUiState(loading = false)
+                    _events.emit(UiEvent.Error(ErrorMapper.map(e)))
                 }
                 .collect { rows ->
                     localPlans = rows
                     localUi = PlansUiState(loading = false)
-                    scheduleSyncUp(uid)
+                    localReady = true
+
+                    if (cloudReady) scheduleSyncUp(uid)
                 }
         }
     }
 
-    /**
-     * Wczytuje pełny obiekt planu z bazy lokalnej.
-     */
-    fun loadLocal(uid: String, planId: String, onLoaded: (StoredPlan) -> Unit) {
+    fun loadLocal(uid: String, planId: String) {
         viewModelScope.launch {
             try {
                 val p = localRepository.loadPlan(uid, planId)
                 if (p == null) {
-                    localUi = localUi.copy(error = "Błąd wczytania (null).")
+                    _events.emit(UiEvent.Error(AppError.NotFound(tech = "StoredPlan null for id=$planId")))
                 } else {
-                    onLoaded(p)
+                    _events.emit(UiEvent.OpenPlan(p))
                 }
             } catch (e: Exception) {
-                localUi = localUi.copy(error = e.message)
+                _events.emit(UiEvent.Error(ErrorMapper.map(e)))
             }
         }
     }
 
-    /**
-     * Usuwa plan z obu źródeł danych.
-     */
     fun deletePlan(uid: String, planId: String) {
         viewModelScope.launch {
-            // 1. Priorytetowe usunięcie lokalne (natychmiastowy feedback w UI)
+            // 1) lokalnie
             try {
                 localRepository.deletePlan(uid, planId)
             } catch (e: Exception) {
-                localUi = localUi.copy(error = e.message)
+                _events.emit(UiEvent.Error(ErrorMapper.map(e)))
                 return@launch
             }
-            // 2. Usunięcie z chmury z limitem czasowym (timeout)
+
+            // 2) chmura (timeout) – jeśli failnie, tylko komunikat, lokalnie już usunięte
             try {
                 withTimeout(15_000) { cloudRepository.deletePlan(uid, planId) }
             } catch (e: Exception) {
-                cloudUi = cloudUi.copy(error = e.message)
+                _events.emit(UiEvent.Error(ErrorMapper.map(e)))
             }
         }
     }
 
-    /**
-     * Uruchamia nasłuchiwanie zmian w chmurze (np. Firestore Snapshot Listener).
-     */
     private fun startCloud(uid: String) {
         cloudUi = PlansUiState(loading = true)
 
         cloudRepository.startListening(
             uid = uid,
             onUpdate = { list ->
-                // Nowe dane z chmury wyzwalają logikę synchronizacji "w dół" (do bazy lokalnej)
                 cloudPlans = list
                 cloudUi = PlansUiState(loading = false)
+                cloudReady = true
+
                 scheduleSyncDown(uid)
+
+                if (localReady) scheduleSyncUp(uid)
             },
             onRemovedIds = { removed ->
-                // Automatyczne czyszczenie bazy lokalnej po usunięciu planów w chmurze
                 viewModelScope.launch {
-                    removed.forEach { id -> localRepository.deletePlan(uid, id) }
+                    removed.forEach { id ->
+                        try {
+                            localRepository.deletePlan(uid, id)
+                        } catch (e: Exception) {
+                            _events.emit(UiEvent.Error(ErrorMapper.map(e)))
+                        }
+                    }
                 }
             },
-            onError = { msg -> cloudUi = PlansUiState(loading = false, error = msg) }
+            onError = { msg ->
+                cloudUi = PlansUiState(loading = false)
+                _events.tryEmit(UiEvent.Error(AppError.Network(tech = msg)))
+            }
         )
     }
 
-    /**
-     * Planuje synchronizację danych z chmury do bazy lokalnej (np. po aktualizacji u innego klienta).
-     */
     private fun scheduleSyncDown(uid: String) {
         syncDownJob?.cancel()
         syncDownJob = viewModelScope.launch {
-            // Miejsce na logikę porównywania dat modyfikacji (updatedAt)
-            // localRepository.upsertPlan(...)
+            delay(250)
+
+            val uidNow = activeUid ?: return@launch
+            if (uidNow != uid) return@launch
+
+            val localMap = localPlans.associateBy { it.id }
+
+            val toPull = cloudPlans.filter { cloudRow ->
+                val localRow = localMap[cloudRow.id]
+                localRow == null || cloudRow.updatedAtMillis > localRow.updatedAtMillis
+            }
+
+            if (toPull.isEmpty()) return@launch
+
+            try {
+                toPull.forEach { row ->
+                    val cloudPlan = withTimeout(15_000) { cloudRepository.loadPlan(uid, row.id) }
+                    localRepository.upsertStoredPlan(uid, cloudPlan, updatedAtMillis = row.updatedAtMillis)
+                }
+            } catch (e: Exception) {
+                _events.emit(UiEvent.Error(ErrorMapper.map(e)))
+            }
         }
     }
 
-    /**
-     * Planuje synchronizację zmian lokalnych do chmury.
-     */
     private fun scheduleSyncUp(uid: String) {
         syncUpJob?.cancel()
         syncUpJob = viewModelScope.launch {
-            // Miejsce na logikę wysyłania zmian, które nie trafiły jeszcze do chmury
-            // cloudRepository.upsertPlan(...)
+            delay(250)
+
+            val uidNow = activeUid ?: return@launch
+            if (uidNow != uid) return@launch
+            if (!cloudReady || !localReady) return@launch
+
+            val cloudMap = cloudPlans.associateBy { it.id }
+
+            val toPush = localPlans.filter { localRow ->
+                val cloudRow = cloudMap[localRow.id]
+                cloudRow == null || localRow.updatedAtMillis > cloudRow.updatedAtMillis
+            }
+
+            if (toPush.isEmpty()) return@launch
+
+            try {
+                toPush.forEach { row ->
+                    val localPlan = localRepository.loadPlan(uid, row.id) ?: return@forEach
+                    withTimeout(15_000) {
+                        cloudRepository.upsertPlan(uid, localPlan, updatedAtMillis = row.updatedAtMillis)
+                    }
+                }
+            } catch (e: Exception) {
+                _events.emit(UiEvent.Error(ErrorMapper.map(e)))
+            }
         }
     }
-
-    // Metody do czyszczenia stanów błędów w UI
-    fun clearLocalError() { localUi = localUi.copy(error = null) }
-    fun clearCloudError() { cloudUi = cloudUi.copy(error = null) }
 }

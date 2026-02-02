@@ -3,6 +3,7 @@ package com.example.wakacje1.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,9 +15,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -39,16 +40,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.wakacje1.R
 import com.example.wakacje1.domain.model.Destination
+import com.example.wakacje1.presentation.common.UiText
 import com.example.wakacje1.presentation.viewmodel.VacationViewModel
 import kotlin.math.roundToInt
 
-// Maksymalna szerokość treści dla zachowania czytelności na tabletach/szerokich ekranach
 private val MaxContentWidth = 520.dp
 
-/**
- * Ekran wyboru destynacji.
- * Pozwala użytkownikowi przejrzeć sugerowane miejsca, sprawdzić ich budżet oraz aktualną pogodę.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DestinationSelectionScreen(
@@ -56,7 +53,6 @@ fun DestinationSelectionScreen(
     onDestinationChosen: () -> Unit,
     onBack: () -> Unit
 ) {
-    // Reaktywne pobieranie stanu z ViewModelu z uwzględnieniem cyklu życia
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
@@ -65,7 +61,6 @@ fun DestinationSelectionScreen(
     val chosen = uiState.chosenDestination
     val weather = uiState.weather
 
-    // Wyzwalanie generowania sugestii przy zmianie dowolnego parametru preferencji
     LaunchedEffect(
         prefs?.budget,
         prefs?.days,
@@ -76,7 +71,6 @@ fun DestinationSelectionScreen(
         if (prefs != null) viewModel.prepareDestinationSuggestions()
     }
 
-    // Stan lokalny dla wybranego indeksu (zachowywany przy obrocie ekranu) i błędów walidacji
     val selectedIndex = rememberSaveable { mutableIntStateOf(-1) }
     val localError = remember { mutableStateOf<String?>(null) }
 
@@ -88,7 +82,6 @@ fun DestinationSelectionScreen(
                     TextButton(onClick = onBack) { Text(stringResource(R.string.btn_return)) }
                 },
                 actions = {
-                    // Odświeżanie danych pogodowych dla wybranej lokalizacji
                     TextButton(
                         onClick = {
                             val d = uiState.chosenDestination
@@ -102,7 +95,12 @@ fun DestinationSelectionScreen(
             )
         }
     ) { padding ->
-        Centered(modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp, vertical = 12.dp)) {
+        Centered(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+        ) {
             Column(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -112,7 +110,7 @@ fun DestinationSelectionScreen(
                     style = MaterialTheme.typography.bodyMedium
                 )
 
-                // Sekcja pogody wyświetlająca dane dla aktualnie zaznaczonej karty
+                // ✅ Pogoda — działa i gdy error jest String? i gdy UiText?
                 WeatherCard(
                     cityLabel = chosen?.displayName,
                     weatherCity = weather.city,
@@ -122,12 +120,14 @@ fun DestinationSelectionScreen(
                     error = weather.error
                 )
 
-                Divider()
+                // ✅ Divider deprecated -> HorizontalDivider
+                HorizontalDivider()
 
-                // Obsługa stanów pustych (brak preferencji lub brak pasujących wyników)
                 if (prefs == null) {
                     Text(stringResource(R.string.msg_no_preferences), color = MaterialTheme.colorScheme.error)
-                    OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.btn_return)) }
+                    OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.btn_return))
+                    }
                     return@Centered
                 }
 
@@ -136,7 +136,9 @@ fun DestinationSelectionScreen(
                         text = stringResource(R.string.msg_no_suggestions),
                         color = MaterialTheme.colorScheme.error
                     )
-                    OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.btn_return)) }
+                    OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.btn_return))
+                    }
                     return@Centered
                 }
 
@@ -146,11 +148,10 @@ fun DestinationSelectionScreen(
                     fontWeight = FontWeight.SemiBold
                 )
 
-                // Lista sugerowanych kierunków
                 LazyColumn(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 8.dp)
+                    contentPadding = PaddingValues(bottom = 8.dp)
                 ) {
                     itemsIndexed(suggestions) { idx, item ->
                         DestinationCard(
@@ -168,14 +169,15 @@ fun DestinationSelectionScreen(
                     }
                 }
 
-                // Komunikat błędu (np. gdy budżet jest zbyt niski dla wybranego miejsca)
                 localError.value?.let { Text(text = it, color = MaterialTheme.colorScheme.error) }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.btn_return)) }
+                    OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f)) {
+                        Text(stringResource(R.string.btn_return))
+                    }
 
                     ElevatedButton(
                         onClick = {
@@ -186,7 +188,6 @@ fun DestinationSelectionScreen(
                                 return@ElevatedButton
                             }
 
-                            // Walidacja budżetu: sprawdzenie czy po opłaceniu transportu zostaje kwota na przeżycie
                             val days = prefs.days.coerceAtLeast(1)
                             val transportUsed = viewModel.getTransportCostUsedForSuggestions(d)
                             val remaining = prefs.budget - transportUsed
@@ -217,7 +218,6 @@ fun DestinationSelectionScreen(
                                 return@ElevatedButton
                             }
 
-                            // Przejście do generowania planu po pozytywnej walidacji
                             viewModel.generatePlan()
                             onDestinationChosen()
                         },
@@ -231,22 +231,20 @@ fun DestinationSelectionScreen(
     }
 }
 
-/**
- * Kontener centrujący treść na ekranie.
- */
 @Composable
 private fun Centered(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
     Box(modifier = modifier, contentAlignment = Alignment.TopCenter) {
-        Box(modifier = Modifier.fillMaxWidth().widthIn(max = MaxContentWidth)) { content() }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .widthIn(max = MaxContentWidth)
+        ) { content() }
     }
 }
 
-/**
- * Karta pojedynczej destynacji wyświetlająca kluczowe informacje ekonomiczne i geograficzne.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DestinationCard(
@@ -259,13 +257,11 @@ private fun DestinationCard(
 ) {
     val days = prefsDays.coerceAtLeast(1)
 
-    // Kalkulacja budżetu pozostałego na dni pobytu po odjęciu kosztów podróży
     val transportUsed = viewModel.getTransportCostUsedForSuggestions(destination)
     val remaining = prefsBudget - transportUsed
     val budgetPerDay = if (remaining > 0) (remaining.toDouble() / days).roundToInt() else 0
     val okBudget = remaining > 0 && budgetPerDay >= destination.minBudgetPerDay
 
-    // Zmiana kolorystyki karty w zależności od zaznaczenia
     val container = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
     val content = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
 
@@ -290,7 +286,6 @@ private fun DestinationCard(
                     Text(destination.country, style = MaterialTheme.typography.bodyMedium)
                 }
 
-                // Wizualny wskaźnik czy budżet użytkownika jest wystarczający
                 Text(
                     text = if (okBudget) stringResource(R.string.status_ok) else stringResource(R.string.status_budget_low),
                     color = if (okBudget) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
@@ -307,7 +302,6 @@ private fun DestinationCard(
             )
             Spacer(Modifier.height(6.dp))
 
-            // Informacja o szacowanym zakresie cenowym transportu
             Text(
                 text = stringResource(
                     R.string.msg_transport_simple_range,
@@ -318,7 +312,6 @@ private fun DestinationCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            // Porównanie dostępnego budżetu dziennego z wymaganiami destynacji
             Text(
                 text = stringResource(R.string.msg_budget_info, budgetPerDay, destination.minBudgetPerDay),
                 style = MaterialTheme.typography.bodySmall
@@ -335,9 +328,10 @@ private fun DestinationCard(
     }
 }
 
-/**
- * Komponent wyświetlający bieżącą pogodę w wybranej lokalizacji.
- */
+/* ===========================
+   WeatherCard – OVERLOAD 1
+   (gdy WeatherUiState.error: String?)
+   =========================== */
 @Composable
 private fun WeatherCard(
     cityLabel: String?,
@@ -346,6 +340,49 @@ private fun WeatherCard(
     desc: String?,
     loading: Boolean,
     error: String?
+) {
+    WeatherCardInternal(
+        cityLabel = cityLabel,
+        weatherCity = weatherCity,
+        temp = temp,
+        desc = desc,
+        loading = loading,
+        errorText = error
+    )
+}
+
+/* ===========================
+   WeatherCard – OVERLOAD 2
+   (gdy WeatherUiState.error: UiText?)
+   =========================== */
+@Composable
+private fun WeatherCard(
+    cityLabel: String?,
+    weatherCity: String?,
+    temp: Double?,
+    desc: String?,
+    loading: Boolean,
+    error: UiText?
+) {
+    WeatherCardInternal(
+        cityLabel = cityLabel,
+        weatherCity = weatherCity,
+        temp = temp,
+        desc = desc,
+        loading = loading,
+        errorText = error?.asString()
+    )
+}
+
+/* Wspólna implementacja */
+@Composable
+private fun WeatherCardInternal(
+    cityLabel: String?,
+    weatherCity: String?,
+    temp: Double?,
+    desc: String?,
+    loading: Boolean,
+    errorText: String?
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -363,7 +400,10 @@ private fun WeatherCard(
 
             when {
                 loading -> Text(stringResource(R.string.msg_weather_loading, label))
-                error != null -> Text(stringResource(R.string.error_prefix, error), color = MaterialTheme.colorScheme.error)
+                errorText != null -> Text(
+                    stringResource(R.string.error_prefix, errorText),
+                    color = MaterialTheme.colorScheme.error
+                )
                 temp != null || !desc.isNullOrBlank() -> {
                     val t = temp?.let { "${it.roundToInt()}°C" } ?: ""
                     val d = desc ?: ""

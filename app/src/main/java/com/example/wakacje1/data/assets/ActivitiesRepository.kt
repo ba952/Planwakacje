@@ -6,7 +6,7 @@ import org.json.JSONObject
 
 /**
  * Typ wyliczeniowy określający kategorię aktywności.
- * Wykorzystywany przez algorytm [PlanGenerator] do szacowania kosztów
+ * Wykorzystywany przez algorytm PlanGenerator do szacowania kosztów
  * oraz dobierania atrakcji do pory dnia (np. NIGHT -> Wieczór).
  */
 enum class ActivityType {

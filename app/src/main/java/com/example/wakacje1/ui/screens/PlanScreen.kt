@@ -1,6 +1,5 @@
 package com.example.wakacje1.ui.screens
 
-import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -23,7 +22,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -40,7 +39,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,29 +50,23 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.wakacje1.R
 import com.example.wakacje1.domain.model.DayPlan
 import com.example.wakacje1.domain.model.DaySlot
+import com.example.wakacje1.domain.model.SlotUi
 import com.example.wakacje1.presentation.common.UiEvent
+import com.example.wakacje1.presentation.viewmodel.DayWeatherUi
 import com.example.wakacje1.presentation.viewmodel.VacationViewModel
-import kotlinx.coroutines.launch
+import com.example.wakacje1.util.DateUtils
 import kotlin.math.roundToInt
 
 private val MaxContentWidth = 520.dp
 
-/**
- * Ekran prezentujący szczegółowy plan wycieczki.
- * Umożliwia przeglądanie harmonogramu, edycję poszczególnych dni/slotów,
- * zapisywanie planu oraz eksport do formatu PDF.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlanScreen(
     viewModel: VacationViewModel,
-    uid: String?,
     onBack: () -> Unit,
     onGoMyPlans: () -> Unit
 ) {
     val context = LocalContext.current
-    val activity = context as? Activity
-    val scope = rememberCoroutineScope()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     val plan = uiState.plan
@@ -83,25 +75,26 @@ fun PlanScreen(
     val canEdit = uiState.canEditPlan
 
     val snack = remember { SnackbarHostState() }
-    val errorNoActivity = stringResource(R.string.error_no_activity)
 
-    // Obsługa zdarzeń jednorazowych (Events) wysyłanych z ViewModelu
+    // ✅ tutaj MUSI być asString(context), bo jesteśmy w korutynie (LaunchedEffect)
     LaunchedEffect(Unit) {
         viewModel.events.collect { ev ->
             when (ev) {
-                is UiEvent.Message -> {
-                    snack.showSnackbar(ev.uiText.asString(context))
-                }
-                is UiEvent.Error -> {
-                    snack.showSnackbar(ev.error.uiText.asString(context))
-                }
-                // Drukowanie PDF jest obsługiwane globalnie w MainActivity
-                else -> Unit
+                is UiEvent.Message -> snack.showSnackbar(ev.uiText.asString(context))
+                is UiEvent.Error -> snack.showSnackbar(ev.error.uiText.asString(context))
+                else -> Unit // PDF obsługuje MainActivity
             }
         }
     }
 
-    // Inicjalizacja: automatyczne generowanie planu, jeśli ekran jest pusty i wybrano destynację
+    fun dayWeatherForIndex(dayIndex: Int): DayWeatherUi? {
+        val prefs = uiState.preferences ?: return null
+        val startMillis = prefs.startDateMillis ?: return null
+        val startNorm = DateUtils.normalizeToLocalMidnight(startMillis)
+        val key = DateUtils.dayMillisForIndex(startNorm, dayIndex)
+        return uiState.dayWeatherByDate[key]
+    }
+
     val didInit = rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(dest?.displayName) {
         if (!didInit.value) {
@@ -112,7 +105,6 @@ fun PlanScreen(
         }
     }
 
-    // Tryb edycji pozwalający na przesuwanie dni i losowanie nowych aktywności
     val editMode = rememberSaveable { mutableStateOf(false) }
     val editEnabled = canEdit && !isLoading
 
@@ -120,41 +112,53 @@ fun PlanScreen(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.title_plan_screen)) },
-                navigationIcon = { TextButton(onClick = onBack) { Text(stringResource(R.string.btn_back)) } },
-                actions = { TextButton(onClick = onGoMyPlans) { Text(stringResource(R.string.btn_my_plans)) } }
+                navigationIcon = {
+                    TextButton(onClick = onBack) { Text(stringResource(R.string.btn_back)) }
+                },
+                actions = {
+                    TextButton(onClick = onGoMyPlans) { Text(stringResource(R.string.btn_my_plans)) }
+                }
             )
         },
         snackbarHost = { SnackbarHost(hostState = snack) }
     ) { padding ->
 
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
 
-            Centered(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp)) {
+            Centered(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+            ) {
                 Column(
-                    modifier = Modifier.fillMaxSize().imePadding(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .imePadding(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // Nagłówek z nazwą miejsca docelowego
                     if (dest != null) {
                         Text(
-                            text = if (dest.country.isBlank()) dest.displayName else "${dest.displayName}, ${dest.country}",
+                            text = if (dest.country.isBlank()) dest.displayName
+                            else "${dest.displayName}, ${dest.country}",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
                     }
 
-                    // Wyświetlanie ostrzeżeń dotyczących prognozy pogody
-                    uiState.forecastNotice?.let {
-                        Text(it, color = MaterialTheme.colorScheme.error)
-                    }
+                    uiState.forecastNotice?.let { Text(it.asString(), color = MaterialTheme.colorScheme.error) }
 
-                    // --- PANEL STEROWANIA ---
+
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                     ) {
                         Column(Modifier.padding(12.dp)) {
+
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -177,33 +181,26 @@ fun PlanScreen(
 
                             Spacer(Modifier.height(10.dp))
 
-                            // Przyciski akcji: Zapis, Eksport PDF, Wczytywanie
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 OutlinedButton(
-                                    onClick = { viewModel.savePlanLocally(uid) },
+                                    onClick = { viewModel.savePlanLocally() },
                                     modifier = Modifier.weight(1f),
                                     enabled = !isLoading,
                                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
                                 ) { Text(stringResource(R.string.btn_save)) }
 
                                 Button(
-                                    onClick = {
-                                        if (activity == null) {
-                                            scope.launch { snack.showSnackbar(errorNoActivity) }
-                                            return@Button
-                                        }
-                                        viewModel.exportCurrentPlanToPdf()
-                                    },
+                                    onClick = { viewModel.exportCurrentPlanToPdf() },
                                     modifier = Modifier.weight(1f),
-                                    enabled = activity != null && !isLoading,
+                                    enabled = !isLoading,
                                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
                                 ) { Text(stringResource(R.string.btn_pdf)) }
 
                                 OutlinedButton(
-                                    onClick = { viewModel.loadPlanLocally(uid) },
+                                    onClick = { viewModel.loadPlanLocally() },
                                     modifier = Modifier.weight(1f),
                                     enabled = !isLoading,
                                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
@@ -212,7 +209,6 @@ fun PlanScreen(
                         }
                     }
 
-                    // Wyświetlanie zachęty do wygenerowania planu, jeśli jest pusty
                     if (plan.isEmpty()) {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -233,9 +229,9 @@ fun PlanScreen(
                         return@Centered
                     }
 
-                    Divider()
+                    HorizontalDivider()
 
-                    // Lista dni wycieczki
+
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -246,6 +242,7 @@ fun PlanScreen(
                                 viewModel = viewModel,
                                 day = day,
                                 dayIndex = index,
+                                dayWeather = dayWeatherForIndex(index),
                                 editMode = editMode.value,
                                 editEnabled = editEnabled,
                                 onMoveUp = { viewModel.moveDayUp(index) },
@@ -261,7 +258,6 @@ fun PlanScreen(
                 }
             }
 
-            // Nakładka blokująca interakcje podczas ładowania danych
             if (isLoading) {
                 val interaction = remember { MutableInteractionSource() }
                 Box(
@@ -290,28 +286,26 @@ fun PlanScreen(
     }
 }
 
-/**
- * Kontener pomocniczy centrujący treść w poziomie.
- */
 @Composable
 private fun Centered(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
     Box(modifier = modifier, contentAlignment = Alignment.TopCenter) {
-        Box(modifier = Modifier.fillMaxWidth().widthIn(max = MaxContentWidth)) { content() }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .widthIn(max = MaxContentWidth)
+        ) { content() }
     }
 }
 
-/**
- * Komponent reprezentujący pojedynczy dzień w harmonogramie.
- * Wyświetla prognozę pogody dla dnia oraz sloty czasowe (rano, południe, wieczór).
- */
 @Composable
 private fun DayCard(
     viewModel: VacationViewModel,
     day: DayPlan,
     dayIndex: Int,
+    dayWeather: DayWeatherUi?,
     editMode: Boolean,
     editEnabled: Boolean,
     onMoveUp: () -> Unit,
@@ -340,7 +334,6 @@ private fun DayCard(
                     )
                 }
 
-                // Przyciski zmiany kolejności dni (widoczne tylko w trybie edycji)
                 if (editMode) {
                     Column(horizontalAlignment = Alignment.End) {
                         TextButton(onClick = onMoveUp, enabled = editEnabled) { Text(stringResource(R.string.btn_up)) }
@@ -349,8 +342,7 @@ private fun DayCard(
                 }
             }
 
-            // Wyświetlanie danych pogodowych dla dnia
-            val w = viewModel.getDayWeatherForIndexGetter(dayIndex)
+            val w = dayWeather
             if (w != null && (!w.description.isNullOrBlank() || w.tempMin != null || w.tempMax != null)) {
                 Spacer(Modifier.height(8.dp))
                 val temps = if (w.tempMin != null && w.tempMax != null) {
@@ -359,12 +351,16 @@ private fun DayCard(
                 val note = if (w.isBadWeather) stringResource(R.string.msg_bad_weather_note) else ""
 
                 Text(
-                    text = stringResource(R.string.msg_forecast_format, w.description.orEmpty(), temps, note),
+                    text = stringResource(
+                        R.string.msg_forecast_format,
+                        w.description.orEmpty(),
+                        temps,
+                        note
+                    ),
                     style = MaterialTheme.typography.bodySmall
                 )
             }
 
-            // Opcja przelosowania wszystkich aktywności w danym dniu
             if (editMode) {
                 Spacer(Modifier.height(10.dp))
                 OutlinedButton(
@@ -376,12 +372,11 @@ private fun DayCard(
 
             Spacer(Modifier.height(8.dp))
 
-            // Sekcje dla poszczególnych pór dnia
             SlotSection(
-                label = stringResource(R.string.slot_morning),
-                slot = DaySlot.MORNING,
                 dayIndex = dayIndex,
-                viewModel = viewModel,
+                slot = DaySlot.MORNING,
+                label = stringResource(R.string.slot_morning),
+                slotUi = day.slots.morning,
                 editMode = editMode,
                 enabled = editEnabled,
                 onRoll = { onRollSlot(DaySlot.MORNING) },
@@ -391,10 +386,10 @@ private fun DayCard(
             Spacer(Modifier.height(8.dp))
 
             SlotSection(
-                label = stringResource(R.string.slot_midday),
-                slot = DaySlot.MIDDAY,
                 dayIndex = dayIndex,
-                viewModel = viewModel,
+                slot = DaySlot.MIDDAY,
+                label = stringResource(R.string.slot_midday),
+                slotUi = day.slots.midday,
                 editMode = editMode,
                 enabled = editEnabled,
                 onRoll = { onRollSlot(DaySlot.MIDDAY) },
@@ -404,10 +399,10 @@ private fun DayCard(
             Spacer(Modifier.height(8.dp))
 
             SlotSection(
-                label = stringResource(R.string.slot_evening),
-                slot = DaySlot.EVENING,
                 dayIndex = dayIndex,
-                viewModel = viewModel,
+                slot = DaySlot.EVENING,
+                label = stringResource(R.string.slot_evening),
+                slotUi = day.slots.evening,
                 editMode = editMode,
                 enabled = editEnabled,
                 onRoll = { onRollSlot(DaySlot.EVENING) },
@@ -417,27 +412,22 @@ private fun DayCard(
     }
 }
 
-/**
- * Sekcja reprezentująca konkretną porę dnia (Rano/Południe/Wieczór).
- * Pozwala na podgląd aktywności oraz jej zmianę w trybie edycji.
- */
 @Composable
 private fun SlotSection(
-    label: String,
-    slot: DaySlot,
     dayIndex: Int,
-    viewModel: VacationViewModel,
+    slot: DaySlot,
+    label: String,
+    slotUi: SlotUi,
     editMode: Boolean,
     enabled: Boolean,
     onRoll: () -> Unit,
     onCustom: (String, String) -> Unit
 ) {
-    val showDialog = rememberSaveable(dayIndex, slot.name) { mutableStateOf(false) }
-    val descExpanded = rememberSaveable(dayIndex, "desc_${slot.name}") { mutableStateOf(false) }
+    val showDialog = rememberSaveable(dayIndex, slot.name, "dialog") { mutableStateOf(false) }
+    val descExpanded = rememberSaveable(dayIndex, slot.name, "expanded") { mutableStateOf(false) }
 
-    val s = viewModel.getSlotOrNull(dayIndex, slot)
-    val title = s?.title?.takeIf { it.isNotBlank() } ?: "—"
-    val desc = s?.description?.takeIf { it.isNotBlank() } ?: ""
+    val title = slotUi.title.takeIf { it.isNotBlank() } ?: "—"
+    val desc = slotUi.description.takeIf { it.isNotBlank() } ?: ""
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -449,7 +439,6 @@ private fun SlotSection(
             Spacer(Modifier.height(6.dp))
             Text(title, fontWeight = FontWeight.Bold)
 
-            // Opis aktywności (rozwijalny)
             if (desc.isNotBlank()) {
                 Spacer(Modifier.height(4.dp))
                 ExpandableText(
@@ -459,7 +448,6 @@ private fun SlotSection(
                 )
             }
 
-            // Opcje modyfikacji slotu (dostępne tylko w trybie edycji)
             if (editMode) {
                 Spacer(Modifier.height(6.dp))
                 Row(
@@ -484,7 +472,6 @@ private fun SlotSection(
         }
     }
 
-    // Okno dialogowe do wprowadzania własnej aktywności
     if (showDialog.value) {
         CustomSlotDialog(
             label = label,
@@ -497,9 +484,6 @@ private fun SlotSection(
     }
 }
 
-/**
- * Dialog do ręcznego wpisywania danych aktywności w planie.
- */
 @Composable
 private fun CustomSlotDialog(
     label: String,
@@ -542,9 +526,6 @@ private fun CustomSlotDialog(
     )
 }
 
-/**
- * Tekst z funkcją zwijania/rozwijania długich opisów.
- */
 @Composable
 private fun ExpandableText(
     text: String,

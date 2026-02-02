@@ -17,8 +17,11 @@
     <string name="btn_down">W dół</string>
     <string name="btn_expand">Rozwiń</string>
     <string name="btn_collapse">Zwiń</string>
+    <string name="error_generic">Coś poszło nie tak.</string>
+    <string name="error_cloud_sync_failed_local_saved">Zapisano na urządzeniu, ale nie udało się zsynchronizować z chmurą.</string>
 
     <string name="title_plan_screen">Plan wyjazdu</string>
+    <string name="msg_offline_saved_local">Brak dostępu do internetu — zapisano na urządzeniu.</string>
 
     <string name="title_edit_mode">Tryb edycji</string>
     <string name="label_edit_mode_desc_on">Możesz losować i edytować sloty.</string>
@@ -39,6 +42,25 @@
     <string name="msg_forecast_format">Prognoza: %1$s%2$s%3$s</string>
     <string name="msg_bad_weather_note"> • słaba → indoor</string>
 
+    <!-- WEATHER: errors -->
+    <string name="error_weather_generic">Nie udało się pobrać pogody.</string>
+    <string name="error_weather_invalid_api_key">Brak klucza API pogody (OPEN_WEATHER_API_KEY) – skonfiguruj go.</string>
+    <string name="error_weather_city_not_found">Nie znaleziono miasta – sprawdź nazwę.</string>
+    <string name="error_weather_network">Brak internetu lub problem z połączeniem.</string>
+    <string name="error_weather_api">Błąd usługi pogodowej (HTTP %1$d).</string>
+    <string name="error_weather_unknown">Nieoczekiwany błąd podczas pobierania pogody.</string>
+
+    <!-- FORECAST: notices -->
+    <string name="notice_forecast_unavailable">Prognoza dzienna jest niedostępna dla tego terminu.</string>
+    <string name="notice_forecast_partial">Prognoza dzienna dostępna tylko dla części wyjazdu: %1$d/%2$d dni.</string>
+    <string name="notice_forecast_failed">Nie udało się pobrać prognozy dziennej.</string>
+
+    <!-- FORECAST: errors mapped -->
+    <string name="notice_forecast_invalid_api_key">Brak klucza API pogody – prognoza niedostępna.</string>
+    <string name="notice_forecast_city_not_found">Nie znaleziono miasta dla prognozy – sprawdź destynację.</string>
+    <string name="notice_forecast_network">Brak internetu – prognoza niedostępna.</string>
+    <string name="notice_forecast_api">Błąd usługi pogodowej (HTTP %1$d) – prognoza niedostępna.</string>
+    <string name="notice_forecast_unknown">Nieoczekiwany błąd podczas pobierania prognozy.</string>
 
 
     <string name="error_budget_too_low">Budżet za niski po doliczeniu transportu.</string>
@@ -188,8 +210,7 @@
         <string name="label_midday">Południe:</string>
         <string name="label_evening">Wieczór:</string>
 
-    <string name="error_weather_network">Brak połączenia z internetem podczas pobierania pogody.</string>
-    <string name="error_weather_city_not_found">Nie znaleziono podanego miasta. Sprawdź pisownię.</string>
+
     <string name="error_weather_api_key">Błąd konfiguracji API (Klucz).</string>
     <string name="error_weather_general">Błąd serwera pogody (kod: %d).</string>
     <string name="fallback_destination_name">Nieznane Miejsce</string>

@@ -15,6 +15,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,23 +26,28 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.collectAsState
 import com.example.wakacje1.R
+import com.example.wakacje1.presentation.viewmodel.AuthEvent
 import com.example.wakacje1.presentation.viewmodel.AuthViewModel
 
-/**
- * Ekran rejestracji nowego użytkownika.
- * Wykorzystuje [AuthViewModel] do procesowania danych i zarządzania stanem ładowania/błędów.
- */
 @Composable
 fun RegisterScreen(
     authVm: AuthViewModel,
-    onDone: () -> Unit,    // Nawigacja po sukcesie
-    onGoLogin: () -> Unit  // Nawigacja powrotna
+    onDone: () -> Unit,
+    onGoLogin: () -> Unit
 ) {
-    // Lokalny stan pól tekstowych. Wykorzystanie 'remember' zapewnia zachowanie
-    // tekstu podczas rekompozycji (np. przy wyświetlaniu błędu).
+    val state by authVm.state.collectAsState()
+
     var email by remember { mutableStateOf("") }
     var pass by remember { mutableStateOf("") }
+
+    // Nawigacja po sukcesie rejestracji – VM emituje event, UI tylko reaguje.
+    LaunchedEffect(Unit) {
+        authVm.events.collect { e ->
+            if (e is AuthEvent.NavigateAfterAuth) onDone()
+        }
+    }
 
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(
@@ -50,7 +56,6 @@ fun RegisterScreen(
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Tytuł ekranu zintegrowany z systemem zasobów i typografią Material3
             Text(
                 text = stringResource(R.string.register_title),
                 style = MaterialTheme.typography.headlineMedium
@@ -58,10 +63,13 @@ fun RegisterScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // Pole Email z wymuszeniem odpowiedniego układu klawiatury
             OutlinedTextField(
                 value = email,
-                onValueChange = { email = it },
+                onValueChange = {
+                    email = it
+                    // opcjonalnie: czyść komunikaty gdy user edytuje
+                    if (state.error != null || state.info != null) authVm.clearMessages()
+                },
                 label = { Text(stringResource(R.string.label_email)) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 singleLine = true,
@@ -70,10 +78,12 @@ fun RegisterScreen(
 
             Spacer(Modifier.height(10.dp))
 
-            // Pole Hasło z PasswordVisualTransformation (maskowanie kropek)
             OutlinedTextField(
                 value = pass,
-                onValueChange = { pass = it },
+                onValueChange = {
+                    pass = it
+                    if (state.error != null || state.info != null) authVm.clearMessages()
+                },
                 label = { Text(stringResource(R.string.label_password)) },
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -81,7 +91,6 @@ fun RegisterScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // Podpowiedź dot. wymagań hasła (np. min. 6 znaków, duża litera)
             Text(
                 text = stringResource(R.string.password_requirements_hint),
                 style = MaterialTheme.typography.bodySmall,
@@ -89,12 +98,8 @@ fun RegisterScreen(
                 modifier = Modifier.padding(top = 4.dp)
             )
 
-            Spacer(Modifier.height(8.dp))
-
-            // --- OBSŁUGA BŁĘDÓW (UiText) ---
-            // Reaktywne wyświetlanie komunikatów o błędach pochodzących z ViewModelu.
-            // Wykorzystanie .asString() pozwala na automatyczne tłumaczenie błędów z Firebase lub walidatora.
-            authVm.error?.let { uiText ->
+            // Error
+            state.error?.let { uiText ->
                 Spacer(Modifier.height(6.dp))
                 Text(
                     text = uiText.asString(),
@@ -103,13 +108,21 @@ fun RegisterScreen(
                 )
             }
 
+            // Info (jeśli chcesz pokazywać np. "wysłano maila")
+            state.info?.let { uiText ->
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = uiText.asString(),
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
             Spacer(Modifier.height(14.dp))
 
-            // Przycisk wyzwalający rejestrację. enabled = !authVm.loading zapobiega
-            // wielokrotnym kliknięciom podczas trwania zapytania do serwera.
             Button(
-                onClick = { authVm.register(email, pass, onSuccess = onDone) },
-                enabled = !authVm.loading,
+                onClick = { authVm.register(email, pass) },
+                enabled = !state.loading,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(stringResource(R.string.btn_register_action))
@@ -117,18 +130,16 @@ fun RegisterScreen(
 
             Spacer(Modifier.height(18.dp))
 
-            // Powrót do ekranu logowania dla użytkowników posiadających już konto
             TextButton(
                 onClick = onGoLogin,
-                enabled = !authVm.loading,
+                enabled = !state.loading,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(stringResource(R.string.btn_have_account_login))
             }
         }
 
-        // Nakładka ładowania (Blocking UI)
-        if (authVm.loading) {
+        if (state.loading) {
             CircularProgressIndicator()
         }
     }

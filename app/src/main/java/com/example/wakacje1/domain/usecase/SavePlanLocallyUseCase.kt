@@ -6,7 +6,9 @@ import com.example.wakacje1.domain.model.Destination
 import com.example.wakacje1.domain.model.InternalDayPlan
 import com.example.wakacje1.domain.model.Preferences
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 
 data class SaveResult(
     val planId: String,
@@ -15,9 +17,9 @@ data class SaveResult(
 )
 
 /**
- * UseCase realizujący strategię "Local-First" (Offline-First).
- * Gwarantuje natychmiastowy zapis lokalny, traktując synchronizację z chmurą
- * jako operację drugorzędną (Best-Effort), która nie może zablokować UI w razie braku sieci.
+ * Offline-first:
+ * 1) zapis lokalny zawsze kończy sukcesem (jeśli IO się uda)
+ * 2) chmura jest best-effort i NIE MOŻE blokować UI (timeout)
  */
 class SavePlanLocallyUseCase(
     private val localRepository: PlansLocalRepository,
@@ -32,11 +34,9 @@ class SavePlanLocallyUseCase(
         currentCreatedAtMillis: Long?
     ): SaveResult = withContext(Dispatchers.IO) {
 
-        // Timestamp generowany raz dla spójności obu źródeł danych (Atomic-like logic)
         val now = System.currentTimeMillis()
 
-        // 1. Zapis Lokalny (Source of Truth)
-        // To jest operacja krytyczna - jeśli się nie uda, rzucamy wyjątek wyżej.
+        // 1) Lokalnie (krytyczne)
         val stored = localRepository.upsertPlan(
             uid = uid,
             planId = currentPlanId,
@@ -47,13 +47,15 @@ class SavePlanLocallyUseCase(
             updatedAtMillis = now
         )
 
+        // 2) Chmura (best-effort, NIE BLOKUJE)
         var cloudErr: Throwable? = null
-
-        // 2. Synchronizacja z Chmurą (Fire-and-forget / Best-Effort)
-        // Błąd sieci (np. offline) jest łapany i zwracany jako ostrzeżenie,
-        // ale nie powoduje uznania całej operacji zapisu za nieudaną.
         try {
-            cloudRepository.upsertPlan(uid, stored, now)
+            // twardy limit – w offline Firestore potrafi wisieć na await()
+            withTimeout(3_000) {
+                cloudRepository.upsertPlan(uid, stored, now)
+            }
+        } catch (e: TimeoutCancellationException) {
+            cloudErr = e // offline/timeout -> zapis lokalny i tak jest OK
         } catch (e: Exception) {
             cloudErr = e
         }

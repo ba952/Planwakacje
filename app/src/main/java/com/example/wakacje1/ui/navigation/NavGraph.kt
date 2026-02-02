@@ -2,6 +2,8 @@ package com.example.wakacje1.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -15,11 +17,8 @@ import com.example.wakacje1.ui.screens.MyPlansScreen
 import com.example.wakacje1.ui.screens.PlanScreen
 import com.example.wakacje1.ui.screens.PreferencesScreen
 import com.example.wakacje1.ui.screens.RegisterScreen
-import org.koin.androidx.compose.koinViewModel // ZMIANA: Import dla Koin
+import org.koin.androidx.compose.koinViewModel
 
-/**
- * Definicja tras (routes) dostępnych w aplikacji przy użyciu bezpiecznych obiektów danych.
- */
 sealed class Dest(val route: String) {
     data object Splash : Dest("splash")
     data object Login : Dest("login")
@@ -30,41 +29,30 @@ sealed class Dest(val route: String) {
     data object Plan : Dest("plan")
 }
 
-/**
- * Główny graf nawigacyjny aplikacji.
- * Zarządza przejściami między ekranami i wstrzykiwaniem odpowiednich ViewModeli.
- */
 @Composable
 fun NavGraph(
     navController: NavHostController = rememberNavController(),
-    // VacationViewModel jest przekazywany z MainActivity, aby zachować stan
-    // podczas całego procesu tworzenia planu (Wizard flow).
-    vacationViewModel: VacationViewModel,
-    startUid: String?
+    vacationViewModel: VacationViewModel
 ) {
-
-    // Pobieranie ViewModeli zarządzanych przez Koin.
-    // Pozwala to na automatyczne wstrzyknięcie wymaganych repozytoriów.
     val authVm: AuthViewModel = koinViewModel()
     val plansVm: MyPlansViewModel = koinViewModel()
+
+    val authState by authVm.state.collectAsState()
+    val uid = authState.uid
 
     NavHost(
         navController = navController,
         startDestination = Dest.Splash.route
     ) {
 
-        // Ekran powitalny decydujący o przekierowaniu na logowanie lub listę planów
         composable(Dest.Splash.route) {
-            val user = authVm.user
-            LaunchedEffect(user) {
-                if (user == null) {
+            // Jednorazowe przekierowanie zależnie od stanu zalogowania.
+            LaunchedEffect(uid) {
+                if (uid == null) {
                     navController.navigate(Dest.Login.route) {
                         popUpTo(Dest.Splash.route) { inclusive = true }
                     }
                 } else {
-                    // Automatyczny start synchronizacji planów po wykryciu aktywnej sesji
-                    user.uid.let { uid -> plansVm.start(uid) }
-
                     navController.navigate(Dest.MyPlans.route) {
                         popUpTo(Dest.Splash.route) { inclusive = true }
                     }
@@ -72,13 +60,10 @@ fun NavGraph(
             }
         }
 
-        // Ekran logowania - po sukcesie inicjuje nasłuchiwanie planów w chmurze
         composable(Dest.Login.route) {
             LoginScreen(
                 authVm = authVm,
                 onDone = {
-                    authVm.user?.uid?.let { uid -> plansVm.start(uid) }
-
                     navController.navigate(Dest.MyPlans.route) {
                         popUpTo(Dest.Login.route) { inclusive = true }
                     }
@@ -87,13 +72,10 @@ fun NavGraph(
             )
         }
 
-        // Ekran rejestracji nowego użytkownika
         composable(Dest.Register.route) {
             RegisterScreen(
                 authVm = authVm,
                 onDone = {
-                    authVm.user?.uid?.let { uid -> plansVm.start(uid) }
-
                     navController.navigate(Dest.MyPlans.route) {
                         popUpTo(Dest.Register.route) { inclusive = true }
                     }
@@ -102,34 +84,26 @@ fun NavGraph(
             )
         }
 
-        // Główny ekran użytkownika z listą zapisanych planów
         composable(Dest.MyPlans.route) {
-            val user = authVm.user
-            // Reagowanie na nagłe wygaśnięcie sesji lub wylogowanie
-            LaunchedEffect(user) {
-                if (user == null) {
-                    plansVm.stop()
+            // Guard tylko nawigacyjny: jeśli user się wyloguje, cofamy do loginu.
+            // NIE dotykamy plansVm.stop() - od tego jest MyPlansScreen (DisposableEffect).
+            LaunchedEffect(uid) {
+                if (uid == null) {
                     navController.navigate(Dest.Login.route) {
                         popUpTo(Dest.MyPlans.route) { inclusive = true }
                     }
                 }
             }
 
-            // Zapewnienie ciągłości nasłuchiwania zmian przy powrocie na ten ekran
-            LaunchedEffect(Unit) {
-                user?.uid?.let { plansVm.start(it) }
-            }
-
             MyPlansScreen(
                 authVm = authVm,
                 plansVm = plansVm,
                 vacationVm = vacationViewModel,
-                onNewPlan = {
-                    navController.navigate(Dest.Preferences.route)
-                },
+                onNewPlan = { navController.navigate(Dest.Preferences.route) },
                 onOpenPlan = { navController.navigate(Dest.Plan.route) },
                 onLoggedOut = {
-                    plansVm.stop()
+                    // Wystarczy signOut + nawigacja.
+                    // plansVm.stop() wykona się przy wyjściu z MyPlansScreen (onDispose).
                     authVm.signOut()
                     navController.navigate(Dest.Login.route) {
                         popUpTo(Dest.MyPlans.route) { inclusive = true }
@@ -138,7 +112,6 @@ fun NavGraph(
             )
         }
 
-        // Krok 1 kreatora: Konfiguracja preferencji wyjazdu
         composable(Dest.Preferences.route) {
             PreferencesScreen(
                 viewModel = vacationViewModel,
@@ -155,7 +128,6 @@ fun NavGraph(
             )
         }
 
-        // Krok 2 kreatora: Wybór sugerowanej destynacji
         composable(Dest.Destinations.route) {
             DestinationSelectionScreen(
                 viewModel = vacationViewModel,
@@ -164,11 +136,10 @@ fun NavGraph(
             )
         }
 
-        // Krok 3 kreatora: Podgląd i edycja wygenerowanego planu
         composable(Dest.Plan.route) {
             PlanScreen(
                 viewModel = vacationViewModel,
-                uid = authVm.user?.uid,
+
                 onBack = { navController.popBackStack() },
                 onGoMyPlans = {
                     val popped = navController.popBackStack(Dest.MyPlans.route, inclusive = false)

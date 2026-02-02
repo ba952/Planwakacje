@@ -15,9 +15,6 @@ import java.util.UUID
  */
 class PlansLocalRepository(private val context: Context) {
 
-    /**
-     * Udostępnia reaktywny strumień nagłówków planów dla danego użytkownika.
-     */
     fun observePlans(uid: String): Flow<List<LocalPlanRow>> {
         return PlanStorage.observePlans(context, uid)
     }
@@ -35,11 +32,31 @@ class PlansLocalRepository(private val context: Context) {
     }
 
     /**
+     * NOWE: Upsert pełnego planu pochodzącego z chmury.
+     * Używane w synchronizacji "w dół" (cloud -> local).
+     */
+    suspend fun upsertStoredPlan(
+        uid: String,
+        plan: StoredPlan,
+        updatedAtMillis: Long
+    ) {
+        val title = plan.destination.displayName.ifBlank { "Plan" }
+        val start = plan.preferences?.startDateMillis
+        val end = plan.preferences?.endDateMillis
+
+        PlanStorage.upsertPlan(
+            context = context,
+            uid = uid,
+            plan = plan,
+            title = title,
+            startDateMillis = start,
+            endDateMillis = end,
+            updatedAtMillis = updatedAtMillis
+        )
+    }
+
+    /**
      * Logika biznesowa zapisu planu (Create/Update).
-     * Odpowiada za:
-     * 1. Generowanie unikalnego ID (jeśli to nowy plan).
-     * 2. Mapowanie obiektów domenowych na struktury bazy danych.
-     * 3. Wyliczenie metadanych (tytuł, data zakończenia) na potrzeby indeksowania.
      */
     suspend fun upsertPlan(
         uid: String,
@@ -50,11 +67,9 @@ class PlansLocalRepository(private val context: Context) {
         internalDays: List<InternalDayPlan>,
         updatedAtMillis: Long
     ): StoredPlan {
-        // 1. Inicjalizacja metadanych
         val finalId = planId ?: UUID.randomUUID().toString()
         val finalCreated = createdAtMillis ?: System.currentTimeMillis()
 
-        // 2. Mapowanie Domain -> Stored (DTO)
         val storedPlan = StoredPlan(
             id = finalId,
             createdAtMillis = finalCreated,
@@ -63,14 +78,12 @@ class PlansLocalRepository(private val context: Context) {
             internalDays = internalDays.map { it.toStored() }
         )
 
-        // 3. Obliczenia pomocnicze dla kolumn indeksowanych
         val title = dest.displayName
         val startDate = prefs.startDateMillis
         val endDate = startDate?.let { start ->
             start + (prefs.days.toLong() * 24L * 60L * 60L * 1000L)
         }
 
-        // 4. Delegacja zapisu do warstwy Storage
         PlanStorage.upsertPlan(
             context = context,
             uid = uid,

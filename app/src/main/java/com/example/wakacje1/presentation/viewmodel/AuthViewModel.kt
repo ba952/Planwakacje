@@ -1,8 +1,5 @@
 package com.example.wakacje1.presentation.viewmodel
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.wakacje1.R
@@ -10,126 +7,141 @@ import com.example.wakacje1.data.remote.AuthRepository
 import com.example.wakacje1.domain.usecase.PasswordValidationResult
 import com.example.wakacje1.domain.usecase.ValidatePasswordUseCase
 import com.example.wakacje1.presentation.common.UiText
-import com.google.firebase.auth.FirebaseUser
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/**
- * ViewModel odpowiedzialny za procesy uwierzytelniania (logowanie, rejestracja, reset hasła).
- * Wykorzystuje [AuthRepository] do komunikacji z Firebase oraz [ValidatePasswordUseCase] do walidacji danych.
- */
+data class AuthUiState(
+    val uid: String? = null,
+    val loading: Boolean = false,
+    val error: UiText? = null,
+    val info: UiText? = null
+)
+
+sealed class AuthEvent {
+    object NavigateAfterAuth : AuthEvent()
+}
+
 class AuthViewModel(
     private val authRepository: AuthRepository,
-    private val validatePasswordUseCase: ValidatePasswordUseCase // <--- Wstrzykujemy walidator
+    private val validatePasswordUseCase: ValidatePasswordUseCase
 ) : ViewModel() {
 
-    // Aktualnie zalogowany użytkownik pobrany z repozytorium
-    var user: FirebaseUser? by mutableStateOf(authRepository.currentUser)
-        private set
+    private val _state = MutableStateFlow(
+        AuthUiState(uid = authRepository.currentUser?.uid)
+    )
+    val state: StateFlow<AuthUiState> = _state.asStateFlow()
 
-    // Stan ładowania używany do wyświetlania progress barów w UI
-    var loading by mutableStateOf(false)
-        private set
+    private val _events = MutableSharedFlow<AuthEvent>(extraBufferCapacity = 4)
+    val events: SharedFlow<AuthEvent> = _events.asSharedFlow()
 
-    // Komunikat błędu sformatowany jako UiText dla obsługi zasobów stringów
-    var error: UiText? by mutableStateOf(null)
-        private set
-
-    // Komunikat informacyjny (np. o wysłaniu maila resetującego)
-    var info: UiText? by mutableStateOf(null)
-        private set
-
-    // Czyści komunikaty błędów i informacji przed nową akcją
     fun clearMessages() {
-        error = null
-        info = null
+        _state.update { it.copy(error = null, info = null) }
     }
 
-    /**
-     * Logowanie użytkownika za pomocą emaila i hasła.
-     */
-    fun signIn(email: String, pass: String, onSuccess: () -> Unit) {
+    fun signIn(email: String, pass: String) {
         clearMessages()
 
-        // Walidacja pustych pól przed próbą połączenia z serwerem
         if (email.isBlank() || pass.isBlank()) {
-            error = UiText.StringResource(R.string.auth_error_empty_credentials)
+            _state.update { it.copy(error = UiText.StringResource(R.string.auth_error_empty_credentials)) }
             return
         }
 
-        loading = true
+        _state.update { it.copy(loading = true) }
+
         viewModelScope.launch {
             val result = authRepository.signIn(email, pass)
-            loading = false
             if (result.isSuccess) {
-                user = authRepository.currentUser
-                onSuccess()
+                val uid = authRepository.currentUser?.uid
+                _state.update { it.copy(uid = uid, loading = false) }
+                _events.emit(AuthEvent.NavigateAfterAuth)
             } else {
-                // Obsługa błędu: dynamiczny komunikat z Firebase lub ogólny z zasobów
-                val msg = result.exceptionOrNull()?.message
-                error = if (msg != null) UiText.DynamicString(msg)
-                else UiText.StringResource(R.string.auth_error_login_generic)
+                _state.update {
+                    it.copy(
+                        loading = false,
+                        error = mapAuthFailureToUiText(result.exceptionOrNull())
+                    )
+                }
             }
         }
     }
 
-    /**
-     * Rejestracja nowego konta z wstępną walidacją siły hasła.
-     */
-    fun register(email: String, pass: String, onSuccess: () -> Unit) {
+    fun register(email: String, pass: String) {
         clearMessages()
 
-        // 1. Walidacja hasła za pomocą UseCase przed wywołaniem API
         val validation = validatePasswordUseCase.execute(pass)
         if (validation is PasswordValidationResult.Error) {
-            error = UiText.DynamicString(validation.message)
+            // tu idealnie też byłby StringResource, ale nie psujemy Twojego UseCase
+            _state.update { it.copy(error = UiText.DynamicString(validation.message)) }
             return
         }
 
-        // 2. Próba rejestracji w Firebase
-        loading = true
+        _state.update { it.copy(loading = true) }
+
         viewModelScope.launch {
             val result = authRepository.register(email, pass)
-            loading = false
             if (result.isSuccess) {
-                user = authRepository.currentUser
-                onSuccess()
+                val uid = authRepository.currentUser?.uid
+                _state.update { it.copy(uid = uid, loading = false) }
+                _events.emit(AuthEvent.NavigateAfterAuth)
             } else {
-                val msg = result.exceptionOrNull()?.message
-                error = if (msg != null) UiText.DynamicString(msg)
-                else UiText.StringResource(R.string.auth_error_register_generic)
+                _state.update {
+                    it.copy(
+                        loading = false,
+                        error = mapAuthFailureToUiText(result.exceptionOrNull(), isRegister = true)
+                    )
+                }
             }
         }
     }
 
-    /**
-     * Wysyła link do resetowania hasła na podany adres email.
-     */
     fun sendPasswordReset(email: String) {
         clearMessages()
+
         if (email.isBlank()) {
-            error = UiText.StringResource(R.string.auth_error_email_empty)
+            _state.update { it.copy(error = UiText.StringResource(R.string.auth_error_email_empty)) }
             return
         }
 
-        loading = true
+        _state.update { it.copy(loading = true) }
+
         viewModelScope.launch {
             val result = authRepository.sendPasswordReset(email)
-            loading = false
             if (result.isSuccess) {
-                info = UiText.StringResource(R.string.auth_info_reset_sent)
+                _state.update {
+                    it.copy(
+                        loading = false,
+                        info = UiText.StringResource(R.string.auth_info_reset_sent)
+                    )
+                }
             } else {
-                val msg = result.exceptionOrNull()?.message
-                error = if (msg != null) UiText.DynamicString(msg)
-                else UiText.StringResource(R.string.auth_error_reset_generic)
+                _state.update {
+                    it.copy(
+                        loading = false,
+                        error = UiText.StringResource(R.string.auth_error_reset_generic)
+                    )
+                }
             }
         }
     }
 
-    /**
-     * Wylogowanie użytkownika i wyczyszczenie lokalnego stanu.
-     */
     fun signOut() {
         authRepository.signOut()
-        user = null
+        _state.value = AuthUiState(uid = null)
+    }
+
+    private fun mapAuthFailureToUiText(t: Throwable?, isRegister: Boolean = false): UiText {
+        // Zero komunikatów z Firebase w UI (żeby nie było "angielskich" i niestabilnych tekstów)
+        // Jeśli chcesz, możemy tu dodać mapowanie po kodach FirebaseAuthException.
+        return if (isRegister) {
+            UiText.StringResource(R.string.auth_error_register_generic)
+        } else {
+            UiText.StringResource(R.string.auth_error_login_generic)
+        }
     }
 }
