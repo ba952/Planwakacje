@@ -12,10 +12,12 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold // 1. Dodany import
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,7 +28,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.compose.runtime.collectAsState
 import com.example.wakacje1.R
 import com.example.wakacje1.presentation.viewmodel.AuthEvent
 import com.example.wakacje1.presentation.viewmodel.AuthViewModel
@@ -42,105 +43,114 @@ fun RegisterScreen(
     var email by remember { mutableStateOf("") }
     var pass by remember { mutableStateOf("") }
 
-    // Nawigacja po sukcesie rejestracji – VM emituje event, UI tylko reaguje.
     LaunchedEffect(Unit) {
         authVm.events.collect { e ->
             if (e is AuthEvent.NavigateAfterAuth) onDone()
         }
     }
 
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+    // 2. Używamy Scaffold jako głównego kontenera.
+    // Scaffold automatycznie ustawia kolor tła na MaterialTheme.colorScheme.background
+    Scaffold(
+        modifier = Modifier.fillMaxSize()
+    ) { innerPadding ->
+
+        // Box jest teraz wewnątrz Scaffolda, żeby wycentrować treść
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding), // Ważne: uwzględniamy padding ze Scaffolda
+            contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = stringResource(R.string.register_title),
-                style = MaterialTheme.typography.headlineMedium
-            )
-
-            Spacer(Modifier.height(16.dp))
-
-            OutlinedTextField(
-                value = email,
-                onValueChange = {
-                    email = it
-                    // opcjonalnie: czyść komunikaty gdy user edytuje
-                    if (state.error != null || state.info != null) authVm.clearMessages()
-                },
-                label = { Text(stringResource(R.string.label_email)) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(Modifier.height(10.dp))
-
-            OutlinedTextField(
-                value = pass,
-                onValueChange = {
-                    pass = it
-                    if (state.error != null || state.info != null) authVm.clearMessages()
-                },
-                label = { Text(stringResource(R.string.label_password)) },
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Text(
-                text = stringResource(R.string.password_requirements_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.padding(top = 4.dp)
-            )
-
-            // Error
-            state.error?.let { uiText ->
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = uiText.asString(),
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-
-            // Info (jeśli chcesz pokazywać np. "wysłano maila")
-            state.info?.let { uiText ->
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = uiText.asString(),
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-
-            Spacer(Modifier.height(14.dp))
-
-            Button(
-                onClick = { authVm.register(email, pass) },
-                enabled = !state.loading,
-                modifier = Modifier.fillMaxWidth()
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(stringResource(R.string.btn_register_action))
+                Text(
+                    text = stringResource(R.string.register_title),
+                    style = MaterialTheme.typography.headlineMedium
+                )
+
+                Spacer(Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = {
+                        email = it
+                        if (state.error != null || state.info != null) authVm.clearMessages()
+                    },
+                    label = { Text(stringResource(R.string.label_email)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(Modifier.height(10.dp))
+
+                OutlinedTextField(
+                    value = pass,
+                    onValueChange = {
+                        pass = it
+                        if (state.error != null || state.info != null) authVm.clearMessages()
+                    },
+                    label = { Text(stringResource(R.string.label_password)) },
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Text(
+                    text = stringResource(R.string.password_requirements_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+
+                state.error?.let { uiText ->
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = uiText.asString(),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
+                state.info?.let { uiText ->
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = uiText.asString(),
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
+                Spacer(Modifier.height(14.dp))
+
+                Button(
+                    onClick = { authVm.register(email, pass) },
+                    enabled = !state.loading,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.btn_register_action))
+                }
+
+                Spacer(Modifier.height(18.dp))
+
+                TextButton(
+                    onClick = onGoLogin,
+                    enabled = !state.loading,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.btn_have_account_login))
+                }
             }
 
-            Spacer(Modifier.height(18.dp))
-
-            TextButton(
-                onClick = onGoLogin,
-                enabled = !state.loading,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(stringResource(R.string.btn_have_account_login))
+            if (state.loading) {
+                CircularProgressIndicator()
             }
-        }
-
-        if (state.loading) {
-            CircularProgressIndicator()
         }
     }
 }

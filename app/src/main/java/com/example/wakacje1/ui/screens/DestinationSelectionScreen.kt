@@ -110,7 +110,6 @@ fun DestinationSelectionScreen(
                     style = MaterialTheme.typography.bodyMedium
                 )
 
-                // ✅ Pogoda — działa i gdy error jest String? i gdy UiText?
                 WeatherCard(
                     cityLabel = chosen?.displayName,
                     weatherCity = weather.city,
@@ -120,7 +119,6 @@ fun DestinationSelectionScreen(
                     error = weather.error
                 )
 
-                // ✅ Divider deprecated -> HorizontalDivider
                 HorizontalDivider()
 
                 if (prefs == null) {
@@ -158,8 +156,6 @@ fun DestinationSelectionScreen(
                             viewModel = viewModel,
                             destination = item,
                             selected = selectedIndex.intValue == idx,
-                            prefsBudget = prefs.budget,
-                            prefsDays = prefs.days,
                             onSelect = {
                                 selectedIndex.intValue = idx
                                 localError.value = null
@@ -188,36 +184,29 @@ fun DestinationSelectionScreen(
                                 return@ElevatedButton
                             }
 
-                            val days = prefs.days.coerceAtLeast(1)
-                            val transportUsed = viewModel.getTransportCostUsedForSuggestions(d)
-                            val remaining = prefs.budget - transportUsed
-                            val tLabel = "szacowany koszt"
+                            val netDailyBudget = viewModel.getBudgetPerDayWithTransport(d)
+                            val minRequired = (d.minBudgetPerDay * 0.5).toInt()
 
-                            if (remaining <= 0) {
-                                localError.value = context.getString(
-                                    R.string.error_budget_too_low_transport,
-                                    tLabel,
-                                    transportUsed,
-                                    d.transportCostRoundTripPlnMin,
-                                    d.transportCostRoundTripPlnMax
-                                )
-                                return@ElevatedButton
-                            }
+                            if (netDailyBudget < minRequired) {
+                                val tLabel = "szacunkowe koszty"
+                                val transport = viewModel.getTransportCostUsedForSuggestions(d)
 
-                            val budgetPerDay = (remaining.toDouble() / days).roundToInt()
-                            if (budgetPerDay < d.minBudgetPerDay) {
                                 localError.value = context.getString(
                                     R.string.error_budget_too_low_daily,
                                     tLabel,
-                                    budgetPerDay,
-                                    transportUsed,
+                                    netDailyBudget, // Tyle mamy
+                                    transport,
                                     d.transportCostRoundTripPlnMin,
                                     d.transportCostRoundTripPlnMax,
-                                    d.minBudgetPerDay
+                                    minRequired // Tyle potrzebujemy
                                 )
+                                // ZMIANA KLUCZOWA: BLOKADA PRZEJŚCIA
+                                // Jeśli kasy jest za mało, przerywamy funkcję (return).
+                                // Nie generujemy planu, nie przechodzimy dalej.
                                 return@ElevatedButton
                             }
 
+                            // Przejście następuje TYLKO, jeśli budżet jest OK
                             viewModel.generatePlan()
                             onDestinationChosen()
                         },
@@ -251,16 +240,10 @@ private fun DestinationCard(
     viewModel: VacationViewModel,
     destination: Destination,
     selected: Boolean,
-    prefsBudget: Int,
-    prefsDays: Int,
     onSelect: () -> Unit
 ) {
-    val days = prefsDays.coerceAtLeast(1)
-
-    val transportUsed = viewModel.getTransportCostUsedForSuggestions(destination)
-    val remaining = prefsBudget - transportUsed
-    val budgetPerDay = if (remaining > 0) (remaining.toDouble() / days).roundToInt() else 0
-    val okBudget = remaining > 0 && budgetPerDay >= destination.minBudgetPerDay
+    val netDailyBudget = viewModel.getBudgetPerDayWithTransport(destination)
+    val okBudget = netDailyBudget >= (destination.minBudgetPerDay * 0.5)
 
     val container = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
     val content = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
@@ -313,7 +296,7 @@ private fun DestinationCard(
             )
 
             Text(
-                text = stringResource(R.string.msg_budget_info, budgetPerDay, destination.minBudgetPerDay),
+                text = stringResource(R.string.msg_budget_info, netDailyBudget, destination.minBudgetPerDay),
                 style = MaterialTheme.typography.bodySmall
             )
 
@@ -328,82 +311,27 @@ private fun DestinationCard(
     }
 }
 
-/* ===========================
-   WeatherCard – OVERLOAD 1
-   (gdy WeatherUiState.error: String?)
-   =========================== */
+// WeatherCard components zostają bez zmian
 @Composable
-private fun WeatherCard(
-    cityLabel: String?,
-    weatherCity: String?,
-    temp: Double?,
-    desc: String?,
-    loading: Boolean,
-    error: String?
-) {
-    WeatherCardInternal(
-        cityLabel = cityLabel,
-        weatherCity = weatherCity,
-        temp = temp,
-        desc = desc,
-        loading = loading,
-        errorText = error
-    )
+private fun WeatherCard(cityLabel: String?, weatherCity: String?, temp: Double?, desc: String?, loading: Boolean, error: String?) {
+    WeatherCardInternal(cityLabel, weatherCity, temp, desc, loading, error)
 }
 
-/* ===========================
-   WeatherCard – OVERLOAD 2
-   (gdy WeatherUiState.error: UiText?)
-   =========================== */
 @Composable
-private fun WeatherCard(
-    cityLabel: String?,
-    weatherCity: String?,
-    temp: Double?,
-    desc: String?,
-    loading: Boolean,
-    error: UiText?
-) {
-    WeatherCardInternal(
-        cityLabel = cityLabel,
-        weatherCity = weatherCity,
-        temp = temp,
-        desc = desc,
-        loading = loading,
-        errorText = error?.asString()
-    )
+private fun WeatherCard(cityLabel: String?, weatherCity: String?, temp: Double?, desc: String?, loading: Boolean, error: UiText?) {
+    WeatherCardInternal(cityLabel, weatherCity, temp, desc, loading, error?.asString())
 }
 
-/* Wspólna implementacja */
 @Composable
-private fun WeatherCardInternal(
-    cityLabel: String?,
-    weatherCity: String?,
-    temp: Double?,
-    desc: String?,
-    loading: Boolean,
-    errorText: String?
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
-    ) {
+private fun WeatherCardInternal(cityLabel: String?, weatherCity: String?, temp: Double?, desc: String?, loading: Boolean, errorText: String?) {
+    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
         Column(Modifier.padding(14.dp)) {
-            Text(
-                text = stringResource(R.string.title_weather),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
+            Text(text = stringResource(R.string.title_weather), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(6.dp))
-
             val label = cityLabel ?: weatherCity ?: "—"
-
             when {
                 loading -> Text(stringResource(R.string.msg_weather_loading, label))
-                errorText != null -> Text(
-                    stringResource(R.string.error_prefix, errorText),
-                    color = MaterialTheme.colorScheme.error
-                )
+                errorText != null -> Text(stringResource(R.string.error_prefix, errorText), color = MaterialTheme.colorScheme.error)
                 temp != null || !desc.isNullOrBlank() -> {
                     val t = temp?.let { "${it.roundToInt()}°C" } ?: ""
                     val d = desc ?: ""

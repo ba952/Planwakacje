@@ -6,7 +6,7 @@ import com.example.wakacje1.data.local.PlansLocalRepository
 import com.example.wakacje1.data.remote.AuthRepository
 import com.example.wakacje1.data.remote.PlansCloudRepository
 import com.example.wakacje1.data.remote.WeatherRepository
-import com.example.wakacje1.data.session.FirebaseSessionProvider
+import com.example.wakacje1.domain.session.FirebaseSessionProvider
 import com.example.wakacje1.domain.engine.PlanGenerator
 import com.example.wakacje1.domain.session.SessionProvider
 import com.example.wakacje1.domain.usecase.ExportPlanPdfUseCase
@@ -33,17 +33,15 @@ val appModule = module {
     // --- 1. ZALEŻNOŚCI ZEWNĘTRZNE ---
     single { FirebaseAuth.getInstance() }
 
-    // --- 2. SESSION (abstrakcja) ---
+    // --- 2. SESSION ---
     single<SessionProvider> { FirebaseSessionProvider(firebaseAuth = get()) }
 
-    // --- 3. REPOZYTORIA (Data Layer) ---
+    // --- 3. REPOZYTORIA ---
     single { DestinationRepository(androidContext()) }
     single { ActivitiesRepository(androidContext()) }
     single { AuthRepository(firebaseAuth = get()) }
     single { PlansLocalRepository(context = androidContext()) }
     single { PlansCloudRepository() }
-
-    // ✅ TU POPRAWKA: bez api/apiKey w konstruktorze
     single { WeatherRepository() }
 
     // --- 4. HELPERY / UTILS ---
@@ -58,7 +56,9 @@ val appModule = module {
 
     // --- 5. DOMENA / USE CASES ---
     factory { PlanGenerator(stringProvider = get()) }
-    factory { ExportPlanPdfUseCase() }
+
+    // ZMIANA: Dodano stringProvider do konstruktora
+    factory { ExportPlanPdfUseCase(stringProvider = get()) }
 
     factory { GeneratePlanUseCase(activitiesRepository = get(), planGenerator = get()) }
     factory { RegenerateDayUseCase(activitiesRepository = get(), planGenerator = get()) }

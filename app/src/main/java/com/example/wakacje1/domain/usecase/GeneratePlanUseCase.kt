@@ -17,25 +17,18 @@ class GeneratePlanUseCase(
     private val activitiesRepository: ActivitiesRepository,
     private val planGenerator: PlanGenerator
 ) {
-
     suspend fun execute(
         prefs: Preferences,
         dest: Destination,
+        transportCost: Int, // Parametr
         isBadWeatherForDayIndex: (Int) -> Boolean
     ): MutableList<InternalDayPlan> {
-
-        // 1. Pobranie danych (IO) - operacja na plikach JSON
         val allActivities = withContext(Dispatchers.IO) {
             activitiesRepository.getAllActivities()
         }
-
-        // 2. Generowanie planu (CPU) - ciężkie obliczenia algorytmiczne
         return withContext(Dispatchers.Default) {
             planGenerator.generateInternalPlan(
-                prefs = prefs,
-                dest = dest,
-                allActivities = allActivities,
-                isBadWeatherForDayIndex = isBadWeatherForDayIndex
+                prefs, dest, transportCost, allActivities, isBadWeatherForDayIndex
             )
         }
     }

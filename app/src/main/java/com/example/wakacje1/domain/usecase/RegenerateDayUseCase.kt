@@ -10,7 +10,7 @@ import kotlinx.coroutines.withContext
 
 /**
  * UseCase odpowiedzialny za przelosowanie planu dla jednego, konkretnego dnia.
- * Zachowuje spójność wątkową (IO dla odczytu danych, Default dla logiki algorytmu).
+ * Reaguje na przycisk "Odśwież dzień" w UI.
  */
 class RegenerateDayUseCase(
     private val activitiesRepository: ActivitiesRepository,
@@ -20,23 +20,16 @@ class RegenerateDayUseCase(
         dayIndex: Int,
         prefs: Preferences,
         dest: Destination,
+        transportCost: Int, // Parametr
         internal: MutableList<InternalDayPlan>,
         isBadWeatherForDayIndex: (Int) -> Boolean
     ) {
-        // 1. Pobieranie surowych danych z assets (Context: IO)
         val allActivities = withContext(Dispatchers.IO) {
             activitiesRepository.getAllActivities()
         }
-
-        // 2. Przeliczanie nowych slotów w silniku (Context: Default)
         withContext(Dispatchers.Default) {
             planGenerator.regenerateDay(
-                dayIndex = dayIndex,
-                prefs = prefs,
-                dest = dest,
-                allActivities = allActivities,
-                internal = internal,
-                isBadWeatherForDayIndex = isBadWeatherForDayIndex
+                dayIndex, prefs, dest, transportCost, allActivities, internal, isBadWeatherForDayIndex
             )
         }
     }

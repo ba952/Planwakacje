@@ -8,7 +8,6 @@ import com.example.wakacje1.domain.engine.PlanGenerator
 import com.example.wakacje1.domain.model.DayPlan
 import com.example.wakacje1.domain.model.DaySlot
 import com.example.wakacje1.domain.model.Destination
-import com.example.wakacje1.domain.model.InternalDayPlan
 import com.example.wakacje1.domain.model.Preferences
 import com.example.wakacje1.domain.model.SlotPlan
 import com.example.wakacje1.domain.session.SessionProvider
@@ -57,9 +56,11 @@ class VacationViewModel(
     private val _events = MutableSharedFlow<UiEvent>(extraBufferCapacity = 8)
     val events = _events.asSharedFlow()
 
-    private var internalPlanDays: MutableList<InternalDayPlan> = mutableListOf()
     private var currentPlanId: String? = null
     private var currentCreatedAtMillis: Long? = null
+
+    // Session Blacklist (zapobiega ponownemu losowaniu odrzuconych atrakcji)
+    private val ignoredActivityIds = mutableSetOf<String>()
 
     private fun postMessage(msg: UiText) {
         viewModelScope.launch { _events.emit(UiEvent.Message(msg)) }
@@ -76,14 +77,14 @@ class VacationViewModel(
     }
 
     fun updatePreferences(prefs: Preferences) {
-        internalPlanDays.clear()
         currentPlanId = null
         currentCreatedAtMillis = null
 
         _uiState.update {
             VacationUiState(
                 preferences = prefs,
-                isLoading = false
+                isLoading = false,
+                internalPlan = emptyList()
             )
         }
     }
@@ -104,14 +105,15 @@ class VacationViewModel(
     }
 
     fun chooseDestination(destination: Destination) {
-        internalPlanDays.clear()
         currentPlanId = null
         currentCreatedAtMillis = null
+        ignoredActivityIds.clear() // RESET
 
         _uiState.update {
             it.copy(
                 chosenDestination = destination,
                 plan = emptyList(),
+                internalPlan = emptyList(),
                 dayWeatherByDate = emptyMap(),
                 forecastNotice = null,
                 canEditPlan = true
@@ -129,16 +131,31 @@ class VacationViewModel(
         val prefs = currentState.preferences ?: return
         val dest = currentState.chosenDestination ?: return
 
+        ignoredActivityIds.clear() // RESET
+
+        // Sticky Scenario
+        val transportCost = getTransportCostUsedForSuggestions(dest)
+
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
                 val newInternal = generatePlanUseCase.execute(
                     prefs = prefs,
                     dest = dest,
+                    transportCost = transportCost,
                     isBadWeatherForDayIndex = { idx -> isBadWeatherForDayIndex(idx) }
                 )
-                internalPlanDays = newInternal
-                _uiState.update { it.copy(plan = rebuildUiPlan(), canEditPlan = true, isLoading = false) }
+
+                val newUiPlan = planGenerator.rebuildDayPlans(newInternal, dest.displayName)
+
+                _uiState.update {
+                    it.copy(
+                        internalPlan = newInternal,
+                        plan = newUiPlan,
+                        canEditPlan = true,
+                        isLoading = false
+                    )
+                }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false) }
                 postError(e, UiText.StringResource(R.string.error_generating_plan))
@@ -152,6 +169,11 @@ class VacationViewModel(
         val prefs = currentState.preferences ?: return
         val dest = currentState.chosenDestination ?: return
 
+        val mutableInternal = currentState.internalPlan.toMutableList()
+        if (mutableInternal.isEmpty()) return
+
+        val transportCost = getTransportCostUsedForSuggestions(dest)
+
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
@@ -159,10 +181,20 @@ class VacationViewModel(
                     dayIndex = dayIndex,
                     prefs = prefs,
                     dest = dest,
-                    internal = internalPlanDays,
+                    transportCost = transportCost,
+                    internal = mutableInternal,
                     isBadWeatherForDayIndex = { idx -> isBadWeatherForDayIndex(idx) }
                 )
-                _uiState.update { it.copy(plan = rebuildUiPlan(), isLoading = false) }
+
+                val newUiPlan = planGenerator.rebuildDayPlans(mutableInternal, dest.displayName)
+
+                _uiState.update {
+                    it.copy(
+                        internalPlan = mutableInternal,
+                        plan = newUiPlan,
+                        isLoading = false
+                    )
+                }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false) }
                 postError(e, UiText.StringResource(R.string.error_regenerating_day))
@@ -176,6 +208,17 @@ class VacationViewModel(
         val prefs = currentState.preferences ?: return
         val dest = currentState.chosenDestination ?: return
 
+        val mutableInternal = currentState.internalPlan.toMutableList()
+        if (mutableInternal.isEmpty()) return
+
+        // Dodajemy usuwaną atrakcję do Czarnej Listy
+        val currentSlotPlan = getSlotOrNull(dayIndex, slot)
+        if (currentSlotPlan?.baseActivityId != null) {
+            ignoredActivityIds.add(currentSlotPlan.baseActivityId)
+        }
+
+        val transportCost = getTransportCostUsedForSuggestions(dest)
+
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
@@ -184,10 +227,21 @@ class VacationViewModel(
                     slot = slot,
                     prefs = prefs,
                     dest = dest,
-                    internal = internalPlanDays,
-                    isBadWeatherForDayIndex = { idx -> isBadWeatherForDayIndex(idx) }
+                    transportCost = transportCost,
+                    internal = mutableInternal,
+                    isBadWeatherForDayIndex = { idx -> isBadWeatherForDayIndex(idx) },
+                    ignoredIds = ignoredActivityIds
                 )
-                _uiState.update { it.copy(plan = rebuildUiPlan(), isLoading = false) }
+
+                val newUiPlan = planGenerator.rebuildDayPlans(mutableInternal, dest.displayName)
+
+                _uiState.update {
+                    it.copy(
+                        internalPlan = mutableInternal,
+                        plan = newUiPlan,
+                        isLoading = false
+                    )
+                }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false) }
                 postError(e, UiText.StringResource(R.string.error_rolling_activity))
@@ -197,8 +251,22 @@ class VacationViewModel(
 
     fun setCustomActivity(dayIndex: Int, slot: DaySlot, title: String, description: String) {
         if (!_uiState.value.canEditPlan) return
-        planGenerator.setCustomSlot(dayIndex, slot, title, description, internalPlanDays)
-        _uiState.update { it.copy(plan = rebuildUiPlan()) }
+
+        val currentState = _uiState.value
+        val dest = currentState.chosenDestination ?: return
+        val mutableInternal = currentState.internalPlan.toMutableList()
+        if (mutableInternal.isEmpty()) return
+
+        planGenerator.setCustomSlot(dayIndex, slot, title, description, mutableInternal)
+
+        val newUiPlan = planGenerator.rebuildDayPlans(mutableInternal, dest.displayName)
+
+        _uiState.update {
+            it.copy(
+                internalPlan = mutableInternal,
+                plan = newUiPlan
+            )
+        }
     }
 
     fun loadWeatherForCity(cityQuery: String, force: Boolean = false) {
@@ -228,11 +296,6 @@ class VacationViewModel(
         return _uiState.value.dayWeatherByDate[dayMillis]?.isBadWeather ?: false
     }
 
-    /**
-     * Zapis offline-first:
-     * - lokalnie zawsze (albo błąd IO)
-     * - chmura best-effort -> komunikat "brak internetu, zapisano na urządzeniu"
-     */
     fun savePlanLocally(uid: String? = null) {
         val realUid = uid ?: sessionProvider.currentUid()
         if (realUid.isNullOrBlank()) {
@@ -243,18 +306,19 @@ class VacationViewModel(
         val currentState = _uiState.value
         val prefs = currentState.preferences ?: return
         val dest = currentState.chosenDestination ?: return
-        if (internalPlanDays.isEmpty()) return
+        val internalToSave = currentState.internalPlan
+
+        if (internalToSave.isEmpty()) return
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
                 val res = savePlanLocallyUseCase.execute(
-                    realUid, prefs, dest, internalPlanDays, currentPlanId, currentCreatedAtMillis
+                    realUid, prefs, dest, internalToSave, currentPlanId, currentCreatedAtMillis
                 )
                 currentPlanId = res.planId
                 currentCreatedAtMillis = res.createdAtMillis
 
-                // kosmetyka: zapis lokalny OK, chmura padła -> pokaż specjalny błąd/komunikat
                 if (res.cloudError != null) {
                     val err = ErrorMapper.mapCloudSaveFailedButLocalOk(res.cloudError)
                     _events.emit(UiEvent.Error(err))
@@ -291,17 +355,20 @@ class VacationViewModel(
     }
 
     fun applyStoredPlan(stored: StoredPlan) {
-        internalPlanDays = stored.internalDays.map { it.toInternalDayPlan() }.toMutableList()
+        val loadedInternal = stored.internalDays.map { it.toInternalDayPlan() }
         currentPlanId = stored.id
         currentCreatedAtMillis = stored.createdAtMillis
 
-        val uiPlan = planGenerator.rebuildDayPlans(internalPlanDays, stored.destination.displayName)
+        ignoredActivityIds.clear()
+
+        val uiPlan = planGenerator.rebuildDayPlans(loadedInternal, stored.destination.displayName)
 
         _uiState.update {
             VacationUiState(
                 preferences = stored.preferences?.toPreferences(),
                 chosenDestination = stored.destination.toDestination(),
                 plan = uiPlan,
+                internalPlan = loadedInternal,
                 weather = WeatherUiState(),
                 canEditPlan = true,
                 isLoading = false
@@ -325,10 +392,10 @@ class VacationViewModel(
         }
     }
 
-    fun getInternalDayOrNull(dayIndex: Int) = internalPlanDays.getOrNull(dayIndex)
+    fun getInternalDayOrNull(dayIndex: Int) = _uiState.value.internalPlan.getOrNull(dayIndex)
 
     fun getSlotOrNull(dayIndex: Int, slot: DaySlot): SlotPlan? {
-        val d = internalPlanDays.getOrNull(dayIndex) ?: return null
+        val d = _uiState.value.internalPlan.getOrNull(dayIndex) ?: return null
         return when (slot) {
             DaySlot.MORNING -> d.morning
             DaySlot.MIDDAY -> d.midday
@@ -347,9 +414,15 @@ class VacationViewModel(
     fun getBudgetPerDayWithTransport(d: Destination): Int {
         val prefs = _uiState.value.preferences ?: return 0
         val days = prefs.days.coerceAtLeast(1)
+
+        val budgetAfterSafety = prefs.budget * 0.9
         val t = getTransportCostUsedForSuggestions(d)
-        val remaining = prefs.budget - t
-        return if (remaining <= 0) 0 else remaining / days
+        val typicalDaily = d.typicalBudgetPerDay?.toDouble() ?: 450.0
+        val hotelTotal = (typicalDaily * 0.45) * days
+
+        val remaining = budgetAfterSafety - t - hotelTotal
+
+        return if (remaining <= 0) 0 else (remaining / days).toInt()
     }
 
     fun getTransportCostUsedForSuggestions(d: Destination): Int {
@@ -369,23 +442,56 @@ class VacationViewModel(
     }
 
     fun moveDayUp(index: Int) {
-        if (!_uiState.value.canEditPlan || index <= 0 || index >= internalPlanDays.size) return
-        val tmp = internalPlanDays[index - 1]
-        internalPlanDays[index - 1] = internalPlanDays[index]
-        internalPlanDays[index] = tmp
-        _uiState.update { it.copy(plan = rebuildUiPlan()) }
+        val currentState = _uiState.value
+        if (!currentState.canEditPlan) return
+
+        val mutableInternal = currentState.internalPlan.toMutableList()
+        if (index <= 0 || index >= mutableInternal.size) return
+
+        val tmp = mutableInternal[index - 1]
+        mutableInternal[index - 1] = mutableInternal[index]
+        mutableInternal[index] = tmp
+
+        // Renumbering logic (Solution 2)
+        val renumberedInternal = mutableInternal.mapIndexed { i, dayPlan ->
+            dayPlan.copy(day = i + 1)
+        }.toMutableList()
+
+        val dest = currentState.chosenDestination
+        val newUiPlan = if (dest != null) planGenerator.rebuildDayPlans(renumberedInternal, dest.displayName) else emptyList()
+
+        _uiState.update {
+            it.copy(
+                internalPlan = renumberedInternal,
+                plan = newUiPlan
+            )
+        }
     }
 
     fun moveDayDown(index: Int) {
-        if (!_uiState.value.canEditPlan || index < 0 || index >= internalPlanDays.size - 1) return
-        val tmp = internalPlanDays[index + 1]
-        internalPlanDays[index + 1] = internalPlanDays[index]
-        internalPlanDays[index] = tmp
-        _uiState.update { it.copy(plan = rebuildUiPlan()) }
-    }
+        val currentState = _uiState.value
+        if (!currentState.canEditPlan) return
 
-    private fun rebuildUiPlan(): List<DayPlan> {
-        val dest = _uiState.value.chosenDestination ?: return emptyList()
-        return planGenerator.rebuildDayPlans(internalPlanDays, dest.displayName)
+        val mutableInternal = currentState.internalPlan.toMutableList()
+        if (index < 0 || index >= mutableInternal.size - 1) return
+
+        val tmp = mutableInternal[index + 1]
+        mutableInternal[index + 1] = mutableInternal[index]
+        mutableInternal[index] = tmp
+
+        // Renumbering logic (Solution 2)
+        val renumberedInternal = mutableInternal.mapIndexed { i, dayPlan ->
+            dayPlan.copy(day = i + 1)
+        }.toMutableList()
+
+        val dest = currentState.chosenDestination
+        val newUiPlan = if (dest != null) planGenerator.rebuildDayPlans(renumberedInternal, dest.displayName) else emptyList()
+
+        _uiState.update {
+            it.copy(
+                internalPlan = renumberedInternal,
+                plan = newUiPlan
+            )
+        }
     }
 }

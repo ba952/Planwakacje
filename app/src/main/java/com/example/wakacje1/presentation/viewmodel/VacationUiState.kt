@@ -2,12 +2,14 @@ package com.example.wakacje1.presentation.viewmodel
 
 import com.example.wakacje1.domain.model.DayPlan
 import com.example.wakacje1.domain.model.Destination
+import com.example.wakacje1.domain.model.InternalDayPlan // ZMIANA: Import
 import com.example.wakacje1.domain.model.Preferences
 import com.example.wakacje1.domain.usecase.TransportPass
 import com.example.wakacje1.presentation.common.UiText
 
 /**
- * Główny stan interfejsu użytkownika (UI State) dla procesu planowania wakacji.
+ * Główny stan interfejsu użytkownika.
+ * ZMIANA: Dodano pole 'internalPlan', aby trzymać stan logiczny planu w StateFlow.
  */
 data class VacationUiState(
     val isLoading: Boolean = false,
@@ -15,10 +17,12 @@ data class VacationUiState(
     val destinationSuggestions: List<Destination> = emptyList(),
     val chosenDestination: Destination? = null,
     val plan: List<DayPlan> = emptyList(),
+
+    // ZMIANA: Single Source of Truth dla edycji planu
+    val internalPlan: List<InternalDayPlan> = emptyList(),
+
     val weather: WeatherUiState = WeatherUiState(),
     val dayWeatherByDate: Map<Long, DayWeatherUi> = emptyMap(),
-
-    // ✅ UiText zamiast String (stringi z zasobów)
     val forecastNotice: UiText? = null,
 
     val uiMessage: String? = null,
@@ -31,8 +35,6 @@ data class WeatherUiState(
     val city: String? = null,
     val temperature: Double? = null,
     val description: String? = null,
-
-    // ✅ UiText zamiast String
     val error: UiText? = null
 )
 

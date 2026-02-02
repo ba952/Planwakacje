@@ -209,7 +209,8 @@
         <string name="label_morning">Poranek:</string>
         <string name="label_midday">Południe:</string>
         <string name="label_evening">Wieczór:</string>
-
+    <string name="pdf_default_title">Wyjazd</string>
+    <string name="pdf_label_start">Start: %s</string>
 
     <string name="error_weather_api_key">Błąd konfiguracji API (Klucz).</string>
     <string name="error_weather_general">Błąd serwera pogody (kod: %d).</string>

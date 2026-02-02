@@ -1,6 +1,5 @@
-package com.example.wakacje1.data.session
+package com.example.wakacje1.domain.session
 
-import com.example.wakacje1.domain.session.SessionProvider
 import com.google.firebase.auth.FirebaseAuth
 
 class FirebaseSessionProvider(

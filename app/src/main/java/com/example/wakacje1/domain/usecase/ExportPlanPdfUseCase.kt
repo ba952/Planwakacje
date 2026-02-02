@@ -1,16 +1,19 @@
 package com.example.wakacje1.domain.usecase
 
+import com.example.wakacje1.R
 import com.example.wakacje1.domain.model.DayPlan
+import com.example.wakacje1.domain.util.StringProvider
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 /**
  * UseCase generujący kod HTML planu wycieczki.
- * Zwraca surowy String, który warstwa prezentacji przekaże do PrintManager/WebView.
- * Zachowuje czystość architektury (brak zależności od android.content.Context/Activity).
+ * Poprawiony: korzysta ze StringProvidera, aby nie trzymać hardcoded stringów.
  */
-class ExportPlanPdfUseCase {
+class ExportPlanPdfUseCase(
+    private val stringProvider: StringProvider
+) {
 
     suspend fun execute(
         destinationName: String?,
@@ -21,16 +24,18 @@ class ExportPlanPdfUseCase {
         return buildHtml(destinationName, tripStartDateMillis, plan)
     }
 
-    /**
-     * Składa strukturę HTML ze stylami CSS (format A4).
-     */
     private fun buildHtml(
         destinationName: String?,
         tripStartDateMillis: Long?,
         plan: List<DayPlan>
     ): String {
-        val dest = destinationName?.takeIf { it.isNotBlank() } ?: "Wyjazd"
-        val start = tripStartDateMillis?.let { formatDate(it) }
+        // ZMIANA: Pobieranie stringów z zasobów
+        val dest = destinationName?.takeIf { it.isNotBlank() }
+            ?: stringProvider.getString(R.string.pdf_default_title)
+
+        val start = tripStartDateMillis?.let {
+            stringProvider.getString(R.string.pdf_label_start, formatDate(it))
+        }
 
         val daysHtml = buildString {
             for (d in plan) {
@@ -49,7 +54,6 @@ class ExportPlanPdfUseCase {
             }
         }
 
-        // Style CSS wymuszające podział stron (break-inside: avoid)
         return """
             <!doctype html>
             <html lang="pl">
@@ -81,7 +85,7 @@ class ExportPlanPdfUseCase {
             <body>
               <div class="header">
                 <div class="h1">Plan wyjazdu — ${escapeHtml(dest)}</div>
-                ${if (start != null) "<div class=\"sub\">Start: ${escapeHtml(start)}</div>" else ""}
+                ${if (start != null) "<div class=\"sub\">${escapeHtml(start)}</div>" else ""}
               </div>
 
               $daysHtml
@@ -90,10 +94,6 @@ class ExportPlanPdfUseCase {
         """.trimIndent()
     }
 
-    /**
-     * Parsuje tekstowy opis dnia na strukturalny HTML.
-     * Wykrywa nagłówki sekcji ("Poranek:") i listy punktowane ("- opis").
-     */
     private fun formatDetailsAsHtml(details: String): String {
         val lines = details.split("\n")
         val out = StringBuilder()
@@ -113,14 +113,12 @@ class ExportPlanPdfUseCase {
                 continue
             }
 
-            // Wykrywanie nagłówków
             if (line.startsWith("Poranek:") || line.startsWith("Południe:") || line.startsWith("Wieczór:")) {
                 closeList()
                 out.append("<div class=\"blockTitle\">${escapeHtml(line)}</div>")
                 continue
             }
 
-            // Wykrywanie listy
             if (line.startsWith("-")) {
                 if (!inList) {
                     out.append("<ul class=\"bullet\">")
@@ -130,7 +128,6 @@ class ExportPlanPdfUseCase {
                 continue
             }
 
-            // Zwykły tekst
             closeList()
             out.append("<div>${escapeHtml(line)}</div>")
         }
