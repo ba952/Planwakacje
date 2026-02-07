@@ -74,6 +74,16 @@ fun PlanScreen(
     val isLoading = uiState.isLoading
     val canEdit = uiState.canEditPlan
 
+    // --- FIX START: Rozwiązanie problemu z "Process Death" ---
+    // Jeśli użytkownik wraca do aplikacji po dłuższym czasie, ViewModel może być zresetowany,
+    // przez co 'dest' jest null. W takim przypadku 'onBack()' cofnie nas do wyboru miasta.
+    LaunchedEffect(Unit) {
+        if (dest == null) {
+            onBack()
+        }
+    }
+    // --- FIX END ---
+
     val snack = remember { SnackbarHostState() }
 
     // ✅ tutaj MUSI być asString(context), bo jesteśmy w korutynie (LaunchedEffect)
@@ -97,9 +107,10 @@ fun PlanScreen(
 
     val didInit = rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(dest?.displayName) {
-        if (!didInit.value) {
+        // Dodatkowy warunek (dest != null) zapobiega próbie generowania na pustym stanie
+        if (!didInit.value && dest != null) {
             didInit.value = true
-            if (plan.isEmpty() && dest != null && !isLoading) {
+            if (plan.isEmpty() && !isLoading) {
                 viewModel.generatePlan()
             }
         }
@@ -128,131 +139,155 @@ fun PlanScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-
-            Centered(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
-            ) {
-                Column(
+            // Jeśli dest jest null, nie rysujemy głównej zawartości, aby uniknąć migania
+            // przed wykonaniem nawigacji w LaunchedEffect
+            if (dest != null) {
+                Centered(
                     modifier = Modifier
                         .fillMaxSize()
-                        .imePadding(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
                 ) {
-                    if (dest != null) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .imePadding(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
                         Text(
                             text = if (dest.country.isBlank()) dest.displayName
                             else "${dest.displayName}, ${dest.country}",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
-                    }
 
-                    uiState.forecastNotice?.let { Text(it.asString(), color = MaterialTheme.colorScheme.error) }
-
-
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                    ) {
-                        Column(Modifier.padding(12.dp)) {
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(stringResource(R.string.title_edit_mode), fontWeight = FontWeight.SemiBold)
-                                    Text(
-                                        text = if (editMode.value) stringResource(R.string.label_edit_mode_desc_on)
-                                        else stringResource(R.string.label_edit_mode_desc_off),
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                }
-                                Switch(
-                                    checked = editMode.value,
-                                    onCheckedChange = { editMode.value = it },
-                                    enabled = editEnabled
-                                )
-                            }
-
-                            Spacer(Modifier.height(10.dp))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                OutlinedButton(
-                                    onClick = { viewModel.savePlanLocally() },
-                                    modifier = Modifier.weight(1f),
-                                    enabled = !isLoading,
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
-                                ) { Text(stringResource(R.string.btn_save)) }
-
-                                Button(
-                                    onClick = { viewModel.exportCurrentPlanToPdf() },
-                                    modifier = Modifier.weight(1f),
-                                    enabled = !isLoading,
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
-                                ) { Text(stringResource(R.string.btn_pdf)) }
-
-                                OutlinedButton(
-                                    onClick = { viewModel.loadPlanLocally() },
-                                    modifier = Modifier.weight(1f),
-                                    enabled = !isLoading,
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
-                                ) { Text(stringResource(R.string.btn_load)) }
-                            }
+                        uiState.forecastNotice?.let {
+                            Text(
+                                it.asString(),
+                                color = MaterialTheme.colorScheme.error
+                            )
                         }
-                    }
 
-                    if (plan.isEmpty()) {
+
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                         ) {
                             Column(Modifier.padding(12.dp)) {
-                                Text(
-                                    text = stringResource(R.string.msg_no_plan),
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(Modifier.weight(1f)) {
+                                        Text(
+                                            stringResource(R.string.title_edit_mode),
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                        Text(
+                                            text = if (editMode.value) stringResource(R.string.label_edit_mode_desc_on)
+                                            else stringResource(R.string.label_edit_mode_desc_off),
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                    }
+                                    Switch(
+                                        checked = editMode.value,
+                                        onCheckedChange = { editMode.value = it },
+                                        enabled = editEnabled
+                                    )
+                                }
+
                                 Spacer(Modifier.height(10.dp))
-                                OutlinedButton(
-                                    onClick = { viewModel.generatePlan() },
-                                    enabled = !isLoading
-                                ) { Text(stringResource(R.string.btn_generate)) }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    OutlinedButton(
+                                        onClick = { viewModel.savePlanLocally() },
+                                        modifier = Modifier.weight(1f),
+                                        enabled = !isLoading,
+                                        contentPadding = PaddingValues(
+                                            horizontal = 10.dp,
+                                            vertical = 8.dp
+                                        )
+                                    ) { Text(stringResource(R.string.btn_save)) }
+
+                                    Button(
+                                        onClick = { viewModel.exportCurrentPlanToPdf() },
+                                        modifier = Modifier.weight(1f),
+                                        enabled = !isLoading,
+                                        contentPadding = PaddingValues(
+                                            horizontal = 10.dp,
+                                            vertical = 8.dp
+                                        )
+                                    ) { Text(stringResource(R.string.btn_pdf)) }
+
+                                    OutlinedButton(
+                                        onClick = { viewModel.loadPlanLocally() },
+                                        modifier = Modifier.weight(1f),
+                                        enabled = !isLoading,
+                                        contentPadding = PaddingValues(
+                                            horizontal = 10.dp,
+                                            vertical = 8.dp
+                                        )
+                                    ) { Text(stringResource(R.string.btn_load)) }
+                                }
                             }
                         }
-                        return@Centered
-                    }
 
-                    HorizontalDivider()
-
-
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(bottom = 24.dp)
-                    ) {
-                        itemsIndexed(plan) { index, day ->
-                            DayCard(
-                                viewModel = viewModel,
-                                day = day,
-                                dayIndex = index,
-                                dayWeather = dayWeatherForIndex(index),
-                                editMode = editMode.value,
-                                editEnabled = editEnabled,
-                                onMoveUp = { viewModel.moveDayUp(index) },
-                                onMoveDown = { viewModel.moveDayDown(index) },
-                                onRegenerateDay = { viewModel.regenerateDay(index) },
-                                onRollSlot = { slot -> viewModel.rollNewActivity(index, slot) },
-                                onCustomSlot = { slot, title, desc ->
-                                    viewModel.setCustomActivity(index, slot, title, desc)
+                        if (plan.isEmpty()) {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                            ) {
+                                Column(Modifier.padding(12.dp)) {
+                                    Text(
+                                        text = stringResource(R.string.msg_no_plan),
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                    Spacer(Modifier.height(10.dp))
+                                    OutlinedButton(
+                                        onClick = { viewModel.generatePlan() },
+                                        enabled = !isLoading
+                                    ) { Text(stringResource(R.string.btn_generate)) }
                                 }
-                            )
+                            }
+                            // Używamy return@Centered, żeby nie rysować dalej listy
+                            return@Centered
+                        }
+
+                        HorizontalDivider()
+
+
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            contentPadding = PaddingValues(bottom = 24.dp)
+                        ) {
+                            itemsIndexed(plan) { index, day ->
+                                DayCard(
+                                    viewModel = viewModel,
+                                    day = day,
+                                    dayIndex = index,
+                                    dayWeather = dayWeatherForIndex(index),
+                                    editMode = editMode.value,
+                                    editEnabled = editEnabled,
+                                    onMoveUp = { viewModel.moveDayUp(index) },
+                                    onMoveDown = { viewModel.moveDayDown(index) },
+                                    onRegenerateDay = { viewModel.regenerateDay(index) },
+                                    onRollSlot = { slot ->
+                                        viewModel.rollNewActivity(
+                                            index,
+                                            slot
+                                        )
+                                    },
+                                    onCustomSlot = { slot, title, desc ->
+                                        viewModel.setCustomActivity(index, slot, title, desc)
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -326,7 +361,10 @@ private fun DayCard(
                 verticalAlignment = Alignment.Top
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text(stringResource(R.string.day_prefix, day.day), fontWeight = FontWeight.SemiBold)
+                    Text(
+                        stringResource(R.string.day_prefix, day.day),
+                        fontWeight = FontWeight.SemiBold
+                    )
                     Text(
                         text = day.title,
                         style = MaterialTheme.typography.titleMedium,
@@ -336,8 +374,14 @@ private fun DayCard(
 
                 if (editMode) {
                     Column(horizontalAlignment = Alignment.End) {
-                        TextButton(onClick = onMoveUp, enabled = editEnabled) { Text(stringResource(R.string.btn_up)) }
-                        TextButton(onClick = onMoveDown, enabled = editEnabled) { Text(stringResource(R.string.btn_down)) }
+                        TextButton(
+                            onClick = onMoveUp,
+                            enabled = editEnabled
+                        ) { Text(stringResource(R.string.btn_up)) }
+                        TextButton(
+                            onClick = onMoveDown,
+                            enabled = editEnabled
+                        ) { Text(stringResource(R.string.btn_down)) }
                     }
                 }
             }
@@ -348,7 +392,8 @@ private fun DayCard(
                 val temps = if (w.tempMin != null && w.tempMax != null) {
                     " (${w.tempMin.roundToInt()}°C – ${w.tempMax.roundToInt()}°C)"
                 } else ""
-                val note = if (w.isBadWeather) stringResource(R.string.msg_bad_weather_note) else ""
+                val note =
+                    if (w.isBadWeather) stringResource(R.string.msg_bad_weather_note) else ""
 
                 Text(
                     text = stringResource(
@@ -423,8 +468,10 @@ private fun SlotSection(
     onRoll: () -> Unit,
     onCustom: (String, String) -> Unit
 ) {
-    val showDialog = rememberSaveable(dayIndex, slot.name, "dialog") { mutableStateOf(false) }
-    val descExpanded = rememberSaveable(dayIndex, slot.name, "expanded") { mutableStateOf(false) }
+    val showDialog =
+        rememberSaveable(dayIndex, slot.name, "dialog") { mutableStateOf(false) }
+    val descExpanded =
+        rememberSaveable(dayIndex, slot.name, "expanded") { mutableStateOf(false) }
 
     val title = slotUi.title.takeIf { it.isNotBlank() } ?: "—"
     val desc = slotUi.description.takeIf { it.isNotBlank() } ?: ""
