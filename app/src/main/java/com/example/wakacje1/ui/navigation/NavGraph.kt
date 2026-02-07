@@ -46,15 +46,16 @@ fun NavGraph(
     ) {
 
         composable(Dest.Splash.route) {
-            // Jednorazowe przekierowanie zależnie od stanu zalogowania.
             LaunchedEffect(uid) {
                 if (uid == null) {
                     navController.navigate(Dest.Login.route) {
                         popUpTo(Dest.Splash.route) { inclusive = true }
+                        launchSingleTop = true
                     }
                 } else {
                     navController.navigate(Dest.MyPlans.route) {
                         popUpTo(Dest.Splash.route) { inclusive = true }
+                        launchSingleTop = true
                     }
                 }
             }
@@ -66,9 +67,16 @@ fun NavGraph(
                 onDone = {
                     navController.navigate(Dest.MyPlans.route) {
                         popUpTo(Dest.Login.route) { inclusive = true }
+                        launchSingleTop = true
                     }
                 },
-                onGoRegister = { navController.navigate(Dest.Register.route) }
+                onGoRegister = {
+                    // ✅ REPLACE: usuń Login ze stosu i wejdź w Register (bez puchnięcia backstacka)
+                    navController.navigate(Dest.Register.route) {
+                        popUpTo(Dest.Login.route) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
             )
         }
 
@@ -78,19 +86,26 @@ fun NavGraph(
                 onDone = {
                     navController.navigate(Dest.MyPlans.route) {
                         popUpTo(Dest.Register.route) { inclusive = true }
+                        launchSingleTop = true
                     }
                 },
-                onGoLogin = { navController.popBackStack() }
+                onGoLogin = {
+                    // ✅ REPLACE: usuń Register ze stosu i wejdź w Login (bez popBackStack pętli)
+                    navController.navigate(Dest.Login.route) {
+                        popUpTo(Dest.Register.route) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
             )
         }
 
         composable(Dest.MyPlans.route) {
-            // Guard tylko nawigacyjny: jeśli user się wyloguje, cofamy do loginu.
-            // NIE dotykamy plansVm.stop() - od tego jest MyPlansScreen (DisposableEffect).
+            // Guard: jak user się wyloguje w tle, cofamy do Login
             LaunchedEffect(uid) {
                 if (uid == null) {
                     navController.navigate(Dest.Login.route) {
                         popUpTo(Dest.MyPlans.route) { inclusive = true }
+                        launchSingleTop = true
                     }
                 }
             }
@@ -102,11 +117,10 @@ fun NavGraph(
                 onNewPlan = { navController.navigate(Dest.Preferences.route) },
                 onOpenPlan = { navController.navigate(Dest.Plan.route) },
                 onLoggedOut = {
-                    // Wystarczy signOut + nawigacja.
-                    // plansVm.stop() wykona się przy wyjściu z MyPlansScreen (onDispose).
                     authVm.signOut()
                     navController.navigate(Dest.Login.route) {
                         popUpTo(Dest.MyPlans.route) { inclusive = true }
+                        launchSingleTop = true
                     }
                 }
             )
@@ -139,7 +153,6 @@ fun NavGraph(
         composable(Dest.Plan.route) {
             PlanScreen(
                 viewModel = vacationViewModel,
-
                 onBack = { navController.popBackStack() },
                 onGoMyPlans = {
                     val popped = navController.popBackStack(Dest.MyPlans.route, inclusive = false)

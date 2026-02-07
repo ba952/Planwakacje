@@ -113,7 +113,7 @@
     <string name="error_invalid_budget">Podaj poprawny budżet (liczba > 0).</string>
     <string name="error_dates_missing">Wybierz datę startu i końca.</string>
     <string name="error_invalid_date_range">Niepoprawny zakres dat.</string>
-    <string name="error_too_long_trip">Za długi wyjazd jak na demo (max 21 dni).</string>
+    <string name="error_too_long_trip">Za długi wyjazd(max 21 dni).</string>
     <string name="error_end_date_before_start">Data końca nie może być wcześniejsza niż start.</string>
 
     <string name="region_europe_city">Europa - miasto</string>
