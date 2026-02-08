@@ -24,7 +24,8 @@ data class AuthUiState(
 )
 
 sealed class AuthEvent {
-    object NavigateAfterAuth : AuthEvent()
+    data object NavigateAfterAuth : AuthEvent()
+    data object NavigateAfterRegister : AuthEvent()
 }
 
 class AuthViewModel(
@@ -33,7 +34,9 @@ class AuthViewModel(
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(
-        AuthUiState(uid = authRepository.currentUser?.uid)
+        AuthUiState(
+            uid = authRepository.currentUser?.takeIf { it.isEmailVerified }?.uid
+        )
     )
     val state: StateFlow<AuthUiState> = _state.asStateFlow()
 
@@ -56,10 +59,23 @@ class AuthViewModel(
 
         viewModelScope.launch {
             val result = authRepository.signIn(email, pass)
+
             if (result.isSuccess) {
-                val uid = authRepository.currentUser?.uid
-                _state.update { it.copy(uid = uid, loading = false) }
-                _events.emit(AuthEvent.NavigateAfterAuth)
+                val user = authRepository.currentUser
+
+                if (user != null && user.isEmailVerified) {
+                    _state.update { it.copy(uid = user.uid, loading = false) }
+                    _events.emit(AuthEvent.NavigateAfterAuth)
+                } else {
+                    authRepository.signOut()
+                    _state.update {
+                        it.copy(
+                            uid = null,
+                            loading = false,
+                            error = UiText.StringResource(R.string.auth_error_email_not_verified)
+                        )
+                    }
+                }
             } else {
                 _state.update {
                     it.copy(
@@ -76,7 +92,7 @@ class AuthViewModel(
 
         val validation = validatePasswordUseCase.execute(pass)
         if (validation is PasswordValidationResult.Error) {
-            // tu idealnie też byłby StringResource, ale nie psujemy Twojego UseCase
+            // To jest komunikat dynamiczny z walidatora (OK, bo nie jest stałym tekstem UI)
             _state.update { it.copy(error = UiText.DynamicString(validation.message)) }
             return
         }
@@ -85,10 +101,19 @@ class AuthViewModel(
 
         viewModelScope.launch {
             val result = authRepository.register(email, pass)
+
             if (result.isSuccess) {
-                val uid = authRepository.currentUser?.uid
-                _state.update { it.copy(uid = uid, loading = false) }
-                _events.emit(AuthEvent.NavigateAfterAuth)
+                authRepository.currentUser?.sendEmailVerification()
+                authRepository.signOut()
+
+                _state.update {
+                    it.copy(
+                        uid = null,
+                        loading = false,
+                        info = UiText.StringResource(R.string.auth_info_verify_email_sent)
+                    )
+                }
+                _events.emit(AuthEvent.NavigateAfterRegister)
             } else {
                 _state.update {
                     it.copy(
@@ -112,6 +137,7 @@ class AuthViewModel(
 
         viewModelScope.launch {
             val result = authRepository.sendPasswordReset(email)
+
             if (result.isSuccess) {
                 _state.update {
                     it.copy(
@@ -136,8 +162,6 @@ class AuthViewModel(
     }
 
     private fun mapAuthFailureToUiText(t: Throwable?, isRegister: Boolean = false): UiText {
-        // Zero komunikatów z Firebase w UI (żeby nie było "angielskich" i niestabilnych tekstów)
-        // Jeśli chcesz, możemy tu dodać mapowanie po kodach FirebaseAuthException.
         return if (isRegister) {
             UiText.StringResource(R.string.auth_error_register_generic)
         } else {

@@ -25,7 +25,7 @@ sealed class Dest(val route: String) {
     data object Register : Dest("register")
     data object MyPlans : Dest("my_plans")
     data object Preferences : Dest("preferences")
-    data object Destinations : Dest("destinations")
+    data object DestinationSelection : Dest("destinations")
     data object Plan : Dest("plan")
 }
 
@@ -35,10 +35,6 @@ fun NavGraph(
     vacationViewModel: VacationViewModel
 ) {
     val authVm: AuthViewModel = koinViewModel()
-    val plansVm: MyPlansViewModel = koinViewModel()
-
-    val authState by authVm.state.collectAsState()
-    val uid = authState.uid
 
     NavHost(
         navController = navController,
@@ -46,17 +42,14 @@ fun NavGraph(
     ) {
 
         composable(Dest.Splash.route) {
+            val state by authVm.state.collectAsState()
+            val uid = state.uid
+
             LaunchedEffect(uid) {
-                if (uid == null) {
-                    navController.navigate(Dest.Login.route) {
-                        popUpTo(Dest.Splash.route) { inclusive = true }
-                        launchSingleTop = true
-                    }
-                } else {
-                    navController.navigate(Dest.MyPlans.route) {
-                        popUpTo(Dest.Splash.route) { inclusive = true }
-                        launchSingleTop = true
-                    }
+                val target = if (uid == null) Dest.Login.route else Dest.MyPlans.route
+                navController.navigate(target) {
+                    popUpTo(Dest.Splash.route) { inclusive = true }
+                    launchSingleTop = true
                 }
             }
         }
@@ -71,8 +64,13 @@ fun NavGraph(
                     }
                 },
                 onGoRegister = {
-                    // ✅ REPLACE: usuń Login ze stosu i wejdź w Register (bez puchnięcia backstacka)
                     navController.navigate(Dest.Register.route) {
+                        popUpTo(Dest.Login.route) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+                onContinueAsGuest = {
+                    navController.navigate(Dest.Preferences.route) {
                         popUpTo(Dest.Login.route) { inclusive = true }
                         launchSingleTop = true
                     }
@@ -84,13 +82,12 @@ fun NavGraph(
             RegisterScreen(
                 authVm = authVm,
                 onDone = {
-                    navController.navigate(Dest.MyPlans.route) {
+                    navController.navigate(Dest.Login.route) {
                         popUpTo(Dest.Register.route) { inclusive = true }
                         launchSingleTop = true
                     }
                 },
                 onGoLogin = {
-                    // ✅ REPLACE: usuń Register ze stosu i wejdź w Login (bez popBackStack pętli)
                     navController.navigate(Dest.Login.route) {
                         popUpTo(Dest.Register.route) { inclusive = true }
                         launchSingleTop = true
@@ -100,16 +97,22 @@ fun NavGraph(
         }
 
         composable(Dest.MyPlans.route) {
-            // Guard: jak user się wyloguje w tle, cofamy do Login
-            LaunchedEffect(uid) {
-                if (uid == null) {
+            val state by authVm.state.collectAsState()
+            val uid = state.uid
+
+            if (uid == null) {
+                LaunchedEffect(Unit) {
                     navController.navigate(Dest.Login.route) {
                         popUpTo(Dest.MyPlans.route) { inclusive = true }
                         launchSingleTop = true
                     }
                 }
+                return@composable
             }
 
+            val plansVm: MyPlansViewModel = koinViewModel()
+
+            // ✅ POPRAWKA: zgodnie z Twoją aktualną sygnaturą MyPlansScreen
             MyPlansScreen(
                 authVm = authVm,
                 plansVm = plansVm,
@@ -131,18 +134,13 @@ fun NavGraph(
                 viewModel = vacationViewModel,
                 onNext = {
                     vacationViewModel.prepareDestinationSuggestions()
-                    navController.navigate(Dest.Destinations.route)
+                    navController.navigate(Dest.DestinationSelection.route)
                 },
-                onGoMyPlans = {
-                    navController.navigate(Dest.MyPlans.route) {
-                        launchSingleTop = true
-                        popUpTo(Dest.MyPlans.route) { inclusive = false }
-                    }
-                }
+                onGoMyPlans = { navController.navigate(Dest.MyPlans.route) }
             )
         }
 
-        composable(Dest.Destinations.route) {
+        composable(Dest.DestinationSelection.route) {
             DestinationSelectionScreen(
                 viewModel = vacationViewModel,
                 onDestinationChosen = { navController.navigate(Dest.Plan.route) },
@@ -154,12 +152,7 @@ fun NavGraph(
             PlanScreen(
                 viewModel = vacationViewModel,
                 onBack = { navController.popBackStack() },
-                onGoMyPlans = {
-                    val popped = navController.popBackStack(Dest.MyPlans.route, inclusive = false)
-                    if (!popped) {
-                        navController.navigate(Dest.MyPlans.route) { launchSingleTop = true }
-                    }
-                }
+                onGoMyPlans = { navController.navigate(Dest.MyPlans.route) }
             )
         }
     }

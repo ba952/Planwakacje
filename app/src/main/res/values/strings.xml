@@ -197,11 +197,15 @@
     <string name="transport_label_max">Tmax (konserwatywnie)</string>
     <string name="transport_label_avg">Tavg (średnio)</string>
     <string name="transport_label_min">Tmin (optymistycznie)</string>
-
+    <string name="btn_register">Zarejestruj się</string>
     <string name="error_no_activity">Błąd: Brak dostępu do Activity.</string>
         <string name="fallback_morning_title">Zwiedzanie okolicy</string>
         <string name="fallback_midday_title">Posiłek i przerwa</string>
         <string name="fallback_evening_title">Wieczorny spacer / relaks</string>
+    <string name="btn_continue_as_guest">Kontynuuj jako gość</string>
+
+    <string name="auth_error_email_not_verified">Potwierdź adres e-mail i spróbuj ponownie.</string>
+    <string name="auth_info_verify_email_sent">Wysłano link weryfikacyjny. Potwierdź e-mail i zaloguj się.</string>
 
         <string name="fallback_desc_indoor">Zła pogoda — wybierz atrakcję pod dachem (muzeum, galeria, lokalna kawiarnia).</string>
         <string name="fallback_desc_outdoor">Wybierz najciekawsze miejsce w pobliżu i dopasuj tempo do dnia.</string>
@@ -211,6 +215,10 @@
         <string name="label_evening">Wieczór:</string>
     <string name="pdf_default_title">Wyjazd</string>
     <string name="pdf_label_start">Start: %s</string>
+
+    <string name="auth_info_email_not_verified">Konto nie jest potwierdzone. Sprawdź skrzynkę email (wysłano ponownie link).</string>
+
+
 
     <string name="error_weather_api_key">Błąd konfiguracji API (Klucz).</string>
     <string name="error_weather_general">Błąd serwera pogody (kod: %d).</string>

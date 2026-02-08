@@ -1,74 +1,101 @@
 package com.example.wakacje1.domain.usecase
 
-import com.example.wakacje1.R
-import com.example.wakacje1.data.remote.WeatherException
-import com.example.wakacje1.data.remote.WeatherRepository
 import com.example.wakacje1.domain.model.Destination
 import com.example.wakacje1.domain.model.Preferences
-import com.example.wakacje1.presentation.common.UiText
-import com.example.wakacje1.presentation.viewmodel.DayWeatherUi
+import com.example.wakacje1.domain.weather.ForecastDay
+import com.example.wakacje1.domain.weather.WeatherFailure
+import com.example.wakacje1.domain.weather.WeatherRepository
+import com.example.wakacje1.domain.weather.WeatherResult
 import com.example.wakacje1.util.DateUtils
 
+/**
+ * Domena nie zwraca UiText ani typów UI.
+ * "notice" jest ujęty jako enum/stan domenowy, a mapowanie na tekst robimy w presentation.
+ */
+enum class ForecastNotice {
+    UNAVAILABLE,
+    PARTIAL,
+    FAILED,
+    INVALID_API_KEY,
+    CITY_NOT_FOUND,
+    NETWORK,
+    API_ERROR,
+    UNKNOWN
+}
+
 data class ForecastResult(
-    val byDate: Map<Long, DayWeatherUi>,
-    val notice: UiText?
+    val byDate: Map<Long, ForecastDay?>,
+    val notice: ForecastNotice?,
+    val coveredDays: Int,
+    val requestedDays: Int
 )
 
 class LoadForecastForTripUseCase(
     private val weatherRepository: WeatherRepository
 ) {
     suspend fun execute(prefs: Preferences, dest: Destination, force: Boolean): ForecastResult {
-        val startMillis = prefs.startDateMillis ?: return ForecastResult(emptyMap(), null)
+        val startMillis = prefs.startDateMillis ?: return ForecastResult(
+            byDate = emptyMap(),
+            notice = null,
+            coveredDays = 0,
+            requestedDays = 0
+        )
         val days = prefs.days.coerceAtLeast(1)
 
-        return try {
-            val forecast = weatherRepository.getForecastForCity(dest.apiQuery, forceRefresh = force)
-            val byDate = forecast.associateBy { it.dateMillis }
+        val repoResult = weatherRepository.getForecast(
+            cityQuery = dest.apiQuery,
+            forceRefresh = force
+        )
 
-            val startNorm = DateUtils.normalizeToLocalMidnight(startMillis)
-            val map = mutableMapOf<Long, DayWeatherUi>()
-            var covered = 0
+        return when (repoResult) {
+            is WeatherResult.Success -> {
+                val forecast = repoResult.data
+                val byDate = forecast.associateBy { it.dateMillis }
 
-            for (i in 0 until days) {
-                val dayMillis = DateUtils.dayMillisForIndex(startNorm, i)
-                val f = byDate[dayMillis]
-                if (f != null) covered++
+                val startNorm = DateUtils.normalizeToLocalMidnight(startMillis)
+                val map = mutableMapOf<Long, ForecastDay?>()
+                var covered = 0
 
-                map[dayMillis] = DayWeatherUi(
-                    dateMillis = dayMillis,
-                    tempMin = f?.tempMin,
-                    tempMax = f?.tempMax,
-                    description = f?.description,
-                    isBadWeather = f?.isBadWeather ?: false
+                for (i in 0 until days) {
+                    val dayMillis = DateUtils.dayMillisForIndex(startNorm, i)
+                    val f = byDate[dayMillis]
+                    if (f != null) covered++
+                    map[dayMillis] = f
+                }
+
+                val notice = when {
+                    covered == 0 -> ForecastNotice.UNAVAILABLE
+                    covered < days -> ForecastNotice.PARTIAL
+                    else -> null
+                }
+
+                ForecastResult(
+                    byDate = map,
+                    notice = notice,
+                    coveredDays = covered,
+                    requestedDays = days
                 )
             }
 
-            val notice = when {
-                covered == 0 -> UiText.StringResource(R.string.notice_forecast_unavailable)
-                covered < days -> UiText.StringResource(R.string.notice_forecast_partial, covered, days)
-                else -> null
+            is WeatherResult.Failure -> {
+                ForecastResult(
+                    byDate = emptyMap(),
+                    notice = mapFailureToNotice(repoResult.failure),
+                    coveredDays = 0,
+                    requestedDays = days
+                )
             }
-
-            ForecastResult(map, notice)
-        } catch (e: WeatherException) {
-            ForecastResult(emptyMap(), mapForecastError(e))
-        } catch (_: Exception) {
-            ForecastResult(emptyMap(), UiText.StringResource(R.string.notice_forecast_failed))
         }
     }
 
-    private fun mapForecastError(e: WeatherException): UiText {
-        return when (e) {
-            is WeatherException.InvalidApiKey ->
-                UiText.StringResource(R.string.notice_forecast_invalid_api_key)
-            is WeatherException.CityNotFound ->
-                UiText.StringResource(R.string.notice_forecast_city_not_found)
-            is WeatherException.NetworkError ->
-                UiText.StringResource(R.string.notice_forecast_network)
-            is WeatherException.ApiError ->
-                UiText.StringResource(R.string.notice_forecast_api, e.code)
-            is WeatherException.Unknown ->
-                UiText.StringResource(R.string.notice_forecast_unknown)
+    private fun mapFailureToNotice(f: WeatherFailure): ForecastNotice {
+        return when (f) {
+            is WeatherFailure.Unauthorized -> ForecastNotice.INVALID_API_KEY
+            is WeatherFailure.NotFound -> ForecastNotice.CITY_NOT_FOUND
+            is WeatherFailure.Network -> ForecastNotice.NETWORK
+            is WeatherFailure.RateLimited -> ForecastNotice.API_ERROR
+            is WeatherFailure.ApiError -> ForecastNotice.API_ERROR
+            is WeatherFailure.Unknown -> ForecastNotice.UNKNOWN
         }
     }
 }

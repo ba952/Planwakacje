@@ -4,6 +4,10 @@ import com.example.wakacje1.BuildConfig
 import com.example.wakacje1.data.CurrentWeatherResponse
 import com.example.wakacje1.data.ForecastResponse
 import com.example.wakacje1.data.WeatherApi
+import com.example.wakacje1.domain.weather.CurrentWeather
+import com.example.wakacje1.domain.weather.ForecastDay
+import com.example.wakacje1.domain.weather.WeatherFailure
+import com.example.wakacje1.domain.weather.WeatherResult
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.Dispatchers
@@ -17,54 +21,25 @@ import java.util.Calendar
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
-/**
- * Domenowe wyjątki pogodowe.
- */
-sealed class WeatherException(cause: Throwable? = null) : IOException(cause) {
-    class NetworkError(cause: Throwable) : WeatherException(cause)
-    class CityNotFound : WeatherException()
-    class InvalidApiKey : WeatherException()
-    class ApiError(val code: Int) : WeatherException()
-    class Unknown(cause: Throwable) : WeatherException(cause)
-}
+class WeatherRepository : com.example.wakacje1.domain.weather.WeatherRepository {
 
-class WeatherRepository {
-
-    data class WeatherResult(
-        val city: String,
-        val temperature: Double,
-        val description: String,
-        val conditionId: Int
-    )
-
-    data class WeatherForecastDay(
-        val dateMillis: Long,
-        val tempMin: Double,
-        val tempMax: Double,
-        val description: String,
-        val conditionId: Int,
-        val isBadWeather: Boolean
-    )
-
-    // Cache
+    // Cache TTL
     private val TTL_CURRENT_MS = 10L * 60 * 1000
     private val TTL_FORECAST_MS = 30L * 60 * 1000
 
     private data class CacheEntry<T>(val timestampMs: Long, val value: T)
 
-    private val currentCache = ConcurrentHashMap<String, CacheEntry<WeatherResult>>()
-    private val forecastCache = ConcurrentHashMap<String, CacheEntry<List<WeatherForecastDay>>>()
+    private val currentCache = ConcurrentHashMap<String, CacheEntry<CurrentWeather>>()
+    private val forecastCache = ConcurrentHashMap<String, CacheEntry<List<ForecastDay>>>()
 
     fun clearCache() {
         currentCache.clear()
         forecastCache.clear()
     }
 
-    // ✅ bez require() – domainowy błąd
-    private fun apiKeyOrThrow(): String {
+    private fun apiKeyOrNull(): String? {
         val k = BuildConfig.OPEN_WEATHER_API_KEY
-        if (k.isBlank()) throw WeatherException.InvalidApiKey()
-        return k
+        return k.takeIf { it.isNotBlank() }
     }
 
     private val moshi: Moshi by lazy {
@@ -88,78 +63,91 @@ class WeatherRepository {
             .create(WeatherApi::class.java)
     }
 
-    suspend fun getWeatherForCity(cityQuery: String, forceRefresh: Boolean = false): WeatherResult =
-        withContext(Dispatchers.IO) {
-            val key = cityQuery.trim().lowercase()
+    override suspend fun getCurrentWeather(
+        cityQuery: String,
+        forceRefresh: Boolean
+    ): WeatherResult<CurrentWeather> = withContext(Dispatchers.IO) {
 
-            if (!forceRefresh) {
-                val cached = currentCache[key]
-                if (cached != null && (System.currentTimeMillis() - cached.timestampMs) < TTL_CURRENT_MS) {
-                    return@withContext cached.value
-                }
-            }
+        val q = cityQuery.trim()
+        if (q.isBlank()) return@withContext WeatherResult.Failure(WeatherFailure.NotFound)
 
-            try {
-                val apiKey = apiKeyOrThrow()
-                val res = api.getCurrentWeather(city = cityQuery, apiKey = apiKey)
-                val parsed = mapCurrent(res)
-                currentCache[key] = CacheEntry(System.currentTimeMillis(), parsed)
-                parsed
-            } catch (e: HttpException) {
-                throw mapHttpException(e)
-            } catch (e: IOException) {
-                throw WeatherException.NetworkError(e)
-            } catch (e: WeatherException) {
-                throw e
-            } catch (e: Exception) {
-                throw WeatherException.Unknown(e)
+        val key = q.lowercase()
+
+        if (!forceRefresh) {
+            val cached = currentCache[key]
+            if (cached != null && (System.currentTimeMillis() - cached.timestampMs) < TTL_CURRENT_MS) {
+                return@withContext WeatherResult.Success(cached.value)
             }
         }
 
-    suspend fun getForecastForCity(cityQuery: String, forceRefresh: Boolean = false): List<WeatherForecastDay> =
-        withContext(Dispatchers.IO) {
-            val key = cityQuery.trim().lowercase()
+        val apiKey = apiKeyOrNull()
+            ?: return@withContext WeatherResult.Failure(WeatherFailure.Unauthorized)
 
-            if (!forceRefresh) {
-                val cached = forecastCache[key]
-                if (cached != null && (System.currentTimeMillis() - cached.timestampMs) < TTL_FORECAST_MS) {
-                    return@withContext cached.value
-                }
-            }
-
-            try {
-                val apiKey = apiKeyOrThrow()
-                val res = api.getForecast(city = cityQuery, apiKey = apiKey)
-                val parsed = mapForecastToDays(res)
-                forecastCache[key] = CacheEntry(System.currentTimeMillis(), parsed)
-                parsed
-            } catch (e: HttpException) {
-                throw mapHttpException(e)
-            } catch (e: IOException) {
-                throw WeatherException.NetworkError(e)
-            } catch (e: WeatherException) {
-                throw e
-            } catch (e: Exception) {
-                throw WeatherException.Unknown(e)
-            }
-        }
-
-    private fun mapHttpException(e: HttpException): WeatherException {
-        return when (e.code()) {
-            401 -> WeatherException.InvalidApiKey()
-            404 -> WeatherException.CityNotFound()
-            else -> WeatherException.ApiError(e.code())
+        try {
+            val res = api.getCurrentWeather(city = q, apiKey = apiKey)
+            val parsed = mapCurrent(res)
+            currentCache[key] = CacheEntry(System.currentTimeMillis(), parsed)
+            WeatherResult.Success(parsed)
+        } catch (e: HttpException) {
+            WeatherResult.Failure(mapHttpFailure(e))
+        } catch (e: IOException) {
+            WeatherResult.Failure(WeatherFailure.Network)
+        } catch (e: Exception) {
+            WeatherResult.Failure(WeatherFailure.Unknown(e.message))
         }
     }
 
-    private fun mapCurrent(res: CurrentWeatherResponse): WeatherResult {
+    override suspend fun getForecast(
+        cityQuery: String,
+        forceRefresh: Boolean
+    ): WeatherResult<List<ForecastDay>> = withContext(Dispatchers.IO) {
+
+        val q = cityQuery.trim()
+        if (q.isBlank()) return@withContext WeatherResult.Failure(WeatherFailure.NotFound)
+
+        val key = q.lowercase()
+
+        if (!forceRefresh) {
+            val cached = forecastCache[key]
+            if (cached != null && (System.currentTimeMillis() - cached.timestampMs) < TTL_FORECAST_MS) {
+                return@withContext WeatherResult.Success(cached.value)
+            }
+        }
+
+        val apiKey = apiKeyOrNull()
+            ?: return@withContext WeatherResult.Failure(WeatherFailure.Unauthorized)
+
+        try {
+            val res = api.getForecast(city = q, apiKey = apiKey)
+            val parsed = mapForecastToDays(res)
+            forecastCache[key] = CacheEntry(System.currentTimeMillis(), parsed)
+            WeatherResult.Success(parsed)
+        } catch (e: HttpException) {
+            WeatherResult.Failure(mapHttpFailure(e))
+        } catch (e: IOException) {
+            WeatherResult.Failure(WeatherFailure.Network)
+        } catch (e: Exception) {
+            WeatherResult.Failure(WeatherFailure.Unknown(e.message))
+        }
+    }
+
+    private fun mapHttpFailure(e: HttpException): WeatherFailure {
+        return when (e.code()) {
+            401 -> WeatherFailure.Unauthorized
+            404 -> WeatherFailure.NotFound
+            429 -> WeatherFailure.RateLimited
+            else -> WeatherFailure.ApiError(e.code())
+        }
+    }
+
+    private fun mapCurrent(res: CurrentWeatherResponse): CurrentWeather {
         val city = res.name?.takeIf { it.isNotBlank() } ?: ""
         val temp = res.main?.temp ?: 0.0
         val w0 = res.weather?.firstOrNull()
         val desc = w0?.description ?: ""
         val id = w0?.id ?: 0
 
-        return WeatherResult(
+        return CurrentWeather(
             city = city,
             temperature = temp,
             description = desc,
@@ -176,7 +164,7 @@ class WeatherRepository {
         var totalCount: Int
     )
 
-    private fun mapForecastToDays(res: ForecastResponse): List<WeatherForecastDay> {
+    private fun mapForecastToDays(res: ForecastResponse): List<ForecastDay> {
         val items = res.list.orEmpty()
         val acc = mutableMapOf<Long, Agg>()
 
@@ -212,7 +200,7 @@ class WeatherRepository {
 
         return acc.map { (dayMillis, agg) ->
             val badRatio = if (agg.totalCount == 0) 0.0 else (agg.badCount.toDouble() / agg.totalCount)
-            WeatherForecastDay(
+            ForecastDay(
                 dateMillis = dayMillis,
                 tempMin = agg.min,
                 tempMax = agg.max,

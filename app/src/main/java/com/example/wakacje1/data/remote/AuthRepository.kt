@@ -17,13 +17,8 @@ class AuthRepository(private val firebaseAuth: FirebaseAuth) {
     val currentUser: FirebaseUser?
         get() = firebaseAuth.currentUser
 
-    /**
-     * Logowanie przy użyciu adresu email i hasła.
-     * Zamienia asynchroniczny Task Firebase na funkcję zawieszającą (suspend).
-     */
     suspend fun signIn(email: String, pass: String): Result<Unit> {
         return try {
-            // await() czeka na zakończenie Taska bez blokowania wątku
             firebaseAuth.signInWithEmailAndPassword(email, pass).await()
             Result.success(Unit)
         } catch (e: Exception) {
@@ -31,10 +26,6 @@ class AuthRepository(private val firebaseAuth: FirebaseAuth) {
         }
     }
 
-    /**
-     * Rejestracja nowego konta.
-     * Po udanym utworzeniu użytkownik jest automatycznie logowany przez SDK.
-     */
     suspend fun register(email: String, pass: String): Result<Unit> {
         return try {
             firebaseAuth.createUserWithEmailAndPassword(email, pass).await()
@@ -45,8 +36,33 @@ class AuthRepository(private val firebaseAuth: FirebaseAuth) {
     }
 
     /**
-     * Wysyła wiadomość email z linkiem do resetowania hasła.
+     * Odświeża dane bieżącego użytkownika (ważne dla isEmailVerified).
      */
+    suspend fun reloadCurrentUser(): Result<Unit> {
+        val u = currentUser ?: return Result.failure(IllegalStateException("No user"))
+        return try {
+            u.reload().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    fun isEmailVerified(): Boolean = currentUser?.isEmailVerified == true
+
+    /**
+     * Wysyła email weryfikacyjny na adres aktualnego użytkownika.
+     */
+    suspend fun sendEmailVerification(): Result<Unit> {
+        val u = currentUser ?: return Result.failure(IllegalStateException("No user"))
+        return try {
+            u.sendEmailVerification().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun sendPasswordReset(email: String): Result<Unit> {
         return try {
             firebaseAuth.sendPasswordResetEmail(email).await()
@@ -56,9 +72,6 @@ class AuthRepository(private val firebaseAuth: FirebaseAuth) {
         }
     }
 
-    /**
-     * Wylogowuje użytkownika i czyści sesję lokalną.
-     */
     fun signOut() {
         firebaseAuth.signOut()
     }

@@ -1,11 +1,11 @@
 package com.example.wakacje1.domain.engine
 
 import com.example.wakacje1.R
-import com.example.wakacje1.data.assets.ActivityTemplate
-import com.example.wakacje1.data.assets.ActivityType
 import com.example.wakacje1.domain.model.*
 import com.example.wakacje1.domain.util.StringProvider
 import kotlin.collections.plusAssign
+import com.example.wakacje1.domain.assets.ActivityTemplate
+import com.example.wakacje1.domain.assets.ActivityType
 
 /**
  * Silnik (Engine) generujący harmonogram wycieczki.

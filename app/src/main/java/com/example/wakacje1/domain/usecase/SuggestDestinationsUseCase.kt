@@ -1,9 +1,10 @@
 package com.example.wakacje1.domain.usecase
 
-import com.example.wakacje1.data.assets.DestinationRepository
+
 import com.example.wakacje1.domain.model.Destination
 import com.example.wakacje1.domain.model.Preferences
-import kotlin.math.abs
+import com.example.wakacje1.domain.assets.DestinationRepository
+
 
 enum class TransportPass { T_MAX, T_AVG, T_MIN }
 

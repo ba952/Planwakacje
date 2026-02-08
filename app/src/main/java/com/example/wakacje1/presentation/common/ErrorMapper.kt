@@ -1,7 +1,6 @@
 package com.example.wakacje1.presentation.common
 
 import com.example.wakacje1.R
-import com.example.wakacje1.data.remote.WeatherException
 import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.firestore.FirebaseFirestoreException
 import kotlinx.coroutines.TimeoutCancellationException
@@ -12,6 +11,9 @@ import java.net.UnknownHostException
 /**
  * Mapuje Throwable -> AppError bez surowych tekstów w kodzie.
  * Każdy komunikat użytkownika pochodzi z strings.xml (R.string.*).
+ *
+ * Uwaga: błędy pogodowe są mapowane z WeatherFailure -> UiText w VacationWeatherManager,
+ * więc ErrorMapper nie zawiera już wyjątków pogodowych.
  */
 object ErrorMapper {
 
@@ -19,27 +21,6 @@ object ErrorMapper {
         val tech = t.message
 
         return when (t) {
-            // --- WYJĄTKI DOMENOWE (Weather) ---
-            is WeatherException.NetworkError -> AppError.Recoverable(
-                UiText.StringResource(R.string.error_weather_network),
-                tech
-            )
-            is WeatherException.CityNotFound -> AppError.Recoverable(
-                UiText.StringResource(R.string.error_weather_city_not_found),
-                tech
-            )
-            is WeatherException.InvalidApiKey -> AppError.Recoverable(
-                UiText.StringResource(R.string.error_weather_api_key),
-                tech
-            )
-            is WeatherException.ApiError -> AppError.Recoverable(
-                UiText.StringResource(R.string.error_weather_general, t.code),
-                tech
-            )
-            is WeatherException.Unknown -> AppError.Unknown(
-                fallback = UiText.StringResource(R.string.error_unknown),
-                tech = t.cause?.message
-            )
 
             // --- Firebase ---
             is FirebaseFirestoreException -> when (t.code) {

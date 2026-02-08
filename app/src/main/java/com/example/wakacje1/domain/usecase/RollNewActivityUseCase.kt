@@ -1,6 +1,6 @@
 package com.example.wakacje1.domain.usecase
 
-import com.example.wakacje1.data.assets.ActivitiesRepository
+
 import com.example.wakacje1.domain.engine.PlanGenerator
 import com.example.wakacje1.domain.model.DaySlot
 import com.example.wakacje1.domain.model.Destination
@@ -8,6 +8,7 @@ import com.example.wakacje1.domain.model.InternalDayPlan
 import com.example.wakacje1.domain.model.Preferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.example.wakacje1.domain.assets.ActivitiesRepository
 
 class RollNewActivityUseCase(
     private val activitiesRepository: ActivitiesRepository,

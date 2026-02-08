@@ -14,6 +14,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -37,11 +38,13 @@ import com.example.wakacje1.R
 import com.example.wakacje1.presentation.viewmodel.AuthEvent
 import com.example.wakacje1.presentation.viewmodel.AuthViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     authVm: AuthViewModel,
     onDone: () -> Unit,
-    onGoRegister: () -> Unit
+    onGoRegister: () -> Unit,
+    onContinueAsGuest: () -> Unit
 ) {
     val state by authVm.state.collectAsState()
 
@@ -49,10 +52,12 @@ fun LoginScreen(
     var pass by remember { mutableStateOf("") }
     val showReset = remember { mutableStateOf(false) }
 
-    // Nawigacja po sukcesie logowania – VM emituje event, UI reaguje.
     LaunchedEffect(Unit) {
         authVm.events.collect { e ->
-            if (e is AuthEvent.NavigateAfterAuth) onDone()
+            when (e) {
+                is AuthEvent.NavigateAfterAuth -> onDone()
+                is AuthEvent.NavigateAfterRegister -> Unit
+            }
         }
     }
 
@@ -103,7 +108,6 @@ fun LoginScreen(
 
                 Spacer(Modifier.height(8.dp))
 
-                // Error
                 state.error?.let { uiText ->
                     Spacer(Modifier.height(6.dp))
                     Text(
@@ -113,7 +117,6 @@ fun LoginScreen(
                     )
                 }
 
-                // Info
                 state.info?.let { uiText ->
                     Spacer(Modifier.height(6.dp))
                     Text(
@@ -155,6 +158,16 @@ fun LoginScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(stringResource(R.string.btn_go_to_register))
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                OutlinedButton(
+                    onClick = onContinueAsGuest,
+                    enabled = !state.loading,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.btn_continue_as_guest))
                 }
             }
 

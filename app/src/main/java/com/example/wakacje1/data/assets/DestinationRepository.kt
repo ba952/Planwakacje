@@ -10,13 +10,18 @@ import java.util.Locale
 /**
  * Repozytorium odczytujące dane o destynacjach z pliku JSON (assets).
  * Wykorzystuje cache w pamięci.
+ *
+ * B2: implementuje kontrakt domenowy (domain.assets.DestinationRepository),
+ * żeby domain nie znał data.assets.
  */
-class DestinationRepository(private val context: Context) {
+class DestinationRepository(
+    private val context: Context
+) : com.example.wakacje1.domain.assets.DestinationRepository {
 
     // Leniwe ładowanie (lazy) - dane są parsowane tylko raz przy pierwszym użyciu
     private val cachedDestinations: List<Destination> by lazy { loadDestinationsFromAssets() }
 
-    fun getAllDestinations(): List<Destination> = cachedDestinations
+    override fun getAllDestinations(): List<Destination> = cachedDestinations
 
     private fun loadDestinationsFromAssets(): List<Destination> {
         val inputStream = context.assets.open("destinations.json")

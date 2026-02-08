@@ -10,11 +10,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold // 1. Dodany import
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -32,6 +33,7 @@ import com.example.wakacje1.R
 import com.example.wakacje1.presentation.viewmodel.AuthEvent
 import com.example.wakacje1.presentation.viewmodel.AuthViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
     authVm: AuthViewModel,
@@ -45,21 +47,18 @@ fun RegisterScreen(
 
     LaunchedEffect(Unit) {
         authVm.events.collect { e ->
-            if (e is AuthEvent.NavigateAfterAuth) onDone()
+            when (e) {
+                is AuthEvent.NavigateAfterRegister -> onDone()
+                is AuthEvent.NavigateAfterAuth -> Unit
+            }
         }
     }
 
-    // 2. Używamy Scaffold jako głównego kontenera.
-    // Scaffold automatycznie ustawia kolor tła na MaterialTheme.colorScheme.background
-    Scaffold(
-        modifier = Modifier.fillMaxSize()
-    ) { innerPadding ->
-
-        // Box jest teraz wewnątrz Scaffolda, żeby wycentrować treść
+    Scaffold { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding), // Ważne: uwzględniamy padding ze Scaffolda
+                .padding(paddingValues),
             contentAlignment = Alignment.Center
         ) {
             Column(
@@ -72,7 +71,6 @@ fun RegisterScreen(
                     text = stringResource(R.string.register_title),
                     style = MaterialTheme.typography.headlineMedium
                 )
-
                 Spacer(Modifier.height(16.dp))
 
                 OutlinedTextField(
@@ -102,12 +100,7 @@ fun RegisterScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Text(
-                    text = stringResource(R.string.password_requirements_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
+                Spacer(Modifier.height(8.dp))
 
                 state.error?.let { uiText ->
                     Spacer(Modifier.height(6.dp))
@@ -122,8 +115,8 @@ fun RegisterScreen(
                     Spacer(Modifier.height(6.dp))
                     Text(
                         text = uiText.asString(),
-                        color = MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
 
@@ -134,17 +127,17 @@ fun RegisterScreen(
                     enabled = !state.loading,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(stringResource(R.string.btn_register_action))
+                    Text(stringResource(R.string.btn_register))
                 }
 
-                Spacer(Modifier.height(18.dp))
+                Spacer(Modifier.height(10.dp))
 
-                TextButton(
+                OutlinedButton(
                     onClick = onGoLogin,
                     enabled = !state.loading,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(stringResource(R.string.btn_have_account_login))
+                    Text(stringResource(R.string.btn_login))
                 }
             }
 
